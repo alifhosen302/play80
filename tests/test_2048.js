@@ -1,0 +1,15 @@
+const assert=require('node:assert/strict');
+const {compactLine,move,canMove}=require('../assets/play80_practice_2048.js');
+assert.deepEqual(compactLine([2,2,2,2]),{line:[4,4,0,0],gain:8});
+assert.deepEqual(compactLine([4,4,8,8]),{line:[8,16,0,0],gain:24});
+assert.deepEqual(compactLine([2,0,2,2]),{line:[4,2,0,0],gain:4});
+assert.deepEqual(compactLine([0,0,0,0]),{line:[0,0,0,0],gain:0});
+assert.deepEqual(move([[2,0,2,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],'left').grid[0],[4,0,0,0]);
+assert.deepEqual(move([[2,0,2,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],'right').grid[0],[0,0,0,4]);
+assert.deepEqual(move([[2,0,0,0],[2,0,0,0],[0,0,0,0],[0,0,0,0]],'up').grid[0],[4,0,0,0]);
+assert.deepEqual(move([[2,0,0,0],[2,0,0,0],[0,0,0,0],[0,0,0,0]],'down').grid[3],[4,0,0,0]);
+assert.equal(move([[2,4,8,16],[32,64,128,256],[512,1024,2,4],[8,16,32,64]],'left').moved,false);
+assert.equal(canMove([[2,4,8,16],[32,64,128,256],[512,1024,2,4],[8,16,32,64]]),false);
+assert.equal(canMove([[2,2,8,16],[32,64,128,256],[512,1024,2,4],[8,16,32,64]]),true);
+assert.throws(()=>move([[2,4,0,0]],'left'));
+console.log('PASS 12 focused tests: merges, no double merge, 4 directions, game over, input validation');
