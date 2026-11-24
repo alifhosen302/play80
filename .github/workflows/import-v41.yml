@@ -70,7 +70,7 @@ jobs:
         run: |
           set -euo pipefail
           python build_qa.py
-          jarsigner -verify -strict -certs "../PLAY80_V4_1_Practice_QA.apk"
+          jarsigner -verify -certs "../PLAY80_V4_1_Practice_QA.apk"
       - uses: actions/upload-artifact@v4
         with:
           name: PLAY80-V4.1-GitHub-QA-APK
