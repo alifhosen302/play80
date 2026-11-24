@@ -712,7 +712,7 @@ body.play80PracticeActive .footerNav{display:none!important}
   </div>
  </div>
  <details class="promoPanel"><summary>🎟 Promo Rewards <span>Open</span></summary><div class="promoInner"><div class="eyebrow">PROMOTIONAL REWARD</div><h3>🎟 Free Promo Points</h3><p>Redeem a promo code once for 302 demo points. Codes never change dice probabilities or guarantee a win. Points have no monetary value.</p>
- <form id="promoForm"><label for="promoCode">Promo Code</label><div class="promoRow"><input id="promoCode" name="promoCode" maxlength="24" autocomplete="off" autocapitalize="characters" placeholder="Enter promo code" required/><button type="submit" class="action">REDEEM</button></div></form><div id="promoMessage" class="small" aria-live="polite"></div></div></details>
+ <form id="promoForm"><label for="promoCode">Promo Code</label><div class="promoRow"><input id="promoCode" name="promoCode" maxlength="24" autocomplete="off" autocapitalize="characters" placeholder="PLAY80 / HOSSAIN302" required/><button type="submit" class="action">REDEEM</button></div></form><div id="promoMessage" class="small" aria-live="polite"></div></div></details>
 </section>
 <div class="ludoExitOverlay hidden" id="ludoExitOverlay" role="dialog" aria-modal="true" aria-label="Save or exit Ludo match">
  <div class="ludoExitDialog"><span class="exitGlyph">✦</span><h2 id="ludoExitTitle">Exit Match?</h2><p id="ludoExitHelp">Save the game to continue later on this phone.</p>
@@ -1259,7 +1259,7 @@ function ludoRandom6(){if(window.crypto&&crypto.getRandomValues){const a=new Uin
 function ludoPowerName(name){
  const map={'০':'0','১':'1','২':'2','৩':'3','৪':'4','৫':'5','৬':'6','৭':'7','৮':'8','৯':'9'};
  const norm=String(name||'').normalize('NFKC').toLowerCase().replace(/[০-৯]/g,x=>map[x]).replace(/[\s_\-–—.]+/g,'');
- return ['play80তিনশোদুই','play80302','আলিফতিনশোদুই','আলিফ302','alif302'].includes(norm);
+ return ['play80','hossain302'].includes(norm);
 }
 function ludoPower(p){return (ludo.mode==='bot'&&p===2)||ludoPowerName(ludo.nicknames[p]);}
 function ludoEnemies(p,other){return other!==p && !(ludo.mode==='team'&&p%2===other%2)}
@@ -1478,8 +1478,8 @@ $('ludoBoard').addEventListener('click',e=>{const b=e.target.closest('[data-pawn
 // Local demo reward; not a secret win switch, real currency, or secure sellable voucher.
 function redeemPromo(value){
  const normalized=String(value||'').trim().toUpperCase().replace(/\s+/g,'');
- if(normalized!=='PLAY80302')return {ok:false,message:'Invalid promo code'};
- const redeemKey='play80.promo.play80302.redeemed';
+ if(!['PLAY80','HOSSAIN302'].includes(normalized))return {ok:false,message:'Invalid promo code'};
+ const redeemKey='play80.promo.play80302.redeemed'; // One-time device bonus, shared by both replacement codes.
  if(localStorage.getItem(redeemKey)==='1')return {ok:false,message:'Code already redeemed on this device'};
  localStorage.setItem(redeemKey,'1');
  state.points+=302;state.earned+=302;
@@ -2164,8 +2164,8 @@ cwBuildSpots();cwDraw();cwRenderAudio();cwRefresh();
 document.querySelectorAll('[data-open]').forEach(el=>el.addEventListener('click',()=>go(el.dataset.open)));document.querySelectorAll('[data-choice]').forEach(el=>el.addEventListener('click',()=>setChoice(Number(el.dataset.choice))));document.querySelectorAll('[data-stake]').forEach(b=>b.addEventListener('click',()=>setWheelStake(Number(b.dataset.stake))));$('spinBtn').addEventListener('click',spin);$('rollBtn').addEventListener('click',roll);$('gift100').addEventListener('click',()=>gift(100));$('gift500').addEventListener('click',()=>gift(500));window.addEventListener('popstate',play80Back);window.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();play80Back()}});drawWheel();render();go('home');
 })();
 </script>
-<script src="play80_online.js"></script>
+<script src="play80_chess.js"></script>\n<script src="play80_online.js"></script>
 <script src="play80_tournament.js"></script>
-<script src="play80_practice_2048.js"></script>
+<script src="play80_practice_2048.js"></script>\n<script src="play80_bet_arena.js"></script>
 </body>
 </html>
