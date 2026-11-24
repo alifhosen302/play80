@@ -214,7 +214,10 @@
     rows.forEach(u=>{
       const card=document.createElement('div');card.className='cloudRequestItem';
       card.append(createText('strong',(u.username?'@'+u.username+' • ':'')+(u.email||u.id)));
+      card.append(createText('small','ID: '+u.id+' | Display name: '+(u.display_name||'—')+' | Joined: '+escDate(u.created_at)));
+      card.append(createText('small','Role: '+u.role+' | Email verified: '+(u.email_verified?'YES':'NO')+' | Suspended: '+(u.suspended?'YES':'NO')));
       card.append(createText('small','Role: '+u.role+' | Balance: '+u.balance+' | Held: '+u.held_balance+' | Available: '+(Number(u.balance)-Number(u.held_balance))));
+      if(isOwner() && u.role==='player'){
       const amount=document.createElement('input');amount.type='number';amount.min='1';amount.max='1000000';amount.placeholder='Demo coins to send (1–1000000)';
       card.append(amount);
       card.append(makeButton('➕ SEND DEMO COINS',async()=>{
@@ -222,10 +225,12 @@
         if(!Number.isSafeInteger(num)||num<1||num>1000000)throw Error('Enter a valid whole coin amount');
         if(!confirm('Send '+num+' VIRTUAL coins to '+(u.email||u.id)+'? Confirm?'))return;
         const operation=crypto.randomUUID?crypto.randomUUID():([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16));
-        const result=await staffRpc('staff_send_demo_coins',{p_target_user:u.id,p_amount:num,p_operation_id:operation,p_note:'Owner/Admin manual demo grant'});
+        const result=await staffRpc('staff_send_demo_coins',{p_target_user:u.id,p_amount:num,p_operation_id:operation,p_note:'Owner manual demo grant'});
         ownerStatus(result?.duplicate?'Already processed this request.':'Sent '+num+' virtual coins. New total '+result.balance_after);
         amount.value='';await loadStaffUsers();
       }));
+      }
+      if(isOwner())attachOwnerUserTools(card,u);
       if(isOwner() && u.role!=='owner'){
         card.append(makeButton(u.role==='admin'?'REMOVE ADMIN ROLE':'MAKE ADMIN',async()=>{
           const action=u.role==='admin'?'revoke':'grant';
