@@ -1,0 +1,62 @@
+name: PLAY80 source checks
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'assets/**'
+      - 'tests/**'
+      - 'build_qa.py'
+      - 'release_check.py'
+      - '.github/workflows/verify.yml'
+  pull_request:
+    paths:
+      - 'assets/**'
+      - 'tests/**'
+      - 'build_qa.py'
+      - 'release_check.py'
+      - '.github/workflows/verify.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  source-and-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify full source is checked in
+        run: |
+          set -euo pipefail
+          for file in build_qa.py assets/index.html assets/play80_online.js assets/play80_tournament.js assets/play80_practice_2048.js tests/test_2048.js; do
+            if [[ ! -f "$file" ]]; then
+              echo "::error file=$file::Source import incomplete. Refusing to claim a valid build."
+              exit 1
+            fi
+          done
+      - name: Python syntax verification
+        run: python -m compileall -q build_qa.py release_check.py
+      - name: JavaScript syntax verification
+        run: |
+          node --check assets/play80_online.js
+          node --check assets/play80_tournament.js
+          node --check assets/play80_practice_2048.js
+      - name: 2048 game logic unit tests
+        run: node tests/test_2048.js
+      - name: Scan committed files for signing secrets
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          banned={'.keystore','.jks','.p12','.pfx','.pem','.key'}
+          files=[str(f) for f in Path('.').rglob('*') if f.is_file() and '.git' not in f.parts and f.suffix.lower() in banned]
+          if files:
+              raise SystemExit('Signing or secret files may not be committed: '+str(files))
+          print('No signing key file extensions committed')
+          PY
