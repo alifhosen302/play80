@@ -416,8 +416,7 @@
   inbox.innerHTML='<h3>💬 Secure Owner Inbox</h3><p class="tiny">Messages from registered players, including deletion requests. Customer passwords are never visible.</p><input id="p8InboxSearch" maxlength="80" placeholder="Search by user ID / username / email" class="cloudSelect" style="width:100%;margin-bottom:9px"><button class="action secondary" id="p8InboxRefresh" type="button">SEARCH MESSAGES</button><div id="p8OwnerInboxList" class="cloudList"></div>';
   $('cloudStaffTab-users').parentNode.append(inbox);
   const inboxTab=document.createElement('button');inboxTab.type='button';inboxTab.className='cloudStaffTab';inboxTab.dataset.staffTab='inbox';inboxTab.textContent='💬 Messages / Deletion';
-  $('cloudStaffTab-users').previousElementSibling?.after(inboxTab);
-  const oldSwitch=switchStaffTab;
+  document.querySelector('.cloudStaffTabs')?.append(inboxTab);
   async function loadOwnerInbox(){
     if(!isOwner())throw Error('Owner only');
     const rows=await staffRpc('play80_owner_support_messages',{p_search:$('p8InboxSearch').value.trim()});
