@@ -1,0 +1,74 @@
+name: Publish PLAY80 V4.1 QA prerelease
+
+on:
+  push:
+    paths:
+      - '.github/workflows/release-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  qa-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Confirm verified source and run unit checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          for path in assets/index.html assets/play80_online.js assets/play80_tournament.js assets/play80_practice_2048.js build_qa.py tests/test_2048.js; do
+            test -s "$path" || { echo "::error::Missing $path"; exit 1; }
+          done
+          node --check assets/play80_practice_2048.js
+          node --check assets/play80_online.js
+          node --check assets/play80_tournament.js
+          node tests/test_2048.js
+          python -m compileall -q build_qa.py release_check.py
+      - name: Generate TEMPORARY test-only signing certificate
+        shell: bash
+        run: |
+          set -euo pipefail
+          keytool -genkeypair -noprompt -alias play80 -keyalg RSA -keysize 2048 -validity 7 \
+            -dname "CN=PLAY80 Disposable QA" -storetype PKCS12 \
+            -keystore "$RUNNER_TEMP/play80-qa.jks" -storepass "disposable-play80-qa-build" -keypass "disposable-play80-qa-build"
+          echo "PLAY80_SIGNING_KEYSTORE=$RUNNER_TEMP/play80-qa.jks" >> "$GITHUB_ENV"
+          echo "PLAY80_SIGNING_PASSWORD=disposable-play80-qa-build" >> "$GITHUB_ENV"
+      - name: Build and verify signed QA APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          python build_qa.py
+          jarsigner -verify -certs ../PLAY80_V4_1_Practice_QA.apk
+          mkdir -p dist
+          cp ../PLAY80_V4_1_Practice_QA.apk dist/PLAY80_V4_1_GitHub_QA.apk
+          sha256sum dist/PLAY80_V4_1_GitHub_QA.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PLAY80-V4.1-QA
+          path: dist/PLAY80_V4_1_GitHub_QA.apk
+          retention-days: 14
+      - name: Publish explicit prerelease (not production)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG=qa-v4.1-github-20261124
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release tag already exists; leaving existing file unchanged."
+            exit 0
+          fi
+          gh release create "$TAG" dist/PLAY80_V4_1_GitHub_QA.apk \
+            --target "$GITHUB_SHA" \
+            --title "PLAY80 V4.1 QA — GitHub build (not production)" \
+            --prerelease \
+            --notes "Verified QA build from the editable PLAY80 V4.1 source. Non-redeemable demo coins only. This uses a DISPOSABLE self-signed QA key and QA package com.play80.arcade.master.tournamentv41qa; it will NOT update the previous installed app in place. No real Android-device or full security/end-to-end certification."
