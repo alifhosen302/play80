@@ -2164,7 +2164,8 @@ cwBuildSpots();cwDraw();cwRenderAudio();cwRefresh();
 document.querySelectorAll('[data-open]').forEach(el=>el.addEventListener('click',()=>go(el.dataset.open)));document.querySelectorAll('[data-choice]').forEach(el=>el.addEventListener('click',()=>setChoice(Number(el.dataset.choice))));document.querySelectorAll('[data-stake]').forEach(b=>b.addEventListener('click',()=>setWheelStake(Number(b.dataset.stake))));$('spinBtn').addEventListener('click',spin);$('rollBtn').addEventListener('click',roll);$('gift100').addEventListener('click',()=>gift(100));$('gift500').addEventListener('click',()=>gift(500));window.addEventListener('popstate',play80Back);window.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();play80Back()}});drawWheel();render();go('home');
 })();
 </script>
-<script src="play80_chess.js"></script>\n<script src="play80_online.js"></script>
+<script src="play80_chess.js"></script>
+<script src="play80_online.js"></script>
 <script src="play80_tournament.js"></script>
 <script src="play80_practice_2048.js"></script>
 <script src="play80_bet_arena.js"></script>
