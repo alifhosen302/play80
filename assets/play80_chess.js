@@ -4,7 +4,7 @@
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;root.PLAY80Chess=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
 'use strict';
 const INIT='rnbqkbnrpppppppp................................PPPPPPPPRNBQKBNR';
-const color=p=>!p?null:p===p.toUpperCase()?'w':'b';
+const color=p=>(!p||p==='.')?null:p===p.toUpperCase()?'w':'b';
 const enemy=c=>c==='w'?'b':'w';
 const rc=i=>[Math.floor(i/8),i%8],at=(r,c)=>r*8+c,inside=(r,c)=>r>=0&&r<8&&c>=0&&c<8;
 function start(){return {board:INIT.split(''),turn:'w',castle:{K:true,Q:true,k:true,q:true},ep:-1,last:null,finished:null,halfmove:0};}
