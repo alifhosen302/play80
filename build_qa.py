@@ -28,7 +28,7 @@ def strdata(s):
 def axml():
     android_uri='http://schemas.android.com/apk/res/android'
     sset={
-        'android',android_uri,'manifest','package',APP_PACKAGE,'versionCode','versionName','4.1',
+        'android',android_uri,'manifest','package',APP_PACKAGE,'versionCode','versionName','4.2',
         'uses-sdk','uses-permission','android.permission.INTERNET','minSdkVersion','targetSdkVersion','application','label','play80',
         'hasCode','icon','activity','name',APP_ACTIVITY,'exported','intent-filter','action',
         'android.intent.action.MAIN','category','android.intent.category.LAUNCHER'
