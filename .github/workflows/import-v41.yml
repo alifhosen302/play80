@@ -1,0 +1,102 @@
+name: Import source and build PLAY80 QA
+
+on:
+  push:
+    paths:
+      - '.github/workflows/import-v41.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  import-test-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Restore reviewed V4.1 archive from staging fragments
+        shell: bash
+        run: |
+          set -euo pipefail
+          count=$(find .source-transfer -name 'chunk-*.txt' | wc -l)
+          test "$count" -eq 26 || { echo "::error::Expected 26 source fragments, got $count"; exit 1; }
+          cat .source-transfer/chunk-*.txt | base64 --decode > "$RUNNER_TEMP/PLAY80_V4_1_QA_Source.zip"
+          echo "564a3378c9d5b8b55cd30cabcca4a52963f894f578b1767f69019077a08e9c5c  $RUNNER_TEMP/PLAY80_V4_1_QA_Source.zip" | sha256sum --check --status
+          python -m zipfile -t "$RUNNER_TEMP/PLAY80_V4_1_QA_Source.zip"
+          unzip -q "$RUNNER_TEMP/PLAY80_V4_1_QA_Source.zip" -d .
+          test -f assets/index.html
+          test -f build_qa.py
+          test -f assets/play80_practice_2048.js
+      - name: Source syntax and 2048 unit tests
+        run: |
+          set -euo pipefail
+          node --check assets/play80_online.js
+          node --check assets/play80_tournament.js
+          node --check assets/play80_practice_2048.js
+          node tests/test_2048.js
+          python -m compileall -q build_qa.py release_check.py
+      - name: Exclude sensitive key material from git
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          banned={'.keystore','.jks','.p12','.pfx','.pem','.key'}
+          matches=[str(f) for f in Path('.').rglob('*') if f.is_file() and '.git' not in f.parts and f.suffix.lower() in banned]
+          if matches: raise SystemExit('Potential secrets in source: '+str(matches))
+          print('Source file-extension scan passed')
+          PY
+      - name: Generate disposable QA signing identity
+        env:
+          QA_PASSWORD: ${{ secrets.PLAY80_QA_KEYSTORE_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # QA-only signing identity. These builds are not stable-key in-place updates.
+          keytool -genkeypair -noprompt -alias play80 -keyalg RSA -keysize 2048 -validity 7 \
+            -dname "CN=PLAY80 QA Build" -storetype PKCS12 \
+            -keystore "$RUNNER_TEMP/play80-qa.jks" -storepass "temporary-qa-only-2026" -keypass "temporary-qa-only-2026"
+          echo "PLAY80_SIGNING_KEYSTORE=$RUNNER_TEMP/play80-qa.jks" >> "$GITHUB_ENV"
+          echo "PLAY80_SIGNING_PASSWORD=temporary-qa-only-2026" >> "$GITHUB_ENV"
+      - name: Build signed QA Android APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          python build_qa.py
+          jarsigner -verify -strict -certs "../PLAY80_V4_1_Practice_QA.apk"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PLAY80-V4.1-GitHub-QA-APK
+          path: ../PLAY80_V4_1_Practice_QA.apk
+          if-no-files-found: error
+          retention-days: 14
+      - name: Keep one editable source tree in GitHub
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .source-transfer build
+          cat > .gitignore <<'EOF'
+          build/
+          *.apk
+          *.keystore
+          *.jks
+          *.p12
+          *.pfx
+          *.pem
+          *.key
+          __pycache__/
+          .pytest_cache/
+          EOF
+          git config user.name "play80-ci"
+          git config user.email "play80-ci@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && exit 0
+          git commit -m "source: import editable PLAY80 V4.1 QA baseline"
+          git push origin HEAD:main
