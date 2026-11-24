@@ -30,6 +30,11 @@
  promo.querySelector('.play80Promo').innerHTML='<h2>♟️ PLAY80 — BET ARENA</h2><p>Online room matching and friend invitations with virtual demo coin amounts. Real-money stakes and cash payouts are NOT supported. Remote game moves and winner settlement are not active yet.</p>';
  const section=promo.querySelectorAll('.play80Surface');
  if(section[0]){section[0].querySelector('h2').textContent='🎲 Ludo • 2–4 Players';section[0].querySelector('p').textContent='Local Ludo & Expert AI ready. Online room matching below: same virtual stake, same seat count.';}
+ // Move the ORIGINAL, already-tested Ludo tile from Casino into Bet (same element/listeners).
+ const originalLudoTile=document.querySelector('#screen-home .gameTile[data-game-id="ludo"]');
+ if(originalLudoTile&&section[0]){const grid=document.createElement('div');grid.className='cards';grid.style.marginTop='12px';grid.appendChild(originalLudoTile);section[0].appendChild(grid);}
+ if(section[0]){const aiButton=document.createElement('button');aiButton.type='button';aiButton.className='play80SecondaryBtn';aiButton.style.marginTop='10px';aiButton.textContent='🤖 PLAY LUDO VS COMPUTER';aiButton.addEventListener('click',()=>{const local=section[0].querySelector('[data-open="ludo"]');local?.click();document.querySelector('#screen-ludo [data-mode="bot"]')?.click();});section[0].appendChild(aiButton);}
+
  if(section[1]){section[1].querySelector('h2').textContent='♟️ Chess • 2 Players';section[1].querySelector('p').textContent='Chess practice with legal move checking, castling, promotion, check/checkmate. Online player matching below.';section[1].querySelector('button').removeAttribute('disabled');section[1].querySelector('button').textContent='PLAY CHESS — LOCAL PRACTICE';section[1].querySelector('button').id='p8OpenChess';}
  if(section[2]){section[2].querySelector('p').textContent='Virtual fee illustration only: 10% of EACH player stake. Winner prize preview: players × stake × 90%. Example: two players × 100 = 200, company fee preview 20, winner preview 180. No demo coins are debited or credited by this lobby.';}
  const panel=document.createElement('div');panel.className='play80Surface';panel.innerHTML=`
