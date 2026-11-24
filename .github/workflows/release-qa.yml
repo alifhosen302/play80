@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - '.github/workflows/release-qa.yml'
+      - 'build_qa.py'
   workflow_dispatch:
 
 permissions:
@@ -74,4 +75,4 @@ jobs:
             --target "$GITHUB_SHA" \
             --title "PLAY80 V4.2 QA — GitHub build (not production)" \
             --prerelease \
-            --notes "Verified QA build from the editable PLAY80 V4.2 source. Non-redeemable demo coins only. This uses a DISPOSABLE self-signed QA key and QA package com.play80.arcade.master.tournamentv41qa; it will NOT update the previous installed app in place. No real Android-device or full security/end-to-end certification."
+            --notes "Verified QA build from editable PLAY80 V4.2 source. Multiplayer lobby and local chess are demos; remote moves and prize settlement are not operational. Non-redeemable demo coins only. This uses a DISPOSABLE self-signed QA key and QA package com.play80.arcade.master.tournamentv41qa; it will NOT update the previous installed app in place. No real Android-device or full security/end-to-end certification."
