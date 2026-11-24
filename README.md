@@ -8,7 +8,7 @@ Private Android demo-gaming project. The single source of truth for application 
 - Supabase project: `suhpmjqrcqkzaslptpca` (Play80 only).
 - Existing Hossain Group project is unrelated and must remain untouched.
 - All virtual coins are **non-redeemable demo currency**. No real-money payment, withdrawal, or cash conversion.
-- The V4.1 source archive is **not uploaded yet**. This repository presently contains CI infrastructure and documentation only. Do not claim the app has been built from this repository until the source files are committed and GitHub Actions succeeds.
+- The editable V4.1 QA source is now committed in this repository. GitHub Actions import-and-build run #45450637564 passed source-integrity verification, 2048 unit tests, JavaScript/Python syntax checks, and the signed QA APK artifact upload. This is not a full production security audit or Android device validation.
 
 ## Single-app release policy
 
