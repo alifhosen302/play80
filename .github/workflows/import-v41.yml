@@ -71,17 +71,19 @@ jobs:
           set -euo pipefail
           python build_qa.py
           jarsigner -verify -certs "../PLAY80_V4_1_Practice_QA.apk"
+          mkdir -p dist
+          cp "../PLAY80_V4_1_Practice_QA.apk" dist/PLAY80_V4_1_Practice_QA.apk
       - uses: actions/upload-artifact@v4
         with:
           name: PLAY80-V4.1-GitHub-QA-APK
-          path: ../PLAY80_V4_1_Practice_QA.apk
+          path: dist/PLAY80_V4_1_Practice_QA.apk
           if-no-files-found: error
           retention-days: 14
       - name: Keep one editable source tree in GitHub
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf .source-transfer build
+          rm -rf .source-transfer build dist
           cat > .gitignore <<'EOF'
           build/
           *.apk
