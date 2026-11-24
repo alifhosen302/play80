@@ -27,7 +27,7 @@ begin
  ) x;
  return v_data;
 end;
-$function$
+$function$;
 
 CREATE OR REPLACE FUNCTION public.staff_send_demo_coins(p_pin_token text, p_target_user uuid, p_amount bigint, p_operation_id uuid, p_note text DEFAULT NULL::text)
  RETURNS jsonb
@@ -67,7 +67,7 @@ begin
       'operation_id',p_operation_id));
  return jsonb_build_object('ok',true,'duplicate',false,'balance_after',v_balance);
 end;
-$function$
+$function$;
 
 
 create or replace function private.play80_immutable_email()
