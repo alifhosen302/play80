@@ -63,6 +63,9 @@
       const profiles=await db('profiles?select=username,display_name&id=eq.'+encodeURIComponent(id)+'&limit=1');
       profile=profiles?.[0]||{};
       $('cloudUsername').value=profile.username||'';
+      $('cloudUsername').readOnly=!!profile.username;
+      $('cloudSaveUsername').disabled=!!profile.username;
+      $('cloudSaveUsername').textContent=profile.username?'USERNAME LOCKED':'SAVE USERNAME';
       const wallets=await db('demo_wallets?select=balance,held_balance&user_id=eq.'+encodeURIComponent(id)+'&limit=1');
       balance=wallets?.[0]||{balance:0,held_balance:0};
       $('cloudBalance').textContent=String(Number(balance.balance)-Number(balance.held_balance));
@@ -101,7 +104,9 @@
     const email=$('cloudLoginEmail').value.trim().toLowerCase();
     const password=$('cloudLoginPassword').value;
     if(!email||password.length<8)throw Error('Enter email and a password of at least 8 characters');
-    const data=await auth('signup','POST',{email,password});
+    const username=$('cloudRegistrationUsername')?.value.trim().toLowerCase();
+    if(!/^[a-z0-9_]{3,24}$/.test(username||''))throw Error('Choose a unique username of 3–24 English letters, digits or _');
+    const data=await auth('signup','POST',{email,password,data:{username,display_name:username}});
     if(data?.access_token){saveSession(data);await loadAccount();status('Signed up successfully.');}
     else status('Registration requested. Open your email and verify it, then sign in.');
     $('cloudLoginPassword').value='';
@@ -359,6 +364,113 @@
     rpc:async(name,payload={})=>db('rpc/'+encodeURIComponent(name),'POST',payload),
     reloadAccount:loadAccount
   });
+
+  // V4.3 customer + owner tools. Every sensitive owner RPC also validates auth, Owner role and 3-minute PIN server-side.
+  const regName=document.createElement('div');
+  regName.className='formGroup';
+  regName.innerHTML='<label for="cloudRegistrationUsername">Unique Username (required at signup)</label><input id="cloudRegistrationUsername" type="text" maxlength="24" minlength="3" autocomplete="off" autocapitalize="none" placeholder="e.g. player80" pattern="[a-zA-Z0-9_]{3,24}"><small>This username is permanent; it can never be reused by another player.</small>';
+  $('cloudLoginEmail').closest('.formGroup').before(regName);
+  const ownerKeyNote=document.createElement('p');
+  ownerKeyNote.className='tiny';
+  ownerKeyNote.textContent='Owner has an unlimited authorised DEMO-COIN ISSUANCE capability (1–1,000,000 per audited operation), not cash. Other players have finite server balances.';
+  $('cloudStaffTab-users').prepend(ownerKeyNote);
+  const accountSupport=document.createElement('div');
+  accountSupport.className='play80Surface';
+  accountSupport.style.marginTop='12px';
+  accountSupport.innerHTML='<h3>💬 My Support & Account Requests</h3><p>Send the Owner a message, or request account deletion. A request NEVER automatically deletes the account.</p><textarea id="p8SupportText" rows="3" maxlength="1000" placeholder="Message to Owner" style="width:100%;min-height:75px"></textarea><div class="cloudActions"><button class="action" type="button" id="p8SendMessage">SEND MESSAGE</button><button class="action secondary" type="button" id="p8RequestDeletion">REQUEST ACCOUNT DELETION</button><button class="action secondary" type="button" id="p8MyMessagesRefresh">REFRESH</button></div><div id="p8MyMessages" class="cloudList" style="margin-top:9px"></div>';
+  $('cloudRequests').parentElement.append(accountSupport);
+  async function loadMyMessages(){
+    if(!session)return;
+    const rows=await db('rpc/play80_my_support_messages','POST',{});
+    const list=$('p8MyMessages');list.replaceChildren();
+    if(!rows?.length)list.textContent='No support messages.';
+    (rows||[]).forEach(r=>{
+      const card=document.createElement('div');card.className='cloudRequestItem';
+      card.append(createText('strong',(r.sender==='owner'?'🛡 Owner':'👤 You')+' • '+escDate(r.at)));
+      card.append(createText('small',r.category+' — '+r.body));
+      list.append(card);
+    });
+  }
+  $('p8SendMessage').addEventListener('click',e=>busy(e.currentTarget,async()=>{
+    const body=$('p8SupportText').value.trim();
+    if(body.length<1)throw Error('Write a message first');
+    await db('rpc/play80_send_support_message','POST',{p_body:body,p_category:'general'});
+    $('p8SupportText').value='';await loadMyMessages();status('Message delivered to Owner inbox.');
+  }));
+  $('p8RequestDeletion').addEventListener('click',e=>busy(e.currentTarget,async()=>{
+    const body=$('p8SupportText').value.trim()||'I request review and deletion of my PLAY80 account.';
+    if(!confirm('Submit an account deletion REQUEST to Owner? Your account will not be deleted automatically.'))return;
+    await db('rpc/play80_send_support_message','POST',{p_body:body,p_category:'account_deletion'});
+    $('p8SupportText').value='';await loadMyMessages();status('Account deletion request recorded. Owner will review it.');
+  }));
+  $('p8MyMessagesRefresh').addEventListener('click',e=>busy(e.currentTarget,loadMyMessages));
+  document.querySelectorAll('[data-open="account"]').forEach(b=>b.addEventListener('click',()=>loadMyMessages().catch(()=>{})));
+  const inbox=document.createElement('div');
+  inbox.className='cloudStaffPane hidden';
+  inbox.id='cloudStaffTab-inbox';
+  inbox.innerHTML='<h3>💬 Secure Owner Inbox</h3><p class="tiny">Messages from registered players, including deletion requests. Customer passwords are never visible.</p><input id="p8InboxSearch" maxlength="80" placeholder="Search by user ID / username / email" class="cloudSelect" style="width:100%;margin-bottom:9px"><button class="action secondary" id="p8InboxRefresh" type="button">SEARCH MESSAGES</button><div id="p8OwnerInboxList" class="cloudList"></div>';
+  $('cloudStaffTab-users').parentNode.append(inbox);
+  const inboxTab=document.createElement('button');inboxTab.type='button';inboxTab.className='cloudStaffTab';inboxTab.dataset.staffTab='inbox';inboxTab.textContent='💬 Messages / Deletion';
+  $('cloudStaffTab-users').previousElementSibling?.after(inboxTab);
+  const oldSwitch=switchStaffTab;
+  async function loadOwnerInbox(){
+    if(!isOwner())throw Error('Owner only');
+    const rows=await staffRpc('play80_owner_support_messages',{p_search:$('p8InboxSearch').value.trim()});
+    const list=$('p8OwnerInboxList');list.replaceChildren();
+    if(!rows.length)list.textContent='No incoming messages.';
+    rows.forEach(r=>{
+      const card=document.createElement('div');card.className='cloudRequestItem';
+      card.append(createText('strong',(r.username||r.email||r.user_id)+' • '+r.category));
+      card.append(createText('small','User ID: '+r.user_id+' | '+escDate(r.created_at)+' | '+r.sender_role));
+      card.append(createText('small',r.body));
+      const reply=document.createElement('input');reply.maxLength=1000;reply.placeholder='Send Owner reply to this player';card.append(reply);
+      card.append(makeButton('SEND REPLY',async()=>{
+        if(!reply.value.trim())throw Error('Write a reply');
+        if(!confirm('Send this reply to '+r.user_id+'?'))return;
+        await staffRpc('play80_owner_send_message',{p_user:r.user_id,p_note:reply.value.trim()});
+        reply.value='';await loadOwnerInbox();
+      }));
+      list.append(card);
+    });
+  }
+  inboxTab.addEventListener('click',()=>busy(inboxTab,async()=>{
+    document.querySelectorAll('[data-staff-tab]').forEach(b=>b.classList.toggle('selected',b===inboxTab));
+    document.querySelectorAll('.cloudStaffPane').forEach(p=>p.classList.toggle('hidden',p!==inbox));
+    await loadOwnerInbox();
+  },ownerStatus));
+  $('p8InboxRefresh').addEventListener('click',e=>busy(e.currentTarget,loadOwnerInbox,ownerStatus));
+  function newId(){return crypto.randomUUID?crypto.randomUUID():('xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx').replace(/[xy]/g,c=>{const n=crypto.getRandomValues(new Uint8Array(1))[0]&15;return(c==='x'?n:(n&3|8)).toString(16)});}
+  function attachOwnerUserTools(card,u){
+    if(!isOwner()||u.role!=='player')return;
+    const note=document.createElement('input');note.maxLength=200;note.placeholder='Required reason/note (at least 5 characters)';card.append(note);
+    const num=document.createElement('input');num.type='number';num.min='1';num.max='1000000';num.placeholder='Demo Coins to reclaim';card.append(num);
+    card.append(makeButton('↩ RECLAIM COINS',async()=>{
+      const amount=Number(num.value),reason=note.value.trim();
+      if(!Number.isSafeInteger(amount)||amount<1||amount>1000000||reason.length<5)throw Error('Enter 1–1,000,000 coins and a correction reason (5+ chars)');
+      if(!confirm('Take back '+amount+' DEMO Coins from '+u.id+'? Reason: '+reason+'. No real money.'))return;
+      const result=await staffRpc('play80_owner_reclaim_coins',{p_target_user:u.id,p_amount:amount,p_note:reason,p_operation_id:newId()});
+      ownerStatus('Owner correction recorded. Remaining wallet balance: '+result.balance_after);await loadStaffUsers();
+    },true));
+    card.append(makeButton('💬 SEND USER NOTICE',async()=>{
+      if(!note.value.trim())throw Error('Type a message');
+      if(!confirm('Send this message to User ID '+u.id+'?'))return;
+      await staffRpc('play80_owner_send_message',{p_user:u.id,p_note:note.value.trim()});
+      ownerStatus('Message delivered to user.');
+    },true));
+    const suspend=makeButton('⛔ SUSPEND PLAYER',async()=>{
+      const reason=note.value.trim();if(reason.length<5)throw Error('Reason required (5+ chars)');
+      if(!confirm('SUSPEND Account ID '+u.id+'?\nEmail: '+u.email+'\nReason: '+reason+'\nThis blocks new sign-ins. Existing active sessions may remain until token expiry. No permanent deletion.'))return;
+      await staffRpc('play80_owner_account_control',{p_target_user:u.id,p_action:'suspend',p_note:reason});
+      ownerStatus('Account suspended; full account deletion was NOT performed.');
+    },true);card.append(suspend);
+    card.append(makeButton('✅ RESTORE PLAYER',async()=>{
+      const reason=note.value.trim();if(reason.length<5)throw Error('Reason required (5+ chars)');
+      if(!confirm('RESTORE player '+u.id+'?'))return;
+      await staffRpc('play80_owner_account_control',{p_target_user:u.id,p_action:'restore',p_note:reason});
+      ownerStatus('Account restored.');
+    },true));
+  }
+
   renderAuth();
-  if(session){loadAccount();}
+  if(session){loadAccount();loadMyMessages().catch(()=>{});}
 })();
