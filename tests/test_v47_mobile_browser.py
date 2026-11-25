@@ -26,6 +26,8 @@ try:
   page.locator('#p8ModeSignup').click()
   for item in ['cloudRegistrationUsername','p8SignupPhone','p8SignupFullName','p8SignupAddress','p8SignupConfirmPIN']:
    assert page.locator('#'+item).is_visible(),item+' signup field'
+  order=page.evaluate('''() => ['cloudLoginEmail','cloudRegistrationUsername','p8SignupPhone','p8SignupFullName','p8SignupAddress','cloudLoginPassword','p8SignupConfirmPIN'].map(id=>document.getElementById(id).getBoundingClientRect().top)''')
+  assert order==sorted(order),'Signup fields should follow Email, User ID, Phone, Name, Address, PIN, Confirm'
   assert page.locator('#cloudLoginPassword').get_attribute('maxlength')=='6'
   assert 'PIN' in page.locator('label[for="cloudLoginPassword"]').inner_text()
   page.locator('#p8ModeLogin').click()
