@@ -50,6 +50,9 @@
   async function db(path,method='GET',payload=null){return raw('/rest/v1/'+path,method,payload,await token());}
   function renderAuth(){
     const on=!!session?.access_token;
+    document.body.classList.toggle('p8-auth-locked',!on);
+    document.getElementById('screen-account')?.classList.toggle('hidden',!on?false:document.getElementById('screen-account')?.classList.contains('hidden'));
+    if(!on)window.scrollTo(0,0);
     show('cloudSignedOut',!on);show('cloudSignedIn',on);
     show('cloudOwnerEntry',on&&isStaff());show('cloudOwnerAuthBlocked',!on||!isStaff());show('cloudStaffPinGate',on&&isStaff()&&!staffPinToken);show('cloudOwnerContent',on&&isStaff()&&!!staffPinToken);
     if(on){$('cloudEmail').textContent=session.user?.email||'Signed in';$('cloudRole').textContent=isOwner()?'Verified Owner':(isStaff()?'Verified Admin':'Player');}
@@ -103,19 +106,26 @@
   $('cloudRegister').addEventListener('click',e=>busy(e.currentTarget,async()=>{
     const email=$('cloudLoginEmail').value.trim().toLowerCase();
     const password=$('cloudLoginPassword').value;
-    if(!email||password.length<8)throw Error('Enter email and a password of at least 8 characters');
+    if(!email||!/^[0-9]{6}$/.test(password))throw Error('Enter your email and a six-digit PIN');
     const username=$('cloudRegistrationUsername')?.value.trim().toLowerCase();
     if(!/^[a-z0-9_]{3,24}$/.test(username||''))throw Error('Choose a unique username of 3–24 English letters, digits or _');
-    const data=await auth('signup','POST',{email,password,data:{username,display_name:username}});
-    if(data?.access_token){saveSession(data);await loadAccount();await loadPlayerPinStatus();status('Signed up successfully.');}
+    const phone=$('p8SignupPhone').value.trim().replace(/[\s-]/g,'');
+    const fullName=$('p8SignupFullName').value.trim();
+    const address=$('p8SignupAddress').value.trim();
+    if(!/^\+?[0-9]{10,15}$/.test(phone))throw Error('Enter a valid mobile number, 10–15 digits');
+    if(fullName.length<3||fullName.length>100)throw Error('Enter your full name');
+    if(address.length<8||address.length>250)throw Error('Enter your full address');
+    if($('p8SignupConfirmPIN').value!==password)throw Error('PIN entries do not match');
+    const data=await auth('signup','POST',{email,password,data:{username,display_name:fullName,full_name:fullName,phone_number:phone,address}});
+    if(data?.access_token){saveSession(data);await loadAccount();status('Signed up successfully.');}
     else status('Registration requested. Open your email and verify it, then sign in.');
     $('cloudLoginPassword').value='';
   }));
   $('cloudLogin').addEventListener('click',e=>busy(e.currentTarget,async()=>{
     const email=$('cloudLoginEmail').value.trim().toLowerCase();const password=$('cloudLoginPassword').value;
-    if(!email||!password)throw Error('Email and password are required');
+    if(!email||!/^[0-9]{6}$/.test(password))throw Error('Enter email and your six-digit PIN');
     const data=await auth('token?grant_type=password','POST',{email,password});
-    saveSession(data);$('cloudLoginPassword').value='';await loadAccount();await loadPlayerPinStatus();
+    saveSession(data);$('cloudLoginPassword').value='';await loadAccount();
   }));
   $('cloudRecover').addEventListener('click',e=>busy(e.currentTarget,async()=>{
     const email=$('cloudLoginEmail').value.trim().toLowerCase();
@@ -394,35 +404,24 @@
   $('p8ModeLogin').addEventListener('click',()=>selectAuthMode(false));
   $('p8ModeSignup').addEventListener('click',()=>selectAuthMode(true));
   selectAuthMode(false);
-  const pinPanel=document.createElement('div');
-  pinPanel.className='p8PlayerPinPanel';
-  pinPanel.innerHTML='<h3>🔐 Step 3: Secure Player PIN</h3><p>After signing in and verifying your email, set your own 6-digit Player PIN. This is different from the Owner/Admin Staff PIN. Your email and password remain required for login.</p><div class="p8PinFields"><input type="password" id="p8PlayerPin" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="6-digit PIN" autocomplete="off"><input type="password" id="p8PlayerPinAgain" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="Confirm new PIN" autocomplete="off"></div><div class="cloudActions"><button type="button" id="p8PinSet" class="action">SET PIN</button><button type="button" id="p8PinVerify" class="action secondary">VERIFY PIN</button></div><div id="p8PinMessage" class="cloudFeedback" role="status">PIN status not checked.</div>';
-  $('cloudSignedIn').insertBefore(pinPanel,$('cloudSignedIn').firstChild);
-  async function loadPlayerPinStatus(){
-    if(!session?.access_token)return;
-    const r=await db('rpc/play80_player_pin_status','POST',{});
-    $('p8PinSet').disabled=!!r.configured;
-    $('p8PlayerPinAgain').classList.toggle('hidden',!!r.configured);
-    $('p8PinMessage').textContent=r.configured?'PIN is configured. Use VERIFY PIN to test it.':'Create your secure 6-digit PIN after email verification.';
-  }
-  $('p8PinSet').addEventListener('click',e=>busy(e.currentTarget,async()=>{
-    const p=$('p8PlayerPin').value,v=$('p8PlayerPinAgain').value;
-    if(!/^[0-9]{6}$/.test(p)||p!==v)throw Error('Enter matching six-digit PINs');
-    await db('rpc/play80_set_player_pin','POST',{p_pin:p});
-    $('p8PlayerPin').value='';$('p8PlayerPinAgain').value='';
-    await loadPlayerPinStatus();status('Player PIN configured securely.');
-  }));
-  $('p8PinVerify').addEventListener('click',e=>busy(e.currentTarget,async()=>{
-    const p=$('p8PlayerPin').value;
-    if(!/^[0-9]{6}$/.test(p))throw Error('Enter 6 digits');
-    const result=await db('rpc/play80_verify_player_pin','POST',{p_pin:p});
-    $('p8PlayerPin').value='';$('p8PinMessage').textContent=result.message||'PIN check complete.';
-    if(!result.ok)throw Error(result.message||'PIN not verified');
-    status('Player PIN verified.');return result;
-  }));
-  const oldLoadPlayer=loadPlayerPinStatus;
-  document.querySelectorAll('[data-open="account"]').forEach(b=>b.addEventListener('click',()=>{if(session)oldLoadPlayer().catch(()=>{});}));
-  
+  const regFields=document.createElement('div');
+  regFields.id='p8RegistrationFields';
+  regFields.innerHTML=`<div class="formGroup"><label for="p8SignupPhone">Mobile number</label><input id="p8SignupPhone" inputmode="tel" autocomplete="tel" maxlength="18" placeholder="01XXXXXXXXX" required></div>
+    <div class="formGroup"><label for="p8SignupFullName">Full name</label><input id="p8SignupFullName" maxlength="100" autocomplete="name" placeholder="Full legal name" required></div>
+    <div class="formGroup"><label for="p8SignupAddress">Address</label><textarea id="p8SignupAddress" maxlength="250" autocomplete="street-address" placeholder="Full address" rows="3" required></textarea></div>
+    <div class="formGroup"><label for="p8SignupConfirmPIN">Confirm six-digit PIN</label><input id="p8SignupConfirmPIN" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="new-password" placeholder="●●●●●●" required></div>`;
+  $('cloudLoginPassword').closest('.formGroup').after(regFields);
+  const oldSelectAuthMode=selectAuthMode;
+  // signup state is driven from the visible tabs
+  $('p8ModeLogin').addEventListener('click',()=>regFields.classList.add('hidden'));
+  $('p8ModeSignup').addEventListener('click',()=>regFields.classList.remove('hidden'));
+  regFields.classList.add('hidden');
+  $('cloudSignedIn').querySelectorAll('.p8PlayerPinPanel').forEach(x=>x.remove());
+  const passwordField=$('cloudLoginPassword');
+  passwordField.inputMode='numeric';passwordField.pattern='[0-9]{6}';passwordField.maxLength=6;
+  passwordField.placeholder='6-digit PIN';passwordField.autocomplete='off';
+  passwordField.closest('.formGroup').querySelector('label').textContent='Six-digit PIN';
+  document.querySelectorAll('[data-open="account"]').forEach(b=>b.addEventListener('click',()=>window.scrollTo(0,0)));
   const ownerKeyNote=document.createElement('p');
   ownerKeyNote.className='tiny';
   ownerKeyNote.textContent='Owner has an unlimited authorised DEMO-COIN ISSUANCE capability (1–1,000,000 per audited operation), not cash. Other players have finite server balances.';
