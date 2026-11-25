@@ -113,8 +113,10 @@
     button.disabled=true;const before=button.textContent;
     button.textContent='Please wait…';
     try{await fn();}catch(e){writeStatus(e.message||String(e),true);}
-    finally {if(writeStatus===status && $('cloudNotice')?.textContent) $('cloudNotice').scrollIntoView({block:'nearest',behavior:'smooth'});}
-    finally{button.disabled=false;button.textContent=before;}
+    finally{
+      button.disabled=false;button.textContent=before;
+      if(writeStatus===status && $('cloudNotice')?.textContent) $('cloudNotice').scrollIntoView({block:'nearest',behavior:'smooth'});
+    }
   };
   $('cloudRegister').addEventListener('click',e=>busy(e.currentTarget,async()=>{
     const email=$('cloudLoginEmail').value.trim().toLowerCase();
