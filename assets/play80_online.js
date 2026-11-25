@@ -12,7 +12,15 @@
   const escDate = (d) => { try { return new Date(d).toLocaleString(); } catch (_) {return '—';} };
   const status = (message, error=false) => {
     const e = $('cloudNotice');
-    if(e){e.textContent=String(message);e.style.color=error?'#ffb8b8':'#c5eeff';}
+    if(!e)return;
+    e.textContent=String(message);
+    e.style.color=error?'#ffb8b8':'#c5eeff';
+    e.classList.toggle('p8AuthError',!!error);
+    e.classList.toggle('p8AuthSuccess',!error&&!!message);
+    if(message){
+      e.hidden=false;
+      e.scrollIntoView({block:'nearest',behavior:'smooth'});
+    }
   };
   const ownerStatus = (message, error=false) => {
     const e = $('cloudOwnerNotice');
@@ -105,6 +113,7 @@
     button.disabled=true;const before=button.textContent;
     button.textContent='Please wait…';
     try{await fn();}catch(e){writeStatus(e.message||String(e),true);}
+    finally {if(writeStatus===status && $('cloudNotice')?.textContent) $('cloudNotice').scrollIntoView({block:'nearest',behavior:'smooth'});}
     finally{button.disabled=false;button.textContent=before;}
   };
   $('cloudRegister').addEventListener('click',e=>busy(e.currentTarget,async()=>{
@@ -120,11 +129,21 @@
     if(fullName.length<3||fullName.length>100)throw Error('Enter your full name');
     if(address.length<8||address.length>250)throw Error('Enter your full address');
     if($('p8SignupConfirmPIN').value!==password)throw Error('PIN entries do not match');
-    const data=await auth('signup','POST',{email,password,data:{username,display_name:fullName,full_name:fullName,phone_number:phone,address}});
-    if(data?.access_token){saveSession(data);verifiedAuth=false;renderAuth();}
-    status('অ্যাকাউন্ট তৈরির অনুরোধ গৃহীত। ইমেইলের Verification Link খুলে তারপর Login করো।');
+    let data;
+    try{
+      data=await auth('signup','POST',{email,password,data:{username,display_name:fullName,full_name:fullName,phone_number:phone,address}});
+    }catch(e){
+      if(e.message?.includes('45 seconds')||e.message?.includes('rate limit')||e.code==='over_email_send_rate_limit'){
+        throw Error('Verification Email ইতিমধ্যে অনুরোধ করা হয়েছে। কিছুক্ষণ পরে Inbox/Spam দেখো। বারবার CREATE ACCOUNT চাপবে না।');
+      }
+      throw e;
+    }
     if(data?.access_token){session=null;verifiedAuth=false;persist();renderAuth();}
     $('cloudLoginPassword').value='';
+    $('p8SignupConfirmPIN').value='';
+    const result=$('p8SignupResult');
+    if(result){result.hidden=false;result.textContent='✅ Registration অনুরোধ সফল। এখন ইমেইলের Verification Link খুলে অ্যাকাউন্ট চালু করো। পুনরায় Create Account চাপবে না।';}
+    status('✅ Registration অনুরোধ সফল! '+email+'-এর Inbox এবং Spam-এ Verification Email দেখো।');
   }));
   $('cloudLogin').addEventListener('click',e=>busy(e.currentTarget,async()=>{
     const email=$('cloudLoginEmail').value.trim().toLowerCase();const password=$('cloudLoginPassword').value;
@@ -452,14 +471,22 @@
     $('cloudLoginPassword').value='';
     modeHelp.textContent=signup?'ইমেইল, ইউনিক ইউজার আইডি ও ৬ সংখ্যার PIN দিয়ে নতুন Player অ্যাকাউন্ট খোলো।':owner?'শুধু যাচাইকৃত Owner Email দিয়ে লগইন। অন্য অ্যাকাউন্ট Owner Panel খুলতে পারবে না।':'যাচাইকৃত Player Email ও ৬ সংখ্যার PIN দিয়ে লগইন করো।';
     firstOwner.classList.toggle('hidden',!owner);
+    signupResult.hidden=true;
     status('');
+    $('cloudNotice').hidden=true;
     window.scrollTo(0,0);
   }
   $('p8ModeLogin').addEventListener('click',()=>selectAuthMode(false,false));
   $('p8ModeOwner').addEventListener('click',()=>selectAuthMode(false,true));
   $('p8ModeSignup').addEventListener('click',()=>selectAuthMode(true,false));
   selectAuthMode(false,false);
-  const regFields=document.createElement('div');
+  const signupResult=document.createElement('div');
+  signupResult.id='p8SignupResult';signupResult.hidden=true;
+  signupResult.setAttribute('role','status');
+  $('cloudRegister').after(signupResult);
+  $('cloudLogin').after($('cloudNotice'));
+  $('cloudNotice').hidden=true;
+    const regFields=document.createElement('div');
   regFields.id='p8RegistrationFields';
   regFields.innerHTML=`<div class="formGroup"><label for="p8SignupPhone">Mobile number</label><input id="p8SignupPhone" inputmode="tel" autocomplete="tel" maxlength="18" placeholder="01XXXXXXXXX" required></div>
     <div class="formGroup"><label for="p8SignupFullName">Full name</label><input id="p8SignupFullName" maxlength="100" autocomplete="name" placeholder="Full legal name" required></div>
