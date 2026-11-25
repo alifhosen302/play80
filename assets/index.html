@@ -693,6 +693,30 @@ body.p8-auth-locked #screen-account .demoBanner{margin:4px 0 9px!important}
 body.p8-auth-locked #screen-account .sectionTitle{margin-top:9px!important}
 body:not(.p8-auth-locked) #screen-account,body:not(.p8-auth-locked) #screen-remote-owner{margin-top:0}
 </style>
+<style id="p8FinalAuthV5">
+body.p8-auth-locked{background:radial-gradient(circle at 50% 1%,#47256e,#0b1024 50%,#080c1c)}
+body.p8-auth-locked .app{max-width:560px}
+#screen-account .p8AuthHero{text-align:center;padding:16px 10px 14px;margin:0 auto}
+#screen-account .p8AuthHero img{display:block;margin:0 auto 3px;width:116px;height:116px;object-fit:contain;filter:drop-shadow(0 7px 26px #8747f266)}
+#screen-account .p8AuthHero h1{font-size:35px;font-weight:950;letter-spacing:-1px;color:white;margin:0}
+#screen-account .p8AuthHero h1 span{color:#ffc96f}
+#screen-account .p8AuthHero p{font-weight:800;font-size:15px;color:#ffe2a9;margin:2px auto 4px}
+#screen-account .p8AuthHero small{color:#bbb6d0;font-size:11px;line-height:1.4}
+#screen-account .cloudPanel{border-radius:21px!important;border:1px solid #af82d5!important;background:linear-gradient(150deg,#1c1a3a,#16172c)!important;box-shadow:0 16px 45px #040310a0}
+#screen-account .p8CoinDisclaimer,#screen-remote-owner .p8CoinDisclaimer{background:#26213f;border:1px solid #644f89;padding:10px 12px;border-radius:12px;font-size:12px;line-height:1.55;color:#e2d9ec}
+#screen-account .p8AuthModesThree{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+#screen-account .p8AuthModesThree button{min-width:0;padding:11px 5px;font-size:12px}
+#screen-account .p8AuthModesThree button:last-child{grid-column:1/-1}
+#screen-account #p8ModeHelp{margin:5px 0 11px;font-size:12px;line-height:1.5;color:#efdbf8}
+#screen-account #cloudSignedOut .formGroup{margin:11px 0}
+#screen-account #cloudSignedOut .formGroup input,#screen-account #cloudSignedOut .formGroup textarea{border:1px solid #796d94;border-radius:12px;background:#0f152a;color:#fff;min-height:50px}
+#screen-account #cloudSignedOut .formGroup label{font-weight:800}
+#screen-account #cloudSignedOut .cloudActions button{width:100%;min-height:50px;background:linear-gradient(110deg,#9863ef,#5b33b3);color:#fff;border:1px solid #b98afa;font-weight:900}
+#screen-account .p8AuthHero+.cloudPanel{margin-top:0!important}
+#screen-account #cloudNotice{margin-top:12px}
+#screen-remote-owner #p8OwnerLogout{background:#332247;color:#ffe2ad;border:1px solid #b988d7;border-radius:12px}
+@media(max-width:390px){#screen-account .p8AuthHero{padding:8px 4px 10px}#screen-account .p8AuthHero img{width:86px;height:86px}#screen-account .cloudPanel{padding:11px!important}}
+</style>
 </head>
 <body class="p8-auth-locked">
 <div class="app">
@@ -952,47 +976,47 @@ body:not(.p8-auth-locked) #screen-account,body:not(.p8-auth-locked) #screen-remo
  
 <section id="screen-account" class="screen hidden">
   <button class="back" data-open="home">❮ All Games</button>
-  <div class="center"><h1 class="bigTitle">🌐 PLAY80 Account</h1><p class="sub">Create an account with your details and six-digit PIN. Verify your email, then sign in.</p></div>
+  <div class="p8AuthHero"><img src="play80_brand_premium.webp" alt="PLAY80 official logo"><h1>PLAY<span>80</span></h1><p id="p8AccountIdentity">🔐 PLAY80 · Secure sign in</p><small>একটি বাস্তব Free Gaming Platform · ভার্চুয়াল কয়েনের নগদ মূল্য নেই</small></div>
   <div class="panel cloudPanel">
-    <div class="demoBanner"><b>ONLINE DEMO ONLY.</b> No payments, deposits of real money, bank or mobile wallet transfers, or cash redemption. Online coins and this phone's offline game coins are separate.</div>
+    <div class="p8CoinDisclaimer">🎮 PLAY80 একটি বিনামূল্যের গেমিং প্ল্যাটফর্ম। কয়েন কেবল খেলার জন্য; বাস্তব টাকা বা নগদে রূপান্তরযোগ্য নয়।</div>
     <div id="cloudSignedOut">
-      <div class="sectionTitle"><h2>Email Registration / Login</h2></div>
-      <div class="formGroup"><label for="cloudLoginEmail">Email</label><input id="cloudLoginEmail" type="email" autocomplete="email" placeholder="you@example.com" /></div>
-      <div class="formGroup"><label for="cloudLoginPassword">6-digit PIN</label><input id="cloudLoginPassword" type="password" autocomplete="current-password" /></div>
-      <div class="cloudActions"><button type="button" id="cloudRegister" class="action">CREATE ACCOUNT</button><button type="button" id="cloudLogin" class="action secondary">SIGN IN</button></div>
+      <div class="sectionTitle"><h2>অ্যাকাউন্টে প্রবেশ করুন</h2></div>
+      <div class="formGroup"><label for="cloudLoginEmail">ইমেইল (Gmail বা অন্য Email)</label><input id="cloudLoginEmail" type="email" autocomplete="email" placeholder="you@example.com" /></div>
+      <div class="formGroup"><label for="cloudLoginPassword">৬ সংখ্যার PIN</label><input id="cloudLoginPassword" type="password" autocomplete="current-password" /></div>
+      <div class="cloudActions"><button type="button" id="cloudRegister" class="action">অ্যাকাউন্ট তৈরি করুন</button><button type="button" id="cloudLogin" class="action secondary">লগইন</button></div>
       <button type="button" class="smallAction" id="cloudRecover" style="margin-top:12px">RESET PIN BY EMAIL</button>
-      <p class="tiny">Verify your email before login if prompted. To reset your PIN, use email recovery. Email verification is required.</p>
+      <p class="tiny">ইমেইল যাচাই করা বাধ্যতামূলক। PIN ভুলে গেলে ইমেইল দিয়ে পুনরুদ্ধার করা যাবে।</p>
     </div>
     <div id="cloudSignedIn" class="hidden">
       <div class="sectionTitle"><h2 id="cloudEmail"></h2><span id="cloudRole"></span></div>
       <div class="formGroup"><label for="cloudUsername">Unique Username</label><input id="cloudUsername" type="text" maxlength="24" placeholder="3–24 English letters, numbers or _" autocapitalize="off" /><button id="cloudSaveUsername" type="button" class="action secondary" style="margin-top:8px">SAVE USERNAME</button></div>
-      <div class="hubStat"><div><b>Online demo coins available</b><small>Reserved pending removal: <span id="cloudHeld">0</span></small></div><strong id="cloudBalance">—</strong></div>
+      <div class="hubStat"><div><b>PLAY80 Coins</b><small>Reserved pending removal: <span id="cloudHeld">0</span></small></div><strong id="cloudBalance">—</strong></div>
       <div class="play80Surface" style="margin:8px 0">
-  <strong>🎁 One-time demo credit bonus</strong><p style="font-size:12px">If your first approved virtual coin credit request is exactly 1,000, you receive an extra 5,000 nonredeemable Demo Coins once per account.</p>
+  <strong>🎁 একবারের ভার্চুয়াল কয়েন বোনাস</strong><p style="font-size:12px">If your first approved virtual coin credit request is exactly 1,000, you receive an extra 5,000 nonredeemable Demo Coins once per account.</p>
   <small>Bonus credited: <b id="cloudBonusEarned">—</b> · Required demo turnover: <b id="cloudTurnoverRequired">—</b> · Completed: <b id="cloudTurnoverCompleted">—</b> · Remaining: <b id="cloudTurnoverRemaining">—</b></small>
- </div><div class="sectionTitle"><h2>Request Demo Coins</h2></div>
+ </div><div class="sectionTitle"><h2>কয়েনের অনুরোধ</h2></div>
       <div class="formGroup"><label for="cloudRequestKind">Request type</label><select id="cloudRequestKind" class="cloudSelect"><option value="demo_credit">➕ Add virtual coins (100–20,000)</option><option value="demo_debit">➖ Remove virtual coins (min 200)</option></select></div>
       <div class="formGroup"><label for="cloudAmount">Virtual coin amount</label><input id="cloudAmount" type="number" min="100" step="1" value="100" /></div>
       <div class="formGroup"><label for="cloudNote">Optional note (not payment details)</label><textarea id="cloudNote" maxlength="300" rows="2" placeholder="Optional message to Owner"></textarea></div>
-      <button type="button" id="cloudSubmit" class="action">SEND DEMO REQUEST</button>
+      <button type="button" id="cloudSubmit" class="action">অনুরোধ পাঠাও</button>
       <div class="sectionTitle"><h2>My Online Requests</h2></div><div id="cloudRequests" class="cloudList"></div>
       <button type="button" class="action secondary" id="cloudRefresh">REFRESH ONLINE ACCOUNT</button>
-      <button type="button" class="smallAction" id="cloudSignOut" style="margin-top:12px">Sign out</button>
-      <button type="button" class="action secondary hidden" data-open="remote-owner" id="cloudOwnerEntry" style="margin-top:12px">🔐 OPEN VERIFIED OWNER PANEL</button>
+      <button type="button" class="smallAction" id="cloudSignOut" style="margin-top:12px">↪ লগআউট</button>
+      <button type="button" class="action secondary hidden" data-open="remote-owner" id="cloudOwnerEntry" style="margin-top:12px">🛡️ OWNER DASHBOARD</button>
     </div>
-    <div id="cloudNotice" class="cloudFeedback" role="status">Play80 online login is separate from your offline games.</div>
+    <div id="cloudNotice" class="cloudFeedback" role="status">Player বা Owner Login নির্বাচন করুন।</div>
   </div>
 </section>
 <section id="screen-remote-owner" class="screen hidden">
   <button class="back" data-open="account">❮ Online Account</button>
-  <div class="center"><h1 class="bigTitle">🛡️ Secure Online Owner</h1><p class="sub">Verified Play80 account only • no real-money processing</p></div>
-  <div class="panel cloudPanel"><div class="demoBanner"><b>VIRTUAL COINS ONLY.</b> This is not the offline Owner Preview. Every approval or rejection updates the Play80 Supabase database.</div>
+  <div class="center"><h1 class="bigTitle">🛡️ PLAY80 Owner Dashboard</h1><p class="sub">শুধুমাত্র Verified Owner • পরিচালনার জন্য আলাদা PIN সুরক্ষা</p></div>
+  <div class="panel cloudPanel"><div class="p8CoinDisclaimer">PLAY80 Coin-এর নগদ মূল্য নেই। এখানে সব অনুমোদন সার্ভারে যাচাই করা হয়।</div><button type="button" id="p8OwnerLogout" class="smallAction" style="width:100%;min-height:43px;margin:8px 0 12px">↪ Owner Logout</button>
     <div id="cloudOwnerAuthBlocked">Sign in with the verified Play80 Owner email to access online requests.</div>
     <div id="cloudStaffPinGate" class="hidden">
       <p class="sub">Owner ও Admin-এর সব পরিচালনামূলক কাজের আগে ৬ সংখ্যার PIN প্রয়োজন। PIN সার্ভারে যাচাই করা হয় এবং ৩ মিনিট পর পুনরায় দিতে হবে।</p>
       <div class="formGroup"><label for="cloudStaffPin">6-digit staff PIN</label><input id="cloudStaffPin" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" placeholder="••••••" /></div>
       <div class="cloudActions"><button id="cloudStaffUnlock" class="action" type="button">🔓 UNLOCK PANEL</button><button id="cloudStaffCreatePin" class="action secondary" type="button">FIRST TIME: SET PIN</button></div>
-      <p class="tiny">PIN কখনো কাউকে দেবে না। ইমেইল পাসওয়ার্ডের পরিবর্তে এটি ব্যবহার করা যাবে না।</p>
+      <p class="tiny">PIN কাউকে দেবে না। Owner Login-এর PIN এবং প্রশাসনিক অনুমোদনের Staff PIN আলাদা নিরাপত্তা স্তর।</p>
     </div>
     <div id="cloudOwnerContent" class="hidden">
       <div class="cloudStaffTabs">
