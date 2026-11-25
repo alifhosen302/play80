@@ -4,7 +4,7 @@ on:
   push:
     paths:
       - 'assets/**'
-      - 'tests/test_v46_mobile_browser.py'
+      - 'tests/test_v47_mobile_browser.py'
       - '.github/workflows/mobile-smoke.yml'
   pull_request:
     paths:
@@ -24,4 +24,4 @@ jobs:
       - name: Use pinned Playwright browser from Ubuntu 24.04 container
         run: python -m pip install playwright==1.56.0
       - name: Run Android-sized UI/navigation/checkmate tests
-        run: python tests/test_v46_mobile_browser.py
+        run: python tests/test_v47_mobile_browser.py
