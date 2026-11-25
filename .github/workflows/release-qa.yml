@@ -1,4 +1,4 @@
-name: Publish PLAY80 V4.5 QA prerelease
+name: Publish PLAY80 V4.6 QA prerelease
 
 on:
   push:
@@ -7,6 +7,11 @@ on:
       - 'build_qa.py'
       - 'assets/play80_online.js'
       - 'assets/index.html'
+      - 'assets/play80_chess.js'
+      - 'assets/play80_bet_arena.js'
+      - 'assets/play80_tournament.js'
+      - 'assets/play80_tournament_menu.js'
+      - 'assets/play80_rules_gate.js'
   workflow_dispatch:
 
 permissions:
@@ -41,6 +46,8 @@ jobs:
           node tests/test_v44_ui.js
           node --check assets/play80_rules_gate.js
           node tests/test_rules_gate.js
+          node --check assets/play80_tournament_menu.js
+          node tests/test_v46_ui.js
           python -m compileall -q build_qa.py release_check.py
       - name: Generate TEMPORARY test-only signing certificate
         shell: bash
@@ -58,12 +65,12 @@ jobs:
           python build_qa.py
           jarsigner -verify -certs ../PLAY80_V4_1_Practice_QA.apk
           mkdir -p dist
-          cp ../PLAY80_V4_1_Practice_QA.apk dist/PLAY80_V4_5_GitHub_QA.apk
-          sha256sum dist/PLAY80_V4_5_GitHub_QA.apk
+          cp ../PLAY80_V4_1_Practice_QA.apk dist/PLAY80_V4_6_GitHub_QA.apk
+          sha256sum dist/PLAY80_V4_6_GitHub_QA.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: PLAY80-V4.5-QA
-          path: dist/PLAY80_V4_5_GitHub_QA.apk
+          name: PLAY80-V4.6-QA
+          path: dist/PLAY80_V4_6_GitHub_QA.apk
           retention-days: 14
       - name: Publish explicit prerelease (not production)
         shell: bash
@@ -71,13 +78,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG=qa-v4.5-premium-rules-20261125
+          TAG=qa-v4.6-chess-tournament-login-20261125
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "Release tag already exists; leaving existing file unchanged."
             exit 0
           fi
-          gh release create "$TAG" dist/PLAY80_V4_5_GitHub_QA.apk \
+          gh release create "$TAG" dist/PLAY80_V4_6_GitHub_QA.apk \
             --target "$GITHUB_SHA" \
-            --title "PLAY80 V4.5 QA — GitHub build (not production)" \
+            --title "PLAY80 V4.6 QA — GitHub build (not production)" \
             --prerelease \
-            --notes "PLAY80 V4.5 QA: premium game logos and a scrollable information/rules page before gameplay, with OK or BACK. Test version with virtual Demo Coins only; device testing and production signing remain pending."
+            --notes "PLAY80 V4.6 QA: Chess game-over/checkmate, player names, leave/resign/draw, online demo match lobby, four tournament game cards (Bubble Shooter, Block Puzzle, Memory Puzzle, 2048 Puzzle) and premium logos; Bubble/Block/2048 remain practice until their server tournament rules exist. Memory Tournament countdown/scoreboard can be viewed before login. Legacy offline owner preview navigation redirects to genuine Supabase Sign In / Create Account; real approvals require a verified Owner and a server wallet request. No accounts are fabricated. Virtual demo coins only; no real-money betting, withdrawals or cash prizes. Remote live Chess moves and production signing are not complete. Disposable QA signing key does not provide in-place updates."
