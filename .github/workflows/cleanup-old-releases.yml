@@ -1,0 +1,49 @@
+name: One-time cleanup of eleven superseded PLAY80 GitHub Releases
+on:
+  push:
+    paths:
+      - '.github/workflows/cleanup-old-releases.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  clean:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Remove only explicitly approved old releases and their release tags
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          tags=(
+            qa-v5.1-signup-feedback-20261125
+            qa-v5.0-owner-player-login-20261125
+            qa-v4.9-pin-registration-bubble-20261125
+            qa-v4.8-pin-auth-bubble-20261125
+            qa-v4.7-pin-login-bubble-cannon-20261125
+            qa-v4.6-chess-tournament-login-20261125
+            qa-v4.5-premium-rules-20261125
+            qa-v4.4-premium-chess-20261125
+            qa-v4.3-accounts-20261125
+            qa-v4.2-github-20261124
+            qa-v4.1-github-20261124
+          )
+          PROTECTED="qa-v5.2-unified-login-20261125"
+          gh release view "$PROTECTED" --repo "$GH_REPO" >/dev/null
+          echo "Protected newest release confirmed: $PROTECTED"
+          for tag in "${tags[@]}"; do
+            if [[ "$tag" == "$PROTECTED" ]]; then
+              echo "::error::Refusing to delete protected latest release"; exit 1
+            fi
+            if gh release view "$tag" --repo "$GH_REPO" >/dev/null 2>&1; then
+              echo "Deleting specifically approved old release: $tag"
+              gh release delete "$tag" --yes --cleanup-tag --repo "$GH_REPO"
+            else
+              echo "Already absent: $tag"
+            fi
+          done
+          gh release view "$PROTECTED" --repo "$GH_REPO" >/dev/null
+          echo "Cleanup complete; protected latest release still exists."
