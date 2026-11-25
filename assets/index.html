@@ -992,14 +992,14 @@ body.p8-auth-locked .app{max-width:560px}
       <div class="formGroup"><label for="cloudUsername">Unique Username</label><input id="cloudUsername" type="text" maxlength="24" placeholder="3–24 English letters, numbers or _" autocapitalize="off" /><button id="cloudSaveUsername" type="button" class="action secondary" style="margin-top:8px">SAVE USERNAME</button></div>
       <div class="hubStat"><div><b>PLAY80 Coins</b><small>Reserved pending removal: <span id="cloudHeld">0</span></small></div><strong id="cloudBalance">—</strong></div>
       <div class="play80Surface" style="margin:8px 0">
-  <strong>🎁 একবারের ভার্চুয়াল কয়েন বোনাস</strong><p style="font-size:12px">If your first approved virtual coin credit request is exactly 1,000, you receive an extra 5,000 nonredeemable Demo Coins once per account.</p>
-  <small>Bonus credited: <b id="cloudBonusEarned">—</b> · Required demo turnover: <b id="cloudTurnoverRequired">—</b> · Completed: <b id="cloudTurnoverCompleted">—</b> · Remaining: <b id="cloudTurnoverRemaining">—</b></small>
+  <strong>🎁 একবারের ভার্চুয়াল কয়েন বোনাস</strong><p style="font-size:12px">প্রথম অনুমোদিত ১,০০০ ভার্চুয়াল কয়েনের অনুরোধে একবার অতিরিক্ত ৫,০০০ কয়েন বোনাস পাবে। এই কয়েন নগদে রূপান্তরযোগ্য নয়।</p>
+  <small>Bonus credited: <b id="cloudBonusEarned">—</b> · Required gameplay: <b id="cloudTurnoverRequired">—</b> · Completed: <b id="cloudTurnoverCompleted">—</b> · Remaining: <b id="cloudTurnoverRemaining">—</b></small>
  </div><div class="sectionTitle"><h2>কয়েনের অনুরোধ</h2></div>
       <div class="formGroup"><label for="cloudRequestKind">Request type</label><select id="cloudRequestKind" class="cloudSelect"><option value="demo_credit">➕ Add virtual coins (100–20,000)</option><option value="demo_debit">➖ Remove virtual coins (min 200)</option></select></div>
       <div class="formGroup"><label for="cloudAmount">Virtual coin amount</label><input id="cloudAmount" type="number" min="100" step="1" value="100" /></div>
       <div class="formGroup"><label for="cloudNote">Optional note (not payment details)</label><textarea id="cloudNote" maxlength="300" rows="2" placeholder="Optional message to Owner"></textarea></div>
       <button type="button" id="cloudSubmit" class="action">অনুরোধ পাঠাও</button>
-      <div class="sectionTitle"><h2>My Online Requests</h2></div><div id="cloudRequests" class="cloudList"></div>
+      <div class="sectionTitle"><h2>My Coin Requests</h2></div><div id="cloudRequests" class="cloudList"></div>
       <button type="button" class="action secondary" id="cloudRefresh">REFRESH ONLINE ACCOUNT</button>
       <button type="button" class="smallAction" id="cloudSignOut" style="margin-top:12px">↪ লগআউট</button>
       <button type="button" class="action secondary hidden" data-open="remote-owner" id="cloudOwnerEntry" style="margin-top:12px">🛡️ OWNER DASHBOARD</button>
@@ -1020,7 +1020,7 @@ body.p8-auth-locked .app{max-width:560px}
     </div>
     <div id="cloudOwnerContent" class="hidden">
       <div class="cloudStaffTabs">
-        <button class="cloudStaffTab selected" type="button" data-staff-tab="wallet">📥 Deposit / Withdraw</button>
+        <button class="cloudStaffTab selected" type="button" data-staff-tab="wallet">🪙 Coin Requests</button>
         <button class="cloudStaffTab" type="button" data-staff-tab="users">👥 Users</button>
         <button class="cloudStaffTab" type="button" data-staff-tab="admins">🛡 Admins</button>
         <button class="cloudStaffTab" type="button" data-staff-tab="activity">🎮 Live Games</button>
@@ -1028,7 +1028,7 @@ body.p8-auth-locked .app{max-width:560px}
         <button class="cloudStaffTab" type="button" data-staff-tab="bots">🤖 Computer Players</button>
         <button class="cloudStaffTab" type="button" data-staff-tab="tournaments">🏆 Tournament Scheduler</button>
       </div>
-      <div id="cloudStaffTab-wallet" class="cloudStaffPane"><div class="sectionTitle"><h2>Pending Demo Requests</h2><span id="cloudOwnerCount">0</span></div><button class="action secondary" type="button" id="cloudOwnerRefresh">REFRESH LIVE REQUESTS</button><div id="cloudOwnerRequests" class="cloudList"></div></div>
+      <div id="cloudStaffTab-wallet" class="cloudStaffPane"><div class="sectionTitle"><h2>Pending Coin Requests</h2><span id="cloudOwnerCount">0</span></div><button class="action secondary" type="button" id="cloudOwnerRefresh">REFRESH LIVE REQUESTS</button><div id="cloudOwnerRequests" class="cloudList"></div></div>
       <div id="cloudStaffTab-users" class="cloudStaffPane hidden"><div class="sectionTitle"><h2>All Users & Balances</h2></div><div class="formGroup"><label for="cloudStaffSearch">Search by User ID / email / username</label><input id="cloudStaffSearch" maxlength="80" placeholder="Search account" /></div><button type="button" class="action secondary" id="cloudStaffSearchButton">SEARCH USERS</button><div id="cloudStaffUsers" class="cloudList"></div></div>
       <div id="cloudStaffTab-admins" class="cloudStaffPane hidden"><div class="sectionTitle"><h2>Staff accounts</h2></div><p class="tiny">শুধু মূল Owner নতুন Admin দিতে বা Admin ক্ষমতা সরাতে পারবে। User account মুছে দেওয়া হবে না।</p><div id="cloudStaffAdmins" class="cloudList"></div></div>
       <div id="cloudStaffTab-activity" class="cloudStaffPane hidden"><div class="sectionTitle"><h2>Who is Playing</h2></div><p class="tiny">সাইন-ইন করা ব্যবহারকারীদের অ্যাপ থেকে পাঠানো সাম্প্রতিক গেম স্ট্যাটাস (সর্বশেষ ২ মিনিট)।</p><button class="action secondary" type="button" id="cloudStaffActivityRefresh">REFRESH LIVE GAMES</button><div id="cloudStaffActivity" class="cloudList"></div></div>
