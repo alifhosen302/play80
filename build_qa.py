@@ -76,7 +76,7 @@ def axml():
     def end(tag):return chunk(0x0103,struct.pack('<II',NO,idx[tag]))
     content=bytearray()
     content+=start_ns()
-    content+=start('manifest',[('package',APP_PACKAGE,'s'),('versionCode',43,'i'),('versionName','5.2','s')])
+    content+=start('manifest',[('package',APP_PACKAGE,'s'),('versionCode',int(os.environ.get('PLAY80_VERSION_CODE','44')),'i'),('versionName','5.2','s')])
     content+=start('uses-sdk',[('minSdkVersion',23,'i'),('targetSdkVersion',28,'i')]);content+=end('uses-sdk')
     content+=start('uses-permission',[('name','android.permission.INTERNET','s')]);content+=end('uses-permission')
     content+=start('application',[('label','play80','s'),('icon',0x7f010000,'r'),('hasCode',True,'b')])

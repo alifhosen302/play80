@@ -30,6 +30,7 @@
   const stamp = () => Math.floor(Date.now()/1000);
   const persist = () => { try{if(session)localStorage.setItem(STORAGE,JSON.stringify(session));else localStorage.removeItem(STORAGE);}catch(_){} };
   try { const data=JSON.parse(localStorage.getItem(STORAGE)||'null');if(data&&data.access_token&&data.refresh_token)session=data; }catch(_){}
+  const isDsr = () => session?.user?.app_metadata?.role === 'dsr';
   const isOwner = () => session?.user?.app_metadata?.role === 'owner';
   const isStaff = () => ['owner','admin'].includes(session?.user?.app_metadata?.role);
   async function raw(path,method='GET',payload=null,token=null){
@@ -38,7 +39,7 @@
     if(token)headers.Authorization='Bearer '+token;
     const res=await fetch(BASE+path,{method,headers,body:payload!==null?JSON.stringify(payload):undefined});
     let data;try{data=await res.json();}catch(_){data=null;}
-    if(!res.ok){let err=new Error(data?.msg||data?.message||data?.error_description||data?.error||('Request failed ('+res.status+')'));err.code=data?.code||'';throw err;}
+    if(!res.ok){let err=new Error(data?.msg||data?.message||data?.error_description||data?.error||('Request failed ('+res.status+')'));err.code=data?.code||data?.error_code||'';err.status=res.status;throw err;}
     return data;
   }
   async function auth(path,method,payload){return raw('/auth/v1/'+path,method,payload);}
@@ -48,13 +49,25 @@
     verifiedAuth=!!session.user?.email_confirmed_at;
     persist();renderAuth();
   }
+  let refreshPending=null;
   async function token(){
     if(!session?.access_token)throw Error('Please sign in first');
-    if(Number(session.expires_at||0) < stamp()+70){
-      try{const data=await auth('token?grant_type=refresh_token','POST',{refresh_token:session.refresh_token});saveSession(data);}
-      catch(e){session=null;persist();renderAuth();throw Error('Your session expired. Please sign in again.');}
+    if(Number(session.expires_at||0)>=stamp()+70)return session.access_token;
+    if(!refreshPending){
+      const current=session;
+      refreshPending=auth('token?grant_type=refresh_token','POST',{refresh_token:current.refresh_token})
+        .then(data=>{
+          if(session!==current)throw Error('Account changed');
+          saveSession(data);
+          return session.access_token;
+        }).catch(e=>{
+          if(session===current && (e.status===401 || ['refresh_token_not_found','refresh_token_already_used','session_not_found'].includes(e.code))){
+            session=null;verifiedAuth=false;persist();renderAuth();
+          }
+          throw e;
+        }).finally(()=>{refreshPending=null;});
     }
-    return session.access_token;
+    return refreshPending;
   }
   async function db(path,method='GET',payload=null){return raw('/rest/v1/'+path,method,payload,await token());}
   function renderAuth(){
@@ -64,10 +77,10 @@
     if(!on)window.scrollTo(0,0);
     show('cloudSignedOut',!on);show('cloudSignedIn',on);
     show('cloudOwnerEntry',on&&isStaff());show('cloudOwnerAuthBlocked',!on||!isStaff());show('cloudStaffPinGate',on&&isStaff()&&!staffPinToken);show('cloudOwnerContent',on&&isStaff()&&!!staffPinToken);
-    if(on){$('cloudEmail').textContent=session.user?.email||'Signed in';$('cloudRole').textContent=isOwner()?'Owner':(isStaff()?'Admin':'Player');}
+    if(on){$('cloudEmail').textContent=session.user?.email||'Signed in';$('cloudRole').textContent=isOwner()?'Owner':(isStaff()?'Admin':isDsr()?'DSR':'Player');}
     else {$('cloudBalance').textContent='—';$('cloudRequests').replaceChildren();}
     const ownerBadge=$('p8AccountIdentity');
-    if(ownerBadge)ownerBadge.textContent=on?(isOwner()?'🛡️ Owner account':isStaff()?'🛡️ Staff account':'🎮 Player account'):'🔐 PLAY80 · Secure sign in';
+    if(ownerBadge)ownerBadge.textContent=on?(isOwner()?'🛡️ Owner account':isStaff()?'🛡️ Staff account':isDsr()?'DSR account':'🎮 Player account'):'🔐 PLAY80 · Secure sign in';
     document.querySelectorAll('[data-p8-owner-only]').forEach(el=>el.classList.toggle('hidden',!on||!isOwner()));
   }
   async function loadAccount(){
@@ -163,14 +176,56 @@
     await loadAccount();
     if(isStaff())document.querySelector('[data-open="remote-owner"]')?.click();
     else document.querySelector('[data-open="home"]')?.click();
-    status('স্বাগতম! '+(isOwner()?'Owner':isStaff()?'Staff / Admin':'Player')+' অ্যাকাউন্টে লগইন সফল।');
+    status('স্বাগতম! '+(isOwner()?'Owner':isStaff()?'Staff / Admin':isDsr()?'DSR':'Player')+' অ্যাকাউন্টে লগইন সফল।');
   }));
+  const recovery=document.createElement('details');
+  recovery.innerHTML='<summary>ইমেইল পেয়েছ? নতুন PIN সেট করো</summary><form><label>ইমেইলের রিসেট লিংক (লিংক কপি করো) অথবা কোড<input name="proof" required autocomplete="off"></label><label>নতুন ছয় সংখ্যার PIN<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{6}" required autocomplete="new-password"></label><label>আবার PIN লিখো<input name="repeatPin" type="password" required autocomplete="new-password"></label><button>PIN সংরক্ষণ</button></form>';
+  $('cloudRecover').after(recovery);
+  const resend=document.createElement('button');
+  resend.type='button';resend.textContent='যাচাই ইমেইল আবার পাঠাও';
+  recovery.after(resend);
+  resend.onclick=()=>busy(resend,async()=>{
+    const email=$('cloudLoginEmail').value.trim();
+    if(!email)throw Error('প্রথমে ইমেইল লিখো।');
+    await auth('resend','POST',{email,type:'signup'});
+    status('ইমেইল যাচাই বাকি থাকলে Inbox ও Spam দেখো।');
+  });
   $('cloudRecover').addEventListener('click',e=>busy(e.currentTarget,async()=>{
     const email=$('cloudLoginEmail').value.trim().toLowerCase();
     if(!email)throw Error('PIN রিসেটের জন্য প্রথমে ইমেইল লিখো');
     await auth('recover','POST',{email});
-    status('If that account exists, a PIN recovery email was sent. Follow the email instructions to reset your sign-in code.');
+    recovery.open=true;
+    status('ইমেইলের রিসেট লিংকটি খোলার আগে কপি করে নিচে বসাও। কোড থাকলে সেটিও ব্যবহার করা যাবে।');
   }));
+  const resetForm=recovery.querySelector('form');
+  let recoveryGrant=null;
+  resetForm.onsubmit=e=>{
+    e.preventDefault();
+    busy(resetForm.querySelector('button'),async()=>{
+      const fields=resetForm.elements;
+      const proof=fields.proof.value.trim(),pin=fields.pin.value;
+      if(!/^[0-9]{6}$/.test(pin)||pin!==fields.repeatPin.value)throw Error('দুই ঘরে একই ছয় সংখ্যার PIN দাও।');
+      const email=$('cloudLoginEmail').value.trim().toLowerCase();
+      if(!recoveryGrant||recoveryGrant.proof!==proof||recoveryGrant.email!==email){
+        let payload;
+        if(/^[0-9]{6,10}$/.test(proof))payload={email,token:proof,type:'recovery'};
+        else{
+          const link=new URL(proof);
+          if(link.origin!==BASE||link.pathname!=='/auth/v1/verify'||link.searchParams.get('type')!=='recovery'||!link.searchParams.get('token'))throw Error('সর্বশেষ PLAY80 রিসেট ইমেইলের মূল লিংক কপি করো।');
+          payload={token_hash:link.searchParams.get('token'),type:'recovery'};
+        }
+        const grant=await auth('verify','POST',payload);
+        if(!grant?.access_token)throw Error('নতুন রিসেট ইমেইল চাও।');
+        recoveryGrant={proof,email,token:grant.access_token};
+      }
+      try{await raw('/auth/v1/user','PUT',{password:pin},recoveryGrant.token);}
+      catch(e){if(e.status===401||e.status===403)recoveryGrant=null;throw e;}
+      const old=recoveryGrant.token;
+      recoveryGrant=null;resetForm.reset();recovery.open=false;
+      await raw('/auth/v1/logout?scope=local','POST',null,old).catch(()=>{});
+      selectAuthMode(false);status('PIN বদলেছে। নতুন PIN দিয়ে লগইন করো।');
+    });
+  };
   $('cloudSaveUsername').addEventListener('click',e=>busy(e.currentTarget,async()=>{
     const username=$('cloudUsername').value.trim().toLowerCase();
     if(!/^[a-z0-9_]{3,24}$/.test(username))throw Error('Username: 3–24 English letters, digits or underscore');
@@ -595,20 +650,48 @@
     },true));
   }
 
+  const dsrPanel=document.createElement('details');
+  dsrPanel.dataset.p8OwnerOnly='';
+  dsrPanel.innerHTML='<summary>DSR অ্যাকাউন্ট তৈরি</summary><form></form>';
+  const dsrForm=dsrPanel.querySelector('form');
+  for(const [name,label,type] of [
+    ['email','DSR ইমেইল','email'],['username','User ID','text'],['phone_number','মোবাইল','tel'],
+    ['full_name','পূর্ণ নাম','text'],['address','ঠিকানা','text'],['pin','প্রাথমিক ছয় সংখ্যার PIN','password']]){
+    const wrapper=document.createElement('label'),input=document.createElement('input');
+    wrapper.textContent=label;input.type=type;input.name=name;input.required=true;
+    if(name==='pin'){input.pattern='[0-9]{6}';input.inputMode='numeric';input.autocomplete='new-password';}
+    wrapper.append(input);dsrForm.append(wrapper);
+  }
+  const createDsr=document.createElement('button');createDsr.textContent='DSR তৈরি করে যাচাই ইমেইল পাঠাও';
+  dsrForm.append(createDsr);$('cloudOwnerContent').prepend(dsrPanel);
+  dsrForm.onsubmit=e=>{
+    e.preventDefault();
+    busy(createDsr,async()=>{
+      if(!isOwner()||!staffPinToken)throw Error('Owner action PIN required');
+      const fields=Object.fromEntries(new FormData(dsrForm));
+      fields.email=fields.email.trim().toLowerCase();fields.username=fields.username.trim().toLowerCase();
+      const result=await raw('/functions/v1/play80-create-dsr','POST',{...fields,pin_token:staffPinToken},await token());
+      dsrForm.reset();ownerStatus(result.message);
+    },ownerStatus);
+  };
   async function verifySavedSession(){
     if(!session)return;
     try{
       const id=session.user?.id;
       const u=await raw('/auth/v1/user','GET',null,await token());
-      if(!id||!u?.id||u.id!==id||!u.email_confirmed_at)throw Error('Email verification or login expired');
+      if(!id||!u?.id||u.id!==id||!u.email_confirmed_at)throw Object.assign(Error('Email verification or login expired'),{status:401});
       session.user=u;verifiedAuth=true;persist();renderAuth();
       await loadAccount();await loadMyMessages().catch(()=>{});
       if(isStaff())$('cloudOwnerEntry')?.click();
     }catch(e){
+      if(session && e.status!==401 && e.status!==403){
+        verifiedAuth=false;renderAuth();status('সংযোগ যাচাই করা যায়নি। ইন্টারনেট ফিরলে আবার চেষ্টা করো।',true);return;
+      }
       session=null;verifiedAuth=false;profile=null;balance=null;
       persist();renderAuth();status('Sign in with your email and six-digit PIN. Email verification is required.',true);
     }
   }
   renderAuth();
+  window.addEventListener('online',()=>{if(session&&!verifiedAuth)verifySavedSession();});
   if(session)verifySavedSession();
 })();

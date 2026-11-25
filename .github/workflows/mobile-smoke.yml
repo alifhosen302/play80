@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'assets/**'
+      - 'tests/test_account_recovery.py'
       - 'tests/test_v47_mobile_browser.py'
       - 'tests/test_v50_roles_browser.py'
       - 'tests/test_v51_signup_feedback.py'
@@ -11,6 +12,7 @@ on:
   pull_request:
     paths:
       - 'assets/**'
+      - 'tests/test_account_recovery.py'
       - 'tests/test_v46_mobile_browser.py'
       - '.github/workflows/mobile-smoke.yml'
 permissions:
@@ -30,3 +32,4 @@ jobs:
           python tests/test_v47_mobile_browser.py
           python tests/test_v50_roles_browser.py
           python tests/test_v51_signup_feedback.py
+          python tests/test_account_recovery.py

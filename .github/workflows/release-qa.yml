@@ -3,20 +3,26 @@ name: Update the single PLAY80 APK (permanent signing required)
 # Always update the SAME Release asset; never create separate versioned releases.
 # Abort without publishing when the permanent signing key is unavailable.
 on:
-  push:
-    paths:
-      - '.github/workflows/release-qa.yml'
-      - 'build_qa.py'
-      - 'assets/**'
   workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Replace the V5.2 APK after all checks pass'
+        required: true
+        type: boolean
+        default: false
+
+concurrency:
+  group: play80-stable-release
+  cancel-in-progress: false
 
 permissions:
   contents: write
 
 jobs:
   qa-release:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -47,6 +53,25 @@ jobs:
           test -s tests/test_v50_roles_browser.py
           node --check assets/play80_bubble_deluxe.js
           python -m compileall -q build_qa.py release_check.py
+      - name: Run account and signup browser tests
+        run: |
+          pip install playwright==1.56.0
+          python -m playwright install --with-deps chromium
+          python tests/test_v50_roles_browser.py
+          python tests/test_v51_signup_feedback.py
+          python tests/test_account_recovery.py
+      - name: Fetch the currently distributed APK and derive the next version code
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release download qa-v5.2-unified-login-20261125 --pattern PLAY80_V5_2_GitHub_QA.apk --dir "$RUNNER_TEMP/baseline"
+          old="$RUNNER_TEMP/baseline/PLAY80_V5_2_GitHub_QA.apk"
+          tools="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
+          info="$("$tools/aapt" dump badging "$old")"
+          code="$(sed -n "s/^package: .*versionCode='\([0-9]*\)'.*/\1/p" <<< "$info")"
+          [[ "$code" =~ ^[0-9]+$ ]]
+          echo "PLAY80_VERSION_CODE=$((code + 1))" >> "$GITHUB_ENV"
       - name: Restore the same permanent PLAY80 signing key from GitHub Secrets
         shell: bash
         env:
@@ -62,8 +87,10 @@ jobs:
           chmod 600 "$RUNNER_TEMP/play80-permanent.jks"
           keytool -list -storetype PKCS12 -keystore "$RUNNER_TEMP/play80-permanent.jks" -storepass "$KEYSTORE_PASSWORD" >/dev/null
           echo "PLAY80_SIGNING_KEYSTORE=$RUNNER_TEMP/play80-permanent.jks" >> "$GITHUB_ENV"
-          echo "PLAY80_SIGNING_PASSWORD=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+
       - name: Build and verify signed QA APK
+        env:
+          PLAY80_SIGNING_PASSWORD: ${{ secrets.PLAY80_SIGNING_PASSWORD }}
         shell: bash
         run: |
           set -euo pipefail
@@ -75,12 +102,36 @@ jobs:
           mkdir -p dist
           cp ../PLAY80_V4_1_Practice_QA.apk dist/PLAY80_V5_2_GitHub_QA.apk
           sha256sum dist/PLAY80_V5_2_GitHub_QA.apk
+      - name: Verify signing identity against the released APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          tools="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
+          fingerprint() {
+            "$tools/apksigner" verify --min-sdk-version 28 --print-certs "$1" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p'
+          }
+          old="$(fingerprint "$RUNNER_TEMP/baseline/PLAY80_V5_2_GitHub_QA.apk")"
+          new="$(fingerprint dist/PLAY80_V5_2_GitHub_QA.apk)"
+          [[ "$old" =~ ^[0-9a-f]{64}$ && "$old" == "$new" ]]
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Test the signed APK on Android 14
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          script: bash tests/android_release_update.sh
       - uses: actions/upload-artifact@v4
         with:
           name: PLAY80-V5.2-QA
           path: dist/PLAY80_V5_2_GitHub_QA.apk
           retention-days: 14
       - name: Update the same existing V5.2 Release asset without creating another version
+        if: inputs.publish
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
