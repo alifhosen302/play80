@@ -57,10 +57,10 @@
     show('cloudSignedOut',!on);show('cloudSignedIn',on);
     show('cloudOwnerEntry',on&&isStaff());show('cloudOwnerAuthBlocked',!on||!isStaff());show('cloudStaffPinGate',on&&isStaff()&&!staffPinToken);show('cloudOwnerContent',on&&isStaff()&&!!staffPinToken);
     if(on){$('cloudEmail').textContent=session.user?.email||'Signed in';$('cloudRole').textContent=isOwner()?'Owner':(isStaff()?'Admin':'Player');}
+    else {$('cloudBalance').textContent='—';$('cloudRequests').replaceChildren();}
     const ownerBadge=$('p8AccountIdentity');
     if(ownerBadge)ownerBadge.textContent=on?(isOwner()?'🛡️ Owner account':isStaff()?'🛡️ Staff account':'🎮 Player account'):'🔐 PLAY80 · Secure sign in';
     document.querySelectorAll('[data-p8-owner-only]').forEach(el=>el.classList.toggle('hidden',!on||!isOwner()));
-    else {$('cloudBalance').textContent='—';$('cloudRequests').replaceChildren();}
   }
   async function loadAccount(){
     if(!session||!verifiedAuth)return;
