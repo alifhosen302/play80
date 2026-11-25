@@ -632,10 +632,28 @@ body.play80PracticeActive .footerNav{display:none!important}
 .p2048Tile{border-radius:12px;display:grid;place-items:center;background:#ffffff15;font-size:clamp(17px,6vw,34px);font-weight:900;font-variant-numeric:tabular-nums;min-width:0;min-height:0;color:#fff4db;box-shadow:inset 0 1px #ffffff26}.p2048Tile.filled{border:1px solid #ffffff50;background:linear-gradient(135deg,#8755e0,#5136a6);box-shadow:0 5px 12px #0004,inset 0 2px #ffffff64}.p2048Tile[data-value="2"],.p2048Tile[data-value="4"]{background:linear-gradient(120deg,#ead8ff,#a48be3);color:#35204f}.p2048Tile[data-value="8"],.p2048Tile[data-value="16"]{background:linear-gradient(120deg,#fecc8a,#f18c79);color:#4f2352}.p2048Tile[data-value="32"],.p2048Tile[data-value="64"]{background:linear-gradient(120deg,#ff97b6,#d456bd)}.p2048Tile[data-value="128"],.p2048Tile[data-value="256"]{background:linear-gradient(120deg,#7de2d9,#3b9ab8)}.p2048Tile[data-value="512"],.p2048Tile[data-value="1024"]{background:linear-gradient(120deg,#f9dc76,#e89142);color:#372345}.p2048Tile[data-value="2048"]{background:linear-gradient(120deg,#ffed9d,#d59c33);color:#382550}.p2048Tile[data-value="4096"],.p2048Tile[data-value="8192"]{font-size:clamp(14px,4.8vw,27px)}
 .p2048Controls{display:flex;justify-content:center;gap:12px;margin:16px auto}.p2048Controls button{min-width:53px;min-height:51px;border-radius:12px;border:1px solid #a78af1;background:linear-gradient(130deg,#6b42bc,#493093);color:white;font-weight:900;font-size:23px;box-shadow:0 4px 10px #0005}
 </style>
+<style id="play80-premium-v44">
+/* Responsive brand and deliberate, accessible authentication tabs */
+.top .logoImageMark{overflow:visible;display:grid;place-items:center;background:none;border:0;box-shadow:none}
+.top .logoImageMark img{width:clamp(40px,10vw,56px);height:clamp(40px,10vw,56px);object-fit:contain;filter:drop-shadow(0 3px 8px #9c4af989)}
+.top .brand{letter-spacing:-.04em}
+.p8AuthModes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:14px 0 17px}
+.p8AuthModes button{border:1px solid #7052a9;border-radius:12px;background:#201b3a;color:#eee9fc;padding:13px 9px;font-size:13px;font-weight:850;min-height:46px}
+.p8AuthModes button.selected{background:linear-gradient(130deg,#b775f1,#693ee5);border-color:#e8cbff;color:#fff;box-shadow:0 3px 13px #9c5bf366}
+#cloudSignedOut .cloudActions{margin-top:12px}
+#cloudSignedOut .cloudActions .action{min-width:0;flex:1}
+.p8PlayerPinPanel{margin:12px 0 18px;padding:16px;border-radius:15px;border:1px solid #9071d0;background:linear-gradient(145deg,#30204f,#171d39)}
+.p8PlayerPinPanel h3{margin:0 0 8px;font-size:16px;color:#fff}
+.p8PlayerPinPanel p{font-size:12px;line-height:1.55;color:#d7cee9}
+.p8PinFields{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:9px;margin:10px 0}
+.p8PinFields input{background:#13162c;border:1px solid #8269b5;color:#fff;border-radius:10px;min-width:0;width:100%;padding:12px;font-size:16px;letter-spacing:2px}
+#cloudSignedOut .hidden,#cloudSignedIn .hidden{display:none!important}
+@media(max-width:370px){.top .logo{min-width:0}.top .brand{font-size:17px}.p8AuthModes button{font-size:12px}}
+</style>
 </head>
 <body>
 <div class="app">
- <header class="top"><button id="globalBack" class="globalBack hidden" type="button" aria-label="Go back one step">❮</button><div class="logo"><span class="mark logoImageMark"><img src="play80_logo_mark.png" alt="play80 Logo" width="45" height="45"></span><div><div class="brand">play<span style="color:#c9a1ff">80</span></div><div class="small">Dice • Flight • Ludo • Spin</div></div></div><div class="walletBadge">✦ <span id="headerPoints">0</span> PTS</div></header>
+ <header class="top"><button id="globalBack" class="globalBack hidden" type="button" aria-label="Go back one step">❮</button><div class="logo"><span class="mark logoImageMark"><img src="play80_brand_premium.webp" alt="PLAY80 official premium logo" width="45" height="45"></span><div><div class="brand">play<span style="color:#c9a1ff">80</span></div><div class="small">Dice • Flight • Ludo • Spin</div></div></div><div class="walletBadge">✦ <span id="headerPoints">0</span> PTS</div></header>
  <nav class="play80TopTabs" aria-label="PLAY80 primary tabs">
  <button type="button" data-open="home" data-main-tab="home" class="active">🎰 Casino</button>
  <button type="button" data-open="bet" data-main-tab="bet">♟️ Bet</button>
@@ -777,7 +795,7 @@ body.play80PracticeActive .footerNav{display:none!important}
 
 
 <section id="screen-owner" class="screen hidden"><div class="center"><div class="ownerBrandBadge"><img src="play80_logo_mark.png" width="56" height="56" alt="play80 official logo"/></div><h1 class="bigTitle">🛡️ play80 Owner Preview</h1><p class="sub">Accounts • Demo Deposit & Withdraw • Inbox</p></div><div class="panel">
-<span class="chipBanner">OFFLINE OWNER DEMO • NOT SECURE</span><div class="demoBanner">All records here come from this phone only. This is NOT an authenticated admin account and cannot receive remote players' requests.</div>
+<span class="chipBanner">LOCAL QA PREVIEW ONLY — USE VERIFIED LOGIN</span><div class="demoBanner">All records here come from this phone only. This is NOT an authenticated admin account and cannot receive remote players' requests.</div>
 <div class="ownerKpi"><div><small>Pending requests</small><strong id="ownerPending">0</strong></div><div><small>Local coin balance</small><strong id="ownerBalance">0</strong></div></div>
 <button type="button" class="action secondary" data-open="account" style="margin-bottom:12px">🔐 ONLINE OWNER LOGIN</button>
 <button type="button" class="action" data-open="admin">📥 APPROVE DEPOSIT / WITHDRAW</button><div class="ownerGameTest"><b>🧪 Owner QA</b><p>Play all 15 games to test them. No remotely connected users or real coins.</p><button type="button" class="action secondary" id="ownerTestGames">🎮 TEST ALL GAMES</button></div>
@@ -882,7 +900,7 @@ body.play80PracticeActive .footerNav{display:none!important}
  <nav class="footerNav" aria-label="Main app navigation"><button class="navBtn active" data-open="home"><b>🎮</b>Games</button><button class="navBtn" data-open="account"><b>🌐</b>Account</button><button class="navBtn" data-open="rewards"><b>🎁</b>Rewards</button><button class="navBtn" data-open="account"><b>💬</b>Messages</button><button class="navBtn" data-open="profile"><b>👤</b>Profile</button></nav>
 </div><section id="screen-account" class="screen hidden">
   <button class="back" data-open="home">❮ All Games</button>
-  <div class="center"><h1 class="bigTitle">🌐 play80 Online Account</h1><p class="sub">Verified email login and secure demo coin requests</p></div>
+  <div class="center"><h1 class="bigTitle">🌐 PLAY80 Account</h1><p class="sub">Step 1: Create Account / Sign In → Step 2: Verify Email → Step 3: Set Player PIN</p></div>
   <div class="panel cloudPanel">
     <div class="demoBanner"><b>ONLINE DEMO ONLY.</b> No payments, deposits of real money, bank or mobile wallet transfers, or cash redemption. Online coins and this phone's offline game coins are separate.</div>
     <div id="cloudSignedOut">
