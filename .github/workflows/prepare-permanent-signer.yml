@@ -1,0 +1,52 @@
+name: Prepare owner-protected PLAY80 backup
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/prepare-permanent-signer.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: play80-owner-key-provisioning
+  cancel-in-progress: false
+jobs:
+  prepare:
+    if: github.repository == 'alifhosen302/play80' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reserve the one-time key generation
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PASSWORD: ${{ secrets.PLAY80_SIGNING_PASSWORD }}
+          EXISTING: ${{ secrets.PLAY80_SIGNING_KEYSTORE_B64 }}
+        run: |
+          set -eu
+          test -n "$PASSWORD" && test -z "$EXISTING" || { echo 'Missing password or keystore already configured'; exit 1; }
+          test "$(gh api "repos/$GITHUB_REPOSITORY" --jq .private)" = true
+          gh api -X POST "repos/$GITHUB_REPOSITORY/git/refs" -f ref=refs/tags/play80-permanent-key-reserved -f sha="$GITHUB_SHA" >/dev/null
+      - name: Generate, reload and test the encrypted backup
+        env:
+          PASSWORD: ${{ secrets.PLAY80_SIGNING_PASSWORD }}
+        run: |
+          set -euo pipefail
+          umask 077
+          cd "$RUNNER_TEMP"
+          mkdir owner-backup
+          keytool -genkeypair -noprompt -alias play80 -keyalg RSA -keysize 3072 -validity 11000 -dname 'CN=PLAY80 Release' -storetype PKCS12 -keystore play80.p12 -storepass:env PASSWORD
+          cp play80.p12 owner-backup/PLAY80-permanent.p12
+          printf 'PLAY80 signing check\n' > challenge.txt
+          jar cf check.jar challenge.txt
+          jarsigner -keystore owner-backup/PLAY80-permanent.p12 -storetype PKCS12 -storepass:env PASSWORD check.jar play80 >/dev/null
+          jarsigner -verify check.jar | grep -F 'jar verified.'
+          for key in play80.p12 owner-backup/PLAY80-permanent.p12; do
+            keytool -exportcert -alias play80 -keystore "$key" -storepass:env PASSWORD | sha256sum | cut -d' ' -f1 > "$key.fingerprint"
+          done
+          cmp play80.p12.fingerprint owner-backup/PLAY80-permanent.p12.fingerprint
+          cat play80.p12.fingerprint >> "$GITHUB_STEP_SUMMARY"
+      - name: Save encrypted backup for the repository owner
+        uses: actions/upload-artifact@v4
+        with:
+          name: PLAY80-owner-encrypted-backup
+          path: ${{ runner.temp }}/owner-backup/
+          retention-days: 90
+          if-no-files-found: error
