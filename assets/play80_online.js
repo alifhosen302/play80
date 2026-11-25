@@ -7,7 +7,7 @@
   const KEY = 'sb_publishable_8VvDZLfwAeztWeDS2EqNBQ_nlYFwFyK';
   const STORAGE = 'play80.secure_account.v1';
   const $ = (id) => document.getElementById(id);
-  let session = null, profile = null, balance = null, verifiedAuth = false, loginMode = 'player';
+  let session = null, profile = null, balance = null, verifiedAuth = false, signupRoleIntent = 'player';
   let staffPinToken = null, staffPinExpires = 0, activeGameCode = null;
   const escDate = (d) => { try { return new Date(d).toLocaleString(); } catch (_) {return '—';} };
   const status = (message, error=false) => {
@@ -158,18 +158,12 @@
       session=null;persist();renderAuth();throw Error('প্রথমে ইমেইল Verify করতে হবে।');
     }
     session.user=remote;
-    if(loginMode==='owner' && !isOwner()){
-      session=null;verifiedAuth=false;persist();renderAuth();
-      throw Error('এই অ্যাকাউন্ট Owner নয়। Player Login ব্যবহার করো।');
-    }
-    if(loginMode==='player' && isOwner()){
-      session=null;verifiedAuth=false;persist();renderAuth();
-      throw Error('Owner অ্যাকাউন্টের জন্য Owner Login ব্যবহার করো।');
-    }
+    // Server-issued app_metadata determines the destination; the login UI cannot grant roles.
     verifiedAuth=true;persist();renderAuth();$('cloudLoginPassword').value='';
     await loadAccount();
-    if(loginMode==='owner')document.querySelector('[data-open="remote-owner"]')?.click();
-    status('স্বাগতম! '+(isOwner()?'Owner Account':'Player Account')+'-এ লগইন সফল।');
+    if(isStaff())document.querySelector('[data-open="remote-owner"]')?.click();
+    else document.querySelector('[data-open="home"]')?.click();
+    status('স্বাগতম! '+(isOwner()?'Owner':isStaff()?'Staff / Admin':'Player')+' অ্যাকাউন্টে লগইন সফল।');
   }));
   $('cloudRecover').addEventListener('click',e=>busy(e.currentTarget,async()=>{
     const email=$('cloudLoginEmail').value.trim().toLowerCase();
@@ -201,7 +195,7 @@
     session=null;profile=null;balance=null;staffPinToken=null;staffPinExpires=0;verifiedAuth=false;
     persist();renderAuth();
     document.querySelectorAll('.screen').forEach(el=>el.classList.toggle('hidden',el.id!=='screen-account'));
-    selectAuthMode(false,false);
+    selectAuthMode(false);
     status('এই ডিভাইস থেকে লগআউট হয়েছে।');
     // Clear local access immediately; separately attempt GoTrue token revocation.
     if(oldAccessToken){
@@ -444,21 +438,22 @@
   // Two modes: Email + PIN login, or Email -> Username -> Phone -> Name -> Address -> PIN signup.
   const cloudSignedOut=$('cloudSignedOut');
   const modePanel=document.createElement('div');
-  modePanel.className='p8AuthModes p8AuthModesThree';
-  modePanel.innerHTML='<button type="button" id="p8ModeLogin" class="selected">🎮 PLAYER LOGIN</button><button type="button" id="p8ModeOwner">🛡️ OWNER LOGIN</button><button type="button" id="p8ModeSignup">➕ CREATE ACCOUNT</button>';
+  modePanel.className='p8AuthModes p8AuthModesSimple';
+  modePanel.innerHTML='<button type="button" id="p8ModeLogin" class="selected">SIGN IN</button><button type="button" id="p8ModeSignup">SIGN UP</button>';
   cloudSignedOut.querySelector('.sectionTitle').after(modePanel);
   const modeHelp=document.createElement('p');modeHelp.id='p8ModeHelp';modeHelp.className='tiny';
   modePanel.after(modeHelp);
   const firstOwner=document.createElement('button');
-  firstOwner.type='button';firstOwner.id='p8FirstOwnerSignup';firstOwner.className='smallAction hidden';
-  firstOwner.textContent='প্রথমবার Owner অ্যাকাউন্ট তৈরি করুন';
-  modeHelp.after(firstOwner);
+  firstOwner.type='button';firstOwner.id='p8FirstOwnerSignup';firstOwner.className='p8OwnerCreateLink';
+  firstOwner.textContent='🛡️ Create Owner Account';
+  // Distinct signup *entry*, not a client-assigned privileged role.
+  cloudSignedOut.append(firstOwner);
   firstOwner.addEventListener('click',()=>{
-    selectAuthMode(true,false);
-    $('cloudNotice').textContent='Owner তৈরির জন্য শুধুমাত্র অনুমোদিত Owner ইমেইল ব্যবহার করুন। ইমেইল যাচাই হলে সার্ভার Owner Role দেবে।';
+    selectAuthMode(true,true);
+    status('Owner Role কেবল সার্ভারে অনুমোদিত ও ভেরিফাইড ইমেইল পাবে। অ্যাপের এই বাটন নিজে Owner অনুমতি দেয় না।');
   });
-  function selectAuthMode(signup,owner=false){
-    loginMode=owner?'owner':'player';
+  function selectAuthMode(signup=false,owner=false){
+    signupRoleIntent=owner?'owner':'player';
     const emailGroup=$('cloudLoginEmail').closest('.formGroup'),pinGroup=$('cloudLoginPassword').closest('.formGroup');
     if(signup&&$('p8SignupConfirmPIN')){emailGroup.after(regName);$('p8SignupConfirmPIN').closest('.formGroup').before(pinGroup);}
     else emailGroup.after(pinGroup);
@@ -467,20 +462,18 @@
     $('cloudRegister').classList.toggle('hidden',!signup);
     $('cloudLogin').classList.toggle('hidden',signup);
     $('p8ModeSignup').classList.toggle('selected',signup);
-    $('p8ModeOwner').classList.toggle('selected',owner);
-    $('p8ModeLogin').classList.toggle('selected',!signup&&!owner);
+    $('p8ModeLogin').classList.toggle('selected',!signup);
     $('cloudLoginPassword').autocomplete=signup?'new-password':'current-password';
     $('cloudLoginPassword').value='';
-    modeHelp.textContent=signup?'ইমেইল, ইউনিক ইউজার আইডি ও ৬ সংখ্যার PIN দিয়ে নতুন Player অ্যাকাউন্ট খোলো।':owner?'শুধু যাচাইকৃত Owner Email দিয়ে লগইন। অন্য অ্যাকাউন্ট Owner Panel খুলতে পারবে না।':'যাচাইকৃত Player Email ও ৬ সংখ্যার PIN দিয়ে লগইন করো।';
-    firstOwner.classList.toggle('hidden',!owner);
+    modeHelp.textContent=signup?(owner?'Owner Account: শুধু সার্ভারে অনুমোদিত ইমেইল Owner হতে পারবে।':'নতুন Player Account: Email, User ID, Mobile, Name, Address ও ৬ সংখ্যার PIN দাও।'):'একই Email ও PIN দিয়ে Owner, Staff/DSR অথবা Player লগইন করো। সার্ভার Role অনুযায়ী সঠিক প্যানেল খুলবে।';
+    firstOwner.classList.toggle('hidden',signup);
     signupResult.hidden=true;
     status('');
     $('cloudNotice').hidden=true;
     window.scrollTo(0,0);
   }
-  $('p8ModeLogin').addEventListener('click',()=>selectAuthMode(false,false));
-  $('p8ModeOwner').addEventListener('click',()=>selectAuthMode(false,true));
-  $('p8ModeSignup').addEventListener('click',()=>selectAuthMode(true,false));
+  $('p8ModeLogin').addEventListener('click',()=>selectAuthMode(false));
+  $('p8ModeSignup').addEventListener('click',()=>selectAuthMode(true));
   const signupResult=document.createElement('div');
   signupResult.id='p8SignupResult';signupResult.hidden=true;
   signupResult.setAttribute('role','status');
@@ -610,7 +603,7 @@
       if(!id||!u?.id||u.id!==id||!u.email_confirmed_at)throw Error('Email verification or login expired');
       session.user=u;verifiedAuth=true;persist();renderAuth();
       await loadAccount();await loadMyMessages().catch(()=>{});
-      if(isOwner())$('cloudOwnerEntry')?.click();
+      if(isStaff())$('cloudOwnerEntry')?.click();
     }catch(e){
       session=null;verifiedAuth=false;profile=null;balance=null;
       persist();renderAuth();status('Sign in with your email and six-digit PIN. Email verification is required.',true);
