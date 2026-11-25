@@ -6,6 +6,7 @@ on:
       - 'assets/**'
       - 'tests/test_v47_mobile_browser.py'
       - 'tests/test_v50_roles_browser.py'
+      - 'tests/test_v51_signup_feedback.py'
       - '.github/workflows/mobile-smoke.yml'
   pull_request:
     paths:
@@ -28,3 +29,4 @@ jobs:
         run: |
           python tests/test_v47_mobile_browser.py
           python tests/test_v50_roles_browser.py
+          python tests/test_v51_signup_feedback.py
