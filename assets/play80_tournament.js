@@ -39,26 +39,28 @@
    if(refreshing)return;
    refreshing=true;
    try{
-     if(!active()){
-       tournament=null;setText('tourState','SIGN IN');setText('tourCountdown','—');
-       setText('tourHumans','—');setText('tourBots','—');setText('tourPool','—');
-       $('tourJoin').disabled=true;$('tourPlay').disabled=true;
-       notice('Use ONLINE ACCOUNT to sign in. The tournament requires a verified Play80 account.');
-       $('tourLeaderboard').textContent='Login to view the live leaderboard.';
-       return;
+     const signed=!!active();
+     let t;
+     if(signed)t=await call('play80_tournament_public');
+     else {
+       const res=await fetch('https://suhpmjqrcqkzaslptpca.supabase.co/rest/v1/rpc/play80_tournament_public',{method:'POST',headers:{apikey:'sb_publishable_8VvDZLfwAeztWeDS2EqNBQ_nlYFwFyK','Content-Type':'application/json'},body:'{}'});
+       if(!res.ok)throw Error('Public tournament status currently unavailable');
+       t=await res.json();
      }
-     const t=await call('play80_tournament_public');
      tournament=t;lastSync=Date.now();serverDelta=new Date(t.server_time).getTime()-Date.now();
      setText('tourState',({registration_open:'REGISTRATION',running:'ACTIVE',finished:'COMPLETED',idle:'WAITING'})[t.status]||t.status);
      setText('tourHumans',fmt(t.human_count));setText('tourBots',fmt(t.bot_count));
      setText('tourPool',fmt(t.funded_pool));setText('tourMyScore',fmt(t.my_score));
-     const join=$('tourJoin');join.disabled=t.joined||!['running','registration_open'].includes(t.status);
+     const join=$('tourJoin');join.disabled=!signed||t.joined||!['running','registration_open'].includes(t.status);
      join.textContent=t.joined?'✓ REGISTERED':'JOIN · 500 DEMO COINS';
-     const play=$('tourPlay');play.disabled=!(t.joined&&t.status==='running'&&t.game==='memory');
-     notice(t.status==='registration_open'?('Registration open • estimated AI players at start: '+t.planned_bot_count+' • Start when 15 humans join or countdown ends.'):
-      (t.status==='running'?'72-hour tournament live. Play Memory Puzzle as often as you like.': 'Waiting for next scheduled tournament.'));
-     countdown();await loadLeaderboard(t.id);
-   }catch(e){notice('Server error: '+(e.message||e),true);setText('tourState','UNAVAILABLE');}
+     const play=$('tourPlay');play.disabled=!signed||!(t.joined&&t.status==='running'&&t.game==='memory');
+     notice(!signed?'Public tournament details are visible. Sign in to register and see player rankings.':
+        t.status==='registration_open'?'Registration open. Countdown shows when enrollment closes.':
+        t.status==='running'?'Tournament live. View leaderboard.':'Waiting for next event.');
+      countdown();
+      if(signed&&t.id)await loadLeaderboard(t.id);
+      else $('tourLeaderboard').textContent='Sign in to view individual player names and leaderboard.';
+    }catch(e){notice('Server error: '+(e.message||e),true);setText('tourState','UNAVAILABLE');}
    finally{refreshing=false;}
  }
  async function loadLeaderboard(id){
