@@ -725,6 +725,19 @@ body.p8-auth-locked .app{max-width:560px}
 #cloudSignedOut .cloudActions{display:flex;flex-direction:column;gap:8px}
 #cloudSignedOut .cloudActions button{width:100%;min-height:50px}
 </style>
+<style id="p8SimpleAuthTabs">
+#screen-account .p8AuthModesSimple{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin:15px 0 11px}
+#screen-account .p8AuthModesSimple button{min-width:0;min-height:64px;font-size:20px;font-weight:900;letter-spacing:.035em;padding:13px 9px;border:1px solid #9b76dc;border-radius:15px;background:#262044;color:#eee;box-shadow:0 3px 10px #0005}
+#screen-account .p8AuthModesSimple button.selected{background:linear-gradient(125deg,#b36df1,#7046d8);border-color:#e6ccff;color:#fff}
+#screen-account .p8OwnerCreateLink{display:block;margin:18px auto 4px;padding:7px 12px;min-height:34px;width:auto;max-width:100%;font-size:13px;font-weight:600;background:transparent!important;box-shadow:none!important;border:0!important;color:#c9b8e7;text-decoration:underline;text-underline-offset:3px}
+#screen-account .p8OwnerCreateLink.hidden{display:none!important}
+#screen-account #p8ModeHelp{font-size:12px;text-align:center;line-height:1.5}
+#screen-account .cloudActions{display:grid;grid-template-columns:1fr;gap:8px}
+#screen-account #cloudLogin,#screen-account #cloudRegister{width:100%;max-width:none;min-height:56px;font-weight:900;font-size:18px}
+#screen-account .p8AuthHero img{width:96px;height:96px}
+#screen-account .p8AuthHero{padding:9px 8px 4px}
+@media(max-width:350px){#screen-account .p8AuthModesSimple button{font-size:17px;min-height:53px}}
+</style>
 </head>
 <body class="p8-auth-locked">
 <div class="app">
@@ -988,10 +1001,10 @@ body.p8-auth-locked .app{max-width:560px}
   <div class="panel cloudPanel">
     <div class="p8CoinDisclaimer">🎮 PLAY80 একটি বিনামূল্যের গেমিং প্ল্যাটফর্ম। কয়েন কেবল খেলার জন্য; বাস্তব টাকা বা নগদে রূপান্তরযোগ্য নয়।</div>
     <div id="cloudSignedOut">
-      <div class="sectionTitle"><h2>অ্যাকাউন্টে প্রবেশ করুন</h2></div>
+      <div class="sectionTitle"><h2>PLAY80 ACCOUNT</h2></div>
       <div class="formGroup"><label for="cloudLoginEmail">ইমেইল (Gmail বা অন্য Email)</label><input id="cloudLoginEmail" type="email" autocomplete="email" placeholder="you@example.com" /></div>
       <div class="formGroup"><label for="cloudLoginPassword">৬ সংখ্যার PIN</label><input id="cloudLoginPassword" type="password" autocomplete="current-password" /></div>
-      <div class="cloudActions"><button type="button" id="cloudRegister" class="action">অ্যাকাউন্ট তৈরি করুন</button><button type="button" id="cloudLogin" class="action secondary">লগইন</button></div>
+      <div class="cloudActions"><button type="button" id="cloudRegister" class="action">SIGN UP · অ্যাকাউন্ট তৈরি করুন</button><button type="button" id="cloudLogin" class="action secondary">SIGN IN · লগইন</button></div>
       <button type="button" class="smallAction" id="cloudRecover" style="margin-top:12px">RESET PIN BY EMAIL</button>
       <p class="tiny">ইমেইল যাচাই করা বাধ্যতামূলক। PIN ভুলে গেলে ইমেইল দিয়ে পুনরুদ্ধার করা যাবে।</p>
     </div>
