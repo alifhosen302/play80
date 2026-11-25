@@ -23,6 +23,7 @@ permissions:
   actions: read
 
 env:
+  PLAY80_SIGNER_SHA256: 'f12ff7399065778b45539ac30d319a85c413472e992b9157414b84e71ea57dd2'
   OWNER_BACKUP_SHA256: '239e24f73d777b851d2a8c1891a91c5576afad7163bb85c6bcf02121de0174cc'
   LEGACY_QA_APK_SHA256: '9a83dc140d5f4d41dddd79f3112312b548e3373d837ecd3bedec41a70c7d56a4'
 
@@ -96,18 +97,13 @@ jobs:
           umask 077
           export PLAY80_SIGNING_KEYSTORE="$RUNNER_TEMP/play80-permanent.jks"
           trap 'rm -f -- "$PLAY80_SIGNING_KEYSTORE"' EXIT
-          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/15052399710/zip" > "$RUNNER_TEMP/owner.zip"
-          echo "$OWNER_BACKUP_SHA256  $RUNNER_TEMP/owner.zip" | sha256sum -c -
-          expected="$(unzip -p "$RUNNER_TEMP/owner.zip" PLAY80-permanent.p12.fingerprint)"
-          [[ "$expected" =~ ^[0-9a-f]{64}$ ]]
           if [[ -n "$KEYSTORE_B64" ]]; then
             printf '%s' "$KEYSTORE_B64" | base64 --decode > "$PLAY80_SIGNING_KEYSTORE"
           else
+            gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/15052399710/zip" > "$RUNNER_TEMP/owner.zip"
+            echo "$OWNER_BACKUP_SHA256  $RUNNER_TEMP/owner.zip" | sha256sum -c -
             unzip -p "$RUNNER_TEMP/owner.zip" PLAY80-permanent.p12 > "$PLAY80_SIGNING_KEYSTORE"
           fi
-          echo "PLAY80_SIGNER_SHA256=$expected" >> "$GITHUB_ENV"
-          export PLAY80_SIGNER_SHA256="$expected"
-          echo "Pinned signing certificate: $expected"
           tools="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
           baseline="$RUNNER_TEMP/baseline/PLAY80_V5_2_GitHub_QA.apk"
           candidate="$(keytool -exportcert -alias play80 -storetype PKCS12 -keystore "$PLAY80_SIGNING_KEYSTORE" -storepass:env KEYSTORE_PASSWORD | sha256sum | cut -d' ' -f1)"
@@ -134,7 +130,9 @@ jobs:
           set -euo pipefail
           tools="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
           fingerprint() {
-            "$tools/apksigner" verify --min-sdk-version 28 --print-certs "$1" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p'
+            "$tools/apksigner" verify --min-sdk-version 28 --print-certs-pem "$1" > "$RUNNER_TEMP/signer.txt"
+            test "$(grep -c 'BEGIN CERTIFICATE' "$RUNNER_TEMP/signer.txt")" = 1
+            openssl x509 -in "$RUNNER_TEMP/signer.txt" -outform DER | sha256sum | cut -d' ' -f1
           }
           old="$(fingerprint "$RUNNER_TEMP/update-base.apk")"
           new="$(fingerprint dist/PLAY80_V5_2_GitHub_QA.apk)"
