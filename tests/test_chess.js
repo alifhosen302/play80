@@ -16,4 +16,7 @@ assert.equal(ep.board[pos('d5')],'.','en passant removes pawn');
 let ca=C.start();ca=go(ca,'e2','e4');ca=go(ca,'e7','e5');ca=go(ca,'g1','f3');ca=go(ca,'b8','c6');ca=go(ca,'f1','e2');ca=go(ca,'g8','f6');ca=go(ca,'e1','g1');assert.equal(ca.board[pos('f1')],'R','king-side castle moves rook');
 let pr=C.start();pr.board=Array(64).fill('.');pr.board[pos('e1')]='K';pr.board[pos('e8')]='k';pr.board[pos('a7')]='P';pr.turn='w';pr.castle={K:false,Q:false,k:false,q:false};
 let p=C.move(pr,pos('a7'),pos('a8'),'N');assert.equal(p.ok,true);assert.equal(p.state.board[pos('a8')],'N');
-console.log('PASS 12 chess engine checks including 20 opening moves, checkmate, en passant, castling, promotion');
+
+let term=C.start();let resignation=C.resign(term,'w');assert.equal(resignation.ok,true);assert.equal(resignation.state.finished,'resignation');assert.equal(resignation.state.winner,'b');assert.equal(C.move(resignation.state,pos('e2'),pos('e4')).ok,false,'terminal state blocks moves');
+let agreed=C.agreeDraw(C.start());assert.equal(agreed.ok,true);assert.equal(agreed.state.finished,'agreed_draw');assert.equal(C.legal(agreed.state,pos('e2')).length,0,'draw stops game');
+console.log('PASS chess engine legality, checkmate, resignation and agreed draw including 20 opening moves, checkmate, en passant, castling, promotion');
