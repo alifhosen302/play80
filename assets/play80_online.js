@@ -176,11 +176,17 @@
   }));
   $('cloudRefresh').addEventListener('click',e=>busy(e.currentTarget,loadAccount));
   $('cloudSignOut').addEventListener('click',e=>busy(e.currentTarget,async()=>{
-    try{await raw('/auth/v1/logout','POST',null,await token());}catch(_){}
-    session=null;profile=null;balance=null;staffPinToken=null;staffPinExpires=0;verifiedAuth=false;persist();renderAuth();
+    const oldAccessToken=session?.access_token;
+    session=null;profile=null;balance=null;staffPinToken=null;staffPinExpires=0;verifiedAuth=false;
+    persist();renderAuth();
     document.querySelectorAll('.screen').forEach(el=>el.classList.toggle('hidden',el.id!=='screen-account'));
-    selectAuthMode(false);
-    status('লগআউট সফল। আবার লগইন করতে Email ও PIN দাও।');
+    selectAuthMode(false,false);
+    status('এই ডিভাইস থেকে লগআউট হয়েছে।');
+    // Clear local access immediately; separately attempt GoTrue token revocation.
+    if(oldAccessToken){
+      try{await raw('/auth/v1/logout','POST',null,oldAccessToken);}
+      catch(_){status('এই ডিভাইস থেকে লগআউট হয়েছে; সার্ভারের Session বাতিল নিশ্চিত করা যায়নি।',true);}
+    }
   }));
   $('p8OwnerLogout')?.addEventListener('click',()=>$('cloudSignOut').click());
   async function staffRpc(name, data={}) {
