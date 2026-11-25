@@ -46,7 +46,7 @@ function flood(i,color,result=new Set()){
  return result;
 }
 function bubbleChoice(){const root=$('p8PracticeShapes');root.replaceChildren();const label=document.createElement('span');label.textContent='NEXT BUBBLE';root.append(label);const ball=document.createElement('button');ball.style.background=colors[selected];ball.textContent='●';root.append(ball);}
-function shoot(col){let row=7;while(row>=0&&grid[row*8+col]>=0)row--;if(row<0)return;const i=row*8+col;grid[i]=selected;const hits=flood(i,selected);if(hits.size>=3){hits.forEach(j=>grid[j]=-1);score+=hits.size*10;for(let c=0;c<8;c++){const remaining=[];for(let r=7;r>=0;r--)if(grid[r*8+c]>=0)remaining.push(grid[r*8+c]);for(let r=7;r>=0;r--)grid[r*8+c]=remaining[7-r]??-1;}}
+function shoot(col){let row=0;while(row<8&&grid[row*8+col]>=0)row++;if(row>=8)return;const i=row*8+col;grid[i]=selected;const hits=flood(i,selected);if(hits.size>=3){hits.forEach(j=>grid[j]=-1);score+=hits.size*10;for(let c=0;c<8;c++){const remaining=[];for(let r=0;r<8;r++)if(grid[r*8+c]>=0)remaining.push(grid[r*8+c]);for(let r=0;r<8;r++)grid[r*8+c]=remaining[r]??-1;}}
  selected=rand(colors.length);render();bubbleChoice();
  if(grid.slice(48).every(x=>x>=0))$('p8PracticeScore').textContent+=' — BOARD FULL';
 }
