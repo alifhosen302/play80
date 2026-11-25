@@ -50,9 +50,11 @@ jobs:
           node --check assets/play80_practice_2048.js
           node --check assets/play80_chess.js
           node --check assets/play80_bet_arena.js
-      - name: 2048 game logic unit tests
-        run: node tests/test_2048.js
+      - name: Unit and UI asset tests
+        run: |
+          node tests/test_2048.js
           node tests/test_chess.js
+          node tests/test_v44_ui.js
       - name: Scan committed files for signing secrets
         run: |
           python - <<'PY'
