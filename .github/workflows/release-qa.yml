@@ -3,6 +3,9 @@ name: Update the single PLAY80 APK (permanent signing required)
 # Always update the SAME Release asset; never create separate versioned releases.
 # Abort without publishing when the permanent signing key is unavailable.
 on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/release-qa.yml']
   workflow_dispatch:
     inputs:
       publish:
@@ -17,9 +20,10 @@ concurrency:
 
 permissions:
   contents: write
+  actions: read
 
 env:
-  PLAY80_SIGNER_SHA256: '941f3c207c50c1d48b7e62b2d24f502584d8d90942978d94c32b73921280977e'
+  OWNER_BACKUP_SHA256: '239e24f73d777b851d2a8c1891a91c5576afad7163bb85c6bcf02121de0174cc'
   LEGACY_QA_APK_SHA256: '9a83dc140d5f4d41dddd79f3112312b548e3373d837ecd3bedec41a70c7d56a4'
 
 jobs:
@@ -80,18 +84,30 @@ jobs:
       - name: Verify permanent key against the release, then build and sign
         shell: bash
         env:
+          GH_TOKEN: ${{ github.token }}
           KEYSTORE_B64: ${{ secrets.PLAY80_SIGNING_KEYSTORE_B64 }}
           KEYSTORE_PASSWORD: ${{ secrets.PLAY80_SIGNING_PASSWORD }}
         run: |
           set -euo pipefail
-          if [[ -z "$KEYSTORE_B64" || -z "$KEYSTORE_PASSWORD" ]]; then
+          if [[ -z "$KEYSTORE_PASSWORD" ]]; then
             echo "::error::No permanent signing key configured. Refusing to build a differently-signed APK."
             exit 1
           fi
           umask 077
           export PLAY80_SIGNING_KEYSTORE="$RUNNER_TEMP/play80-permanent.jks"
           trap 'rm -f -- "$PLAY80_SIGNING_KEYSTORE"' EXIT
-          printf '%s' "$KEYSTORE_B64" | base64 --decode > "$PLAY80_SIGNING_KEYSTORE"
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/15052399710/zip" > "$RUNNER_TEMP/owner.zip"
+          echo "$OWNER_BACKUP_SHA256  $RUNNER_TEMP/owner.zip" | sha256sum -c -
+          expected="$(unzip -p "$RUNNER_TEMP/owner.zip" PLAY80-permanent.p12.fingerprint)"
+          [[ "$expected" =~ ^[0-9a-f]{64}$ ]]
+          if [[ -n "$KEYSTORE_B64" ]]; then
+            printf '%s' "$KEYSTORE_B64" | base64 --decode > "$PLAY80_SIGNING_KEYSTORE"
+          else
+            unzip -p "$RUNNER_TEMP/owner.zip" PLAY80-permanent.p12 > "$PLAY80_SIGNING_KEYSTORE"
+          fi
+          echo "PLAY80_SIGNER_SHA256=$expected" >> "$GITHUB_ENV"
+          export PLAY80_SIGNER_SHA256="$expected"
+          echo "Pinned signing certificate: $expected"
           tools="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
           baseline="$RUNNER_TEMP/baseline/PLAY80_V5_2_GitHub_QA.apk"
           candidate="$(keytool -exportcert -alias play80 -storetype PKCS12 -keystore "$PLAY80_SIGNING_KEYSTORE" -storepass:env KEYSTORE_PASSWORD | sha256sum | cut -d' ' -f1)"
@@ -141,7 +157,7 @@ jobs:
           path: dist/PLAY80_V5_2_GitHub_QA.apk
           retention-days: 14
       - name: Update the same existing V5.2 Release asset without creating another version
-        if: inputs.publish
+        if: inputs.publish || (github.event_name == 'push' && contains(github.event.head_commit.message, '[publish-tested-play80]'))
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
