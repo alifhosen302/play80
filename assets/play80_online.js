@@ -7,7 +7,7 @@
   const KEY = 'sb_publishable_8VvDZLfwAeztWeDS2EqNBQ_nlYFwFyK';
   const STORAGE = 'play80.secure_account.v1';
   const $ = (id) => document.getElementById(id);
-  let session = null, profile = null, balance = null, verifiedAuth = false;
+  let session = null, profile = null, balance = null, verifiedAuth = false, loginMode = 'player';
   let staffPinToken = null, staffPinExpires = 0, activeGameCode = null;
   const escDate = (d) => { try { return new Date(d).toLocaleString(); } catch (_) {return '—';} };
   const status = (message, error=false) => {
@@ -56,7 +56,10 @@
     if(!on)window.scrollTo(0,0);
     show('cloudSignedOut',!on);show('cloudSignedIn',on);
     show('cloudOwnerEntry',on&&isStaff());show('cloudOwnerAuthBlocked',!on||!isStaff());show('cloudStaffPinGate',on&&isStaff()&&!staffPinToken);show('cloudOwnerContent',on&&isStaff()&&!!staffPinToken);
-    if(on){$('cloudEmail').textContent=session.user?.email||'Signed in';$('cloudRole').textContent=isOwner()?'Verified Owner':(isStaff()?'Verified Admin':'Player');}
+    if(on){$('cloudEmail').textContent=session.user?.email||'Signed in';$('cloudRole').textContent=isOwner()?'Owner':(isStaff()?'Admin':'Player');}
+    const ownerBadge=$('p8AccountIdentity');
+    if(ownerBadge)ownerBadge.textContent=on?(isOwner()?'🛡️ Owner account':isStaff()?'🛡️ Staff account':'🎮 Player account'):'🔐 PLAY80 · Secure sign in';
+    document.querySelectorAll('[data-p8-owner-only]').forEach(el=>el.classList.toggle('hidden',!on||!isOwner()));
     else {$('cloudBalance').textContent='—';$('cloudRequests').replaceChildren();}
   }
   async function loadAccount(){
@@ -94,7 +97,7 @@
         const sub=document.createElement('small');sub.textContent=r.status+' • '+escDate(r.created_at)+(r.review_note?' • '+r.review_note:'');
         item.append(title,sub);list.append(item);
       });
-      status('Online account synced. Demo coins are separate from offline game coins.');
+      status('PLAY80 অ্যাকাউন্ট সিঙ্ক হয়েছে। ভার্চুয়াল কয়েনের নগদ মূল্য নেই।');
     }catch(e){status(e.message,true);}
   }
   const busy = async (button,fn,writeStatus=status) => {
@@ -118,19 +121,38 @@
     if(address.length<8||address.length>250)throw Error('Enter your full address');
     if($('p8SignupConfirmPIN').value!==password)throw Error('PIN entries do not match');
     const data=await auth('signup','POST',{email,password,data:{username,display_name:fullName,full_name:fullName,phone_number:phone,address}});
-    if(data?.access_token){saveSession(data);await loadAccount();status(verifiedAuth?'Account created and verified. You may play.':'Account created. Verify your email to activate play.');}
-    else status('Registration requested. Open your email and verify it, then sign in.');
+    if(data?.access_token){saveSession(data);verifiedAuth=false;renderAuth();}
+    status('অ্যাকাউন্ট তৈরির অনুরোধ গৃহীত। ইমেইলের Verification Link খুলে তারপর Login করো।');
+    if(data?.access_token){session=null;verifiedAuth=false;persist();renderAuth();}
     $('cloudLoginPassword').value='';
   }));
   $('cloudLogin').addEventListener('click',e=>busy(e.currentTarget,async()=>{
     const email=$('cloudLoginEmail').value.trim().toLowerCase();const password=$('cloudLoginPassword').value;
     if(!email||!/^[0-9]{6}$/.test(password))throw Error('Enter email and your six-digit PIN');
     const data=await auth('token?grant_type=password','POST',{email,password});
-    saveSession(data);$('cloudLoginPassword').value='';if(!verifiedAuth)throw Error('Please verify your email before playing.');await loadAccount();
+    session={access_token:data.access_token,refresh_token:data.refresh_token,expires_at:stamp()+Number(data.expires_in||3600),user:data.user||null};
+    verifiedAuth=false;
+    const remote=await raw('/auth/v1/user','GET',null,session.access_token);
+    if(!remote?.id||remote.id!==session.user?.id||!remote.email_confirmed_at){
+      session=null;persist();renderAuth();throw Error('প্রথমে ইমেইল Verify করতে হবে।');
+    }
+    session.user=remote;
+    if(loginMode==='owner' && !isOwner()){
+      session=null;verifiedAuth=false;persist();renderAuth();
+      throw Error('এই অ্যাকাউন্ট Owner নয়। Player Login ব্যবহার করো।');
+    }
+    if(loginMode==='player' && isOwner()){
+      session=null;verifiedAuth=false;persist();renderAuth();
+      throw Error('Owner অ্যাকাউন্টের জন্য Owner Login ব্যবহার করো।');
+    }
+    verifiedAuth=true;persist();renderAuth();$('cloudLoginPassword').value='';
+    await loadAccount();
+    if(loginMode==='owner')document.querySelector('[data-open="remote-owner"]')?.click();
+    status('স্বাগতম! '+(isOwner()?'Owner Account':'Player Account')+'-এ লগইন সফল।');
   }));
   $('cloudRecover').addEventListener('click',e=>busy(e.currentTarget,async()=>{
     const email=$('cloudLoginEmail').value.trim().toLowerCase();
-    if(!email)throw Error('Enter your email above to request password reset');
+    if(!email)throw Error('PIN রিসেটের জন্য প্রথমে ইমেইল লিখো');
     await auth('recover','POST',{email});
     status('If that account exists, a PIN recovery email was sent. Follow the email instructions to reset your sign-in code.');
   }));
@@ -155,7 +177,10 @@
   $('cloudRefresh').addEventListener('click',e=>busy(e.currentTarget,loadAccount));
   $('cloudSignOut').addEventListener('click',e=>busy(e.currentTarget,async()=>{
     try{await raw('/auth/v1/logout','POST',null,await token());}catch(_){}
-    session=null;profile=null;balance=null;staffPinToken=null;staffPinExpires=0;persist();renderAuth();status('Signed out.');
+    session=null;profile=null;balance=null;staffPinToken=null;staffPinExpires=0;verifiedAuth=false;persist();renderAuth();
+    document.querySelectorAll('.screen').forEach(el=>el.classList.toggle('hidden',el.id!=='screen-account'));
+    selectAuthMode(false);
+    status('লগআউট সফল। আবার লগইন করতে Email ও PIN দাও।');
   }));
   async function staffRpc(name, data={}) {
     if(!isStaff()) throw Error('Verified Owner / Admin login required');
@@ -391,23 +416,33 @@
   // Two modes: Email + PIN login, or Email -> Username -> Phone -> Name -> Address -> PIN signup.
   const cloudSignedOut=$('cloudSignedOut');
   const modePanel=document.createElement('div');
-  modePanel.className='p8AuthModes';
-  modePanel.innerHTML='<button type="button" id="p8ModeLogin" class="selected">SIGN IN</button><button type="button" id="p8ModeSignup">CREATE ACCOUNT</button>';
+  modePanel.className='p8AuthModes p8AuthModesThree';
+  modePanel.innerHTML='<button type="button" id="p8ModeLogin" class="selected">🎮 PLAYER LOGIN</button><button type="button" id="p8ModeOwner">🛡️ OWNER LOGIN</button><button type="button" id="p8ModeSignup">➕ CREATE ACCOUNT</button>';
   cloudSignedOut.querySelector('.sectionTitle').after(modePanel);
-  function selectAuthMode(signup){
+  const modeHelp=document.createElement('p');modeHelp.id='p8ModeHelp';modeHelp.className='tiny';
+  modePanel.after(modeHelp);
+  function selectAuthMode(signup,owner=false){
+    loginMode=owner?'owner':'player';
     const emailGroup=$('cloudLoginEmail').closest('.formGroup'),pinGroup=$('cloudLoginPassword').closest('.formGroup');
     if(signup&&$('p8SignupConfirmPIN')){emailGroup.after(regName);$('p8SignupConfirmPIN').closest('.formGroup').before(pinGroup);}
     else emailGroup.after(pinGroup);
     regName.classList.toggle('hidden',!signup);
+    $('p8RegistrationFields')?.classList.toggle('hidden',!signup);
     $('cloudRegister').classList.toggle('hidden',!signup);
     $('cloudLogin').classList.toggle('hidden',signup);
     $('p8ModeSignup').classList.toggle('selected',signup);
-    $('p8ModeLogin').classList.toggle('selected',!signup);
+    $('p8ModeOwner').classList.toggle('selected',owner);
+    $('p8ModeLogin').classList.toggle('selected',!signup&&!owner);
     $('cloudLoginPassword').autocomplete=signup?'new-password':'current-password';
+    $('cloudLoginPassword').value='';
+    modeHelp.textContent=signup?'ইমেইল, ইউনিক ইউজার আইডি ও ৬ সংখ্যার PIN দিয়ে নতুন Player অ্যাকাউন্ট খোলো।':owner?'শুধু যাচাইকৃত Owner Email দিয়ে লগইন। অন্য অ্যাকাউন্ট Owner Panel খুলতে পারবে না।':'যাচাইকৃত Player Email ও ৬ সংখ্যার PIN দিয়ে লগইন করো।';
+    status('');
+    window.scrollTo(0,0);
   }
-  $('p8ModeLogin').addEventListener('click',()=>selectAuthMode(false));
-  $('p8ModeSignup').addEventListener('click',()=>selectAuthMode(true));
-  selectAuthMode(false);
+  $('p8ModeLogin').addEventListener('click',()=>selectAuthMode(false,false));
+  $('p8ModeOwner').addEventListener('click',()=>selectAuthMode(false,true));
+  $('p8ModeSignup').addEventListener('click',()=>selectAuthMode(true,false));
+  selectAuthMode(false,false);
   const regFields=document.createElement('div');
   regFields.id='p8RegistrationFields';
   regFields.innerHTML=`<div class="formGroup"><label for="p8SignupPhone">Mobile number</label><input id="p8SignupPhone" inputmode="tel" autocomplete="tel" maxlength="18" placeholder="01XXXXXXXXX" required></div>
@@ -415,9 +450,6 @@
     <div class="formGroup"><label for="p8SignupAddress">Address</label><textarea id="p8SignupAddress" maxlength="250" autocomplete="street-address" placeholder="Full address" rows="3" required></textarea></div>
     <div class="formGroup"><label for="p8SignupConfirmPIN">Confirm six-digit PIN</label><input id="p8SignupConfirmPIN" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="new-password" placeholder="●●●●●●" required></div>`;
   $('cloudLoginPassword').closest('.formGroup').after(regFields);
-  // signup state is driven from the visible tabs
-  $('p8ModeLogin').addEventListener('click',()=>regFields.classList.add('hidden'));
-  $('p8ModeSignup').addEventListener('click',()=>regFields.classList.remove('hidden'));
   regFields.classList.add('hidden');
   $('cloudSignedIn').querySelectorAll('.p8PlayerPinPanel').forEach(x=>x.remove());
   const passwordField=$('cloudLoginPassword');
