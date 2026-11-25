@@ -10,7 +10,7 @@ declare v_full text:=btrim(coalesce(new.raw_user_meta_data->>'full_name',''));
 declare v_address text:=btrim(coalesce(new.raw_user_meta_data->>'address',''));
 begin
  if v_username !~ '^[a-z0-9_]{3,24}$' then raise exception 'Username must use 3-24 English letters, numbers or underscore'; end if;
- if v_phone !~ '^\\+?[0-9]{10,15}$' then raise exception 'Invalid phone number'; end if;
+ if v_phone !~ '^[+]?[0-9]{10,15}$' then raise exception 'Invalid phone number'; end if;
  if length(v_full) not between 3 and 100 then raise exception 'Full name required (3-100 characters)'; end if;
  if length(v_address) not between 8 and 250 then raise exception 'Address required (8-250 characters)'; end if;
  insert into public.profiles(id,username,display_name,phone_number,full_name,address_text)
