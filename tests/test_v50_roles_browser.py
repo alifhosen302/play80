@@ -78,7 +78,7 @@ try:
   assert page.locator('.play80TopTabs').is_visible(),'Player login failed'
   assert page.locator('#screen-home').is_visible(),'Player should enter Games, not Owner'
   assert page.locator('#cloudOwnerEntry').is_hidden(),'Player must not access Owner panel'
-  page.locator('[data-main-tab="account"]').first.click()
+  page.locator('[data-open="account"]').first.click()
   page.locator('#cloudSignOut').click()
   assert page.locator('.play80TopTabs').is_hidden(),'Player logout must lock gameplay'
   assert not errors,'Unexpected JavaScript exceptions: '+str(errors)
