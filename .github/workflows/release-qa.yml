@@ -1,4 +1,4 @@
-name: Publish PLAY80 V4.3 QA prerelease
+name: Publish PLAY80 V4.4 QA prerelease
 
 on:
   push:
@@ -38,6 +38,7 @@ jobs:
           node --check assets/play80_chess.js
           node --check assets/play80_bet_arena.js
           node tests/test_chess.js
+          node tests/test_v44_ui.js
           python -m compileall -q build_qa.py release_check.py
       - name: Generate TEMPORARY test-only signing certificate
         shell: bash
@@ -55,12 +56,12 @@ jobs:
           python build_qa.py
           jarsigner -verify -certs ../PLAY80_V4_1_Practice_QA.apk
           mkdir -p dist
-          cp ../PLAY80_V4_1_Practice_QA.apk dist/PLAY80_V4_3_GitHub_QA.apk
-          sha256sum dist/PLAY80_V4_3_GitHub_QA.apk
+          cp ../PLAY80_V4_1_Practice_QA.apk dist/PLAY80_V4_4_GitHub_QA.apk
+          sha256sum dist/PLAY80_V4_4_GitHub_QA.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: PLAY80-V4.3-QA
-          path: dist/PLAY80_V4_3_GitHub_QA.apk
+          name: PLAY80-V4.4-QA
+          path: dist/PLAY80_V4_4_GitHub_QA.apk
           retention-days: 14
       - name: Publish explicit prerelease (not production)
         shell: bash
@@ -68,13 +69,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG=qa-v4.3-accounts-20261125
+          TAG=qa-v4.4-premium-chess-20261125
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "Release tag already exists; leaving existing file unchanged."
             exit 0
           fi
-          gh release create "$TAG" dist/PLAY80_V4_3_GitHub_QA.apk \
+          gh release create "$TAG" dist/PLAY80_V4_4_GitHub_QA.apk \
             --target "$GITHUB_SHA" \
-            --title "PLAY80 V4.3 QA — GitHub build (not production)" \
+            --title "PLAY80 V4.4 QA — GitHub build (not production)" \
             --prerelease \
-            --notes "PLAY80 V4.3 QA: unique registration username, owner search including UUID, deposit/withdraw requests, audited owner coin grants/reclaims, player support/deletion requests, owner inbox, and owner-only admin controls. Permanent account deletion, live device and production security tests are not enabled. Multiplayer remote board moves remain incomplete. Non-redeemable demo coins only. This uses a DISPOSABLE self-signed QA key and QA package com.play80.arcade.master.tournamentv41qa; it will NOT update the previous installed app in place. No real Android-device or full security/end-to-end certification."
+            --notes "PLAY80 V4.4 QA: premium purple/gold brand logo, Chess game icon, black-white perfectly square 8x8 board with original glossy 3D piece sprites, clear Sign In/Create Account UI, secure optional hashed player PIN set/verify after email confirmation. The existing Owner Staff PIN remains separate. Demo Coins only. Not production certified, and online chess synchronization/settlement not enabled. Disposable QA signing key; not an in-place update."
