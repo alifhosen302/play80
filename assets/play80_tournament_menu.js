@@ -70,5 +70,5 @@ function practice(){if(current==='2048'){$('screen-tournament').querySelector('[
 $('p8TourPractice').addEventListener('click',practice);
 $('p8PracticeReset').addEventListener('click',reset);
 $('p8PracticeBack').addEventListener('click',()=>{screen.classList.add('hidden');$('screen-tournament').classList.remove('hidden');choose(current);});
-window.Play80TournamentMenu=Object.freeze({games:Object.keys(games)});
+window.Play80TournamentMenu=Object.freeze({games:Object.keys(games),selected:()=>current});
 })();
