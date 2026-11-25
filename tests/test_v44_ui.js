@@ -8,7 +8,7 @@ const files=['assets/play80_brand_premium.webp','assets/play80_chess_logo_premiu
 for(const f of files)assert(fs.existsSync(f)&&fs.statSync(f).size>1000,'Missing premium asset: '+f);
 assert(html.includes('src="play80_brand_premium.webp"'),'Brand logo displayed');
 assert(html.includes('id="screen-account"'),'Account tab exists');
-assert(html.includes('Create an account with your details and six-digit PIN'),'PIN-only login path labelled');
+assert(html.includes('id="p8AccountIdentity"')&&html.includes('৬ সংখ্যার PIN'),'Premium PIN login panel present');
 assert(online.includes('selectAuthMode(false)')&&online.includes('selectAuthMode(true)'),'Login and signup tabs');
 assert(online.includes("Six-digit PIN")&&online.includes("p8SignupConfirmPIN"),"Email and six-digit PIN with confirmation");
 assert(arena.includes('repeat(8,minmax(0,1fr))'),'Square chess grid columns and rows');
