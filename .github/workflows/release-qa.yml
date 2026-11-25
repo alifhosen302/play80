@@ -1,21 +1,7 @@
-name: Publish PLAY80 V5.2 QA prerelease
+name: Update the single PLAY80 APK (permanent signing required)
 
+# A single published APK. Deliberately manual until a permanent signing key is installed.
 on:
-  push:
-    paths:
-      - '.github/workflows/release-qa.yml'
-      - 'build_qa.py'
-      - 'assets/play80_online.js'
-      - 'assets/index.html'
-      - 'assets/play80_chess.js'
-      - 'assets/play80_bet_arena.js'
-      - 'assets/play80_tournament.js'
-      - 'assets/play80_tournament_menu.js'
-      - 'assets/play80_rules_gate.js'
-      - 'assets/play80_bubble_deluxe.js'
-      - 'tests/test_v47_mobile_browser.py'
-      - 'tests/test_v50_roles_browser.py'
-      - 'tests/test_v51_signup_feedback.py'
   workflow_dispatch:
 
 permissions:
@@ -55,15 +41,22 @@ jobs:
           test -s tests/test_v50_roles_browser.py
           node --check assets/play80_bubble_deluxe.js
           python -m compileall -q build_qa.py release_check.py
-      - name: Generate TEMPORARY test-only signing certificate
+      - name: Restore the same permanent PLAY80 signing key from GitHub Secrets
         shell: bash
+        env:
+          KEYSTORE_B64: ${{ secrets.PLAY80_SIGNING_KEYSTORE_B64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.PLAY80_SIGNING_PASSWORD }}
         run: |
           set -euo pipefail
-          keytool -genkeypair -noprompt -alias play80 -keyalg RSA -keysize 2048 -validity 7 \
-            -dname "CN=PLAY80 Disposable QA" -storetype PKCS12 \
-            -keystore "$RUNNER_TEMP/play80-qa.jks" -storepass "disposable-play80-qa-build" -keypass "disposable-play80-qa-build"
-          echo "PLAY80_SIGNING_KEYSTORE=$RUNNER_TEMP/play80-qa.jks" >> "$GITHUB_ENV"
-          echo "PLAY80_SIGNING_PASSWORD=disposable-play80-qa-build" >> "$GITHUB_ENV"
+          if [[ -z "$KEYSTORE_B64" || -z "$KEYSTORE_PASSWORD" ]]; then
+            echo "::error::No permanent signing key configured. Refusing to build a differently-signed APK."
+            exit 1
+          fi
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/play80-permanent.jks"
+          chmod 600 "$RUNNER_TEMP/play80-permanent.jks"
+          keytool -list -storetype PKCS12 -keystore "$RUNNER_TEMP/play80-permanent.jks" -storepass "$KEYSTORE_PASSWORD" >/dev/null
+          echo "PLAY80_SIGNING_KEYSTORE=$RUNNER_TEMP/play80-permanent.jks" >> "$GITHUB_ENV"
+          echo "PLAY80_SIGNING_PASSWORD=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
       - name: Build and verify signed QA APK
         shell: bash
         run: |
@@ -78,19 +71,14 @@ jobs:
           name: PLAY80-V5.2-QA
           path: dist/PLAY80_V5_2_GitHub_QA.apk
           retention-days: 14
-      - name: Publish explicit prerelease (not production)
+      - name: Update the same existing V5.2 Release asset without creating another version
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           TAG=qa-v5.2-unified-login-20261125
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "Release tag already exists; leaving existing file unchanged."
-            exit 0
-          fi
-          gh release create "$TAG" dist/PLAY80_V5_2_GitHub_QA.apk \
-            --target "$GITHUB_SHA" \
-            --title "PLAY80 V5.2 QA — GitHub build (not production)" \
-            --prerelease \
-            --notes "PLAY80 V5.2 QA: corrected signup field sequence, PIN-only auth, and final Reset PIN wording; all gameplay is locked until a Supabase-authenticated, email-verified session; PIN-only visible account login using a six-digit code; sign-up asks unique username, email, phone, full name and address. Both emails and usernames are single-use. Old detached Account/Owner pages relocated to eliminate blank scroll. Bubble Shooter now features an aimable cannon, trajectory, current and NEXT bubbles, SWAP and two demo bombs. Existing Chess fixes and tournament navigation retained. WARNING: a six-digit PIN has low entropy. Real signup, mail delivery, retry protection and full security/device testing remain unverified. QA package uses disposable signing; not a production or real-money gambling build."
+          gh release view "$TAG" >/dev/null || { echo "::error::Protected latest release missing"; exit 1; }
+          gh release upload "$TAG" dist/PLAY80_V5_2_GitHub_QA.apk --clobber
+          gh release edit "$TAG" --title "PLAY80 Latest QA (one stable download link)"
+          echo "Updated the only latest APK asset: $TAG"
