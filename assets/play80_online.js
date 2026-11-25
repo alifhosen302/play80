@@ -481,14 +481,14 @@
   $('p8ModeLogin').addEventListener('click',()=>selectAuthMode(false,false));
   $('p8ModeOwner').addEventListener('click',()=>selectAuthMode(false,true));
   $('p8ModeSignup').addEventListener('click',()=>selectAuthMode(true,false));
-  selectAuthMode(false,false);
   const signupResult=document.createElement('div');
   signupResult.id='p8SignupResult';signupResult.hidden=true;
   signupResult.setAttribute('role','status');
   $('cloudRegister').after(signupResult);
   $('cloudLogin').after($('cloudNotice'));
   $('cloudNotice').hidden=true;
-    const regFields=document.createElement('div');
+  selectAuthMode(false,false);
+  const regFields=document.createElement('div');
   regFields.id='p8RegistrationFields';
   regFields.innerHTML=`<div class="formGroup"><label for="p8SignupPhone">Mobile number</label><input id="p8SignupPhone" inputmode="tel" autocomplete="tel" maxlength="18" placeholder="01XXXXXXXXX" required></div>
     <div class="formGroup"><label for="p8SignupFullName">Full name</label><input id="p8SignupFullName" maxlength="100" autocomplete="name" placeholder="Full legal name" required></div>
