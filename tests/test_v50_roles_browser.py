@@ -81,6 +81,14 @@ try:
   page.locator('[data-open="account"]').first.click()
   page.locator('#cloudSignOut').click()
   assert page.locator('.play80TopTabs').is_hidden(),'Player logout must lock gameplay'
+  current_role[0]='dsr'
+  page.locator('#cloudLoginEmail').fill('dsr@example.invalid')
+  page.locator('#cloudLoginPassword').fill('123456')
+  page.locator('#cloudLogin').click()
+  page.locator('#screen-home').wait_for(state='visible')
+  assert page.locator('#cloudOwnerEntry').is_hidden()
+  page.locator('[data-open="account"]').first.click()
+  assert page.locator('#cloudRole').inner_text()=='DSR'
   assert not errors,'Unexpected JavaScript exceptions: '+str(errors)
   print('PASS: unified Sign In/Sign Up, small Owner creation, server-role Owner/Player routing, PIN gate and logout')
   browser.close()

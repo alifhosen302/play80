@@ -153,7 +153,9 @@
       }
       throw e;
     }
-    if(data?.access_token){session=null;verifiedAuth=false;persist();renderAuth();}
+    if(data?.access_token && data.user?.email_confirmed_at){
+      selectAuthMode(false);status('অ্যাকাউন্ট তৈরি হয়েছে। এখন ইমেইল ও PIN দিয়ে লগইন করো।');return;
+    }
     $('cloudLoginPassword').value='';
     $('p8SignupConfirmPIN').value='';
     const result=$('p8SignupResult');
@@ -163,16 +165,17 @@
   $('cloudLogin').addEventListener('click',e=>busy(e.currentTarget,async()=>{
     const email=$('cloudLoginEmail').value.trim().toLowerCase();const password=$('cloudLoginPassword').value;
     if(!email||!/^[0-9]{6}$/.test(password))throw Error('Enter email and your six-digit PIN');
-    const data=await auth('token?grant_type=password','POST',{email,password});
-    session={access_token:data.access_token,refresh_token:data.refresh_token,expires_at:stamp()+Number(data.expires_in||3600),user:data.user||null};
-    verifiedAuth=false;
-    const remote=await raw('/auth/v1/user','GET',null,session.access_token);
-    if(!remote?.id||remote.id!==session.user?.id||!remote.email_confirmed_at){
-      session=null;persist();renderAuth();throw Error('প্রথমে ইমেইল Verify করতে হবে।');
+    let data;
+    try{data=await auth('token?grant_type=password','POST',{email,password});}
+    catch(e){
+      if(e.code==='email_not_confirmed')throw Error('প্রথমে ইমেইল যাচাই করো। দরকার হলে যাচাই ইমেইল আবার পাঠাও।');
+      if(e.code==='invalid_credentials')throw Error('ইমেইল বা PIN মেলেনি। ভুলে গেলে PIN রিসেট করো।');
+      throw e;
     }
-    session.user=remote;
-    // Server-issued app_metadata determines the destination; the login UI cannot grant roles.
-    verifiedAuth=true;persist();renderAuth();$('cloudLoginPassword').value='';
+    const remote=await raw('/auth/v1/user','GET',null,data.access_token);
+    if(!remote?.id||remote.id!==data.user?.id||!remote.email_confirmed_at)throw Error('প্রথমে ইমেইল Verify করতে হবে।');
+    staffPinToken=null;staffPinExpires=0;
+    saveSession({...data,user:remote});$('cloudLoginPassword').value='';
     await loadAccount();
     if(isStaff())document.querySelector('[data-open="remote-owner"]')?.click();
     else document.querySelector('[data-open="home"]')?.click();
@@ -246,6 +249,7 @@
   }));
   $('cloudRefresh').addEventListener('click',e=>busy(e.currentTarget,loadAccount));
   $('cloudSignOut').addEventListener('click',e=>busy(e.currentTarget,async()=>{
+    dsrForm.reset();
     const oldAccessToken=session?.access_token;
     session=null;profile=null;balance=null;staffPinToken=null;staffPinExpires=0;verifiedAuth=false;
     persist();renderAuth();
@@ -508,6 +512,7 @@
     status('Owner Role কেবল সার্ভারে অনুমোদিত ও ভেরিফাইড ইমেইল পাবে। অ্যাপের এই বাটন নিজে Owner অনুমতি দেয় না।');
   });
   function selectAuthMode(signup=false,owner=false){
+    recoveryGrant=null;resetForm.reset();recovery.open=false;recovery.hidden=signup;resend.hidden=signup;
     signupRoleIntent=owner?'owner':'player';
     const emailGroup=$('cloudLoginEmail').closest('.formGroup'),pinGroup=$('cloudLoginPassword').closest('.formGroup');
     if(signup&&$('p8SignupConfirmPIN')){emailGroup.after(regName);$('p8SignupConfirmPIN').closest('.formGroup').before(pinGroup);}

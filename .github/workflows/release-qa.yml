@@ -41,6 +41,7 @@ jobs:
           node --check assets/play80_practice_2048.js
           node --check assets/play80_online.js
           node --check assets/play80_tournament.js
+          node --experimental-strip-types tests/test_dsr_creation.mjs
           node tests/test_2048.js
           node --check assets/play80_chess.js
           node --check assets/play80_bet_arena.js
