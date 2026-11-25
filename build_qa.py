@@ -4,7 +4,7 @@ App content resides in assets/index.html. Minimal classes.dex is generated from
 Dalvik bytecode; the manifest is generated as compiled binary Android XML.
 """
 from pathlib import Path
-import os, struct, hashlib, zlib, zipfile, subprocess
+import os, struct, hashlib, zlib, zipfile, subprocess, shutil
 ROOT=Path(__file__).resolve().parent
 APP_PACKAGE='com.play80.arcade.master.tournamentv41qa'
 APP_ACTIVITY=APP_PACKAGE+'.MainActivity'
@@ -277,8 +277,26 @@ def main():
     key=Path(os.environ['PLAY80_SIGNING_KEYSTORE'])
     secret=os.environ['PLAY80_SIGNING_PASSWORD']
     if not key.is_file():raise RuntimeError('The original play80 Master signing key must be supplied for every update')
-    APK.write_bytes(un.read_bytes())
-    subprocess.run(['jarsigner','-keystore',str(key),'-storepass',secret,'-keypass',secret,'-sigalg','SHA256withRSA','-digestalg','SHA-256',str(APK),'play80'],check=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+    # Android 7+ supports APK Signature Scheme v2; avoid legacy jarsigner-only (v1)
+    # release files. Align first, sign last, and verify using Android SDK tools.
+    sdk=Path(os.environ.get('ANDROID_HOME') or os.environ.get('ANDROID_SDK_ROOT') or '')
+    build_tools=sdk/'build-tools'
+    versions=sorted((x for x in build_tools.glob('*') if x.is_dir()),
+                    key=lambda x:tuple(int(y) if y.isdecimal() else 0 for y in x.name.split('.')))
+    if not versions:
+        raise RuntimeError('Android SDK build-tools required for verified APK signing')
+    bin_dir=versions[-1]
+    align_tool=bin_dir/'zipalign'
+    signer=bin_dir/'apksigner'
+    if not align_tool.is_file() or not signer.is_file():
+        raise RuntimeError('Android SDK zipalign and apksigner are required; no unsafe jarsigner fallback')
+    aligned=ROOT/'build'/'aligned.apk'
+    subprocess.run([str(align_tool),'-f','4',str(un),str(aligned)],check=True)
+    subprocess.run([str(signer),'sign','--ks',str(key),'--ks-key-alias','play80',
+                    '--ks-pass','pass:'+secret,'--key-pass','pass:'+secret,
+                    '--v1-signing-enabled','true','--v2-signing-enabled','true',
+                    '--v3-signing-enabled','true','--out',str(APK),str(aligned)],check=True)
+    subprocess.run([str(signer),'verify','--verbose','--min-sdk-version','28',str(APK)],check=True)
     print('APK:',APK,'bytes:',APK.stat().st_size)
     print('DEX bytes',len(classes),'AXML bytes',len(manifest))
     print('sha256:',hashlib.sha256(APK.read_bytes()).hexdigest())
