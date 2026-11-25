@@ -118,7 +118,7 @@
     if(address.length<8||address.length>250)throw Error('Enter your full address');
     if($('p8SignupConfirmPIN').value!==password)throw Error('PIN entries do not match');
     const data=await auth('signup','POST',{email,password,data:{username,display_name:fullName,full_name:fullName,phone_number:phone,address}});
-    if(data?.access_token){saveSession(data);await loadAccount();status('Signed up successfully.');}
+    if(data?.access_token){saveSession(data);await loadAccount();status(verifiedAuth?'Account created and verified. You may play.':'Account created. Verify your email to activate play.');}
     else status('Registration requested. Open your email and verify it, then sign in.');
     $('cloudLoginPassword').value='';
   }));
@@ -126,7 +126,7 @@
     const email=$('cloudLoginEmail').value.trim().toLowerCase();const password=$('cloudLoginPassword').value;
     if(!email||!/^[0-9]{6}$/.test(password))throw Error('Enter email and your six-digit PIN');
     const data=await auth('token?grant_type=password','POST',{email,password});
-    saveSession(data);$('cloudLoginPassword').value='';await loadAccount();
+    saveSession(data);$('cloudLoginPassword').value='';if(!verifiedAuth)throw Error('Please verify your email before playing.');await loadAccount();
   }));
   $('cloudRecover').addEventListener('click',e=>busy(e.currentTarget,async()=>{
     const email=$('cloudLoginEmail').value.trim().toLowerCase();
