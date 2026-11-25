@@ -679,6 +679,20 @@ body.p8-auth-locked{min-height:100dvh;background:linear-gradient(155deg,#090e20,
 #screen-account .p8AuthModes{margin-top:12px}
 @media(max-width:380px){body.p8-auth-locked #screen-account{padding:8px 10px 30px}}
 </style>
+<style id="p8AuthGateStructureFix">
+body.p8-auth-locked>.app{display:block!important;min-height:100dvh;padding-bottom:0!important}
+body.p8-auth-locked .top,body.p8-auth-locked .play80TopTabs,body.p8-auth-locked .footerNav{display:none!important}
+body.p8-auth-locked main.main{padding:0!important;margin:0!important}
+body.p8-auth-locked main.main>.screen:not(#screen-account){display:none!important}
+body.p8-auth-locked #screen-account{display:block!important;max-width:580px;min-height:100dvh;margin:0 auto;padding:8px 12px 28px}
+body.p8-auth-locked #screen-account .back{display:none!important}
+body.p8-auth-locked #screen-account .cloudPanel{padding:13px;margin-top:0!important}
+body.p8-auth-locked #screen-account .center{padding:6px 0!important;margin:0!important}
+body.p8-auth-locked #screen-account .center .sub{line-height:1.35;margin:4px 0 8px!important}
+body.p8-auth-locked #screen-account .demoBanner{margin:4px 0 9px!important}
+body.p8-auth-locked #screen-account .sectionTitle{margin-top:9px!important}
+body:not(.p8-auth-locked) #screen-account,body:not(.p8-auth-locked) #screen-remote-owner{margin-top:0}
+</style>
 </head>
 <body class="p8-auth-locked">
 <div class="app">
@@ -935,9 +949,8 @@ body.p8-auth-locked{min-height:100dvh;background:linear-gradient(155deg,#090e20,
  <button type="button" class="play80SecondaryBtn" data-open="tournament">BACK TO LEADERBOARD</button></div>
  <p style="font-size:11px;margin-top:9px">Only complete, server-verified matches earn tournament points. Each flip is recorded, and finished scores cannot be edited.</p></div>
 </section>
- </main>
- <nav class="footerNav" aria-label="Main app navigation"><button class="navBtn active" data-open="home"><b>🎮</b>Games</button><button class="navBtn" data-open="account"><b>🌐</b>Account</button><button class="navBtn" data-open="rewards"><b>🎁</b>Rewards</button><button class="navBtn" data-open="account"><b>💬</b>Messages</button><button class="navBtn" data-open="account"><b>👤</b>Profile</button></nav>
-</div><section id="screen-account" class="screen hidden">
+ 
+<section id="screen-account" class="screen hidden">
   <button class="back" data-open="home">❮ All Games</button>
   <div class="center"><h1 class="bigTitle">🌐 PLAY80 Account</h1><p class="sub">Create an account with your details and six-digit PIN. Verify your email, then sign in.</p></div>
   <div class="panel cloudPanel">
@@ -1016,6 +1029,9 @@ body.p8-auth-locked{min-height:100dvh;background:linear-gradient(155deg,#090e20,
     <div id="cloudOwnerNotice" class="cloudFeedback" role="status">Owner approvals are checked on the server.</div>
   </div>
 </section>
+</main>
+ <nav class="footerNav" aria-label="Main app navigation"><button class="navBtn active" data-open="home"><b>🎮</b>Games</button><button class="navBtn" data-open="account"><b>🌐</b>Account</button><button class="navBtn" data-open="rewards"><b>🎁</b>Rewards</button><button class="navBtn" data-open="account"><b>💬</b>Messages</button><button class="navBtn" data-open="account"><b>👤</b>Profile</button></nav>
+</div>
 
 <script>
 (function(){
