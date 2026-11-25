@@ -7,7 +7,7 @@
   const KEY = 'sb_publishable_8VvDZLfwAeztWeDS2EqNBQ_nlYFwFyK';
   const STORAGE = 'play80.secure_account.v1';
   const $ = (id) => document.getElementById(id);
-  let session = null, profile = null, balance = null;
+  let session = null, profile = null, balance = null, verifiedAuth = false;
   let staffPinToken = null, staffPinExpires = 0, activeGameCode = null;
   const escDate = (d) => { try { return new Date(d).toLocaleString(); } catch (_) {return '—';} };
   const status = (message, error=false) => {
@@ -37,6 +37,7 @@
   function saveSession(data){
     if(!data?.access_token||!data?.refresh_token)throw Error('No session returned');
     session={access_token:data.access_token,refresh_token:data.refresh_token,expires_at:stamp()+Number(data.expires_in||3600),user:data.user||session?.user||null};
+    verifiedAuth=!!session.user?.email_confirmed_at;
     persist();renderAuth();
   }
   async function token(){
@@ -49,7 +50,7 @@
   }
   async function db(path,method='GET',payload=null){return raw('/rest/v1/'+path,method,payload,await token());}
   function renderAuth(){
-    const on=!!session?.access_token;
+    const on=!!session?.access_token && verifiedAuth;
     document.body.classList.toggle('p8-auth-locked',!on);
     document.getElementById('screen-account')?.classList.toggle('hidden',!on?false:document.getElementById('screen-account')?.classList.contains('hidden'));
     if(!on)window.scrollTo(0,0);
@@ -59,7 +60,7 @@
     else {$('cloudBalance').textContent='—';$('cloudRequests').replaceChildren();}
   }
   async function loadAccount(){
-    if(!session)return;
+    if(!session||!verifiedAuth)return;
     try{
       const id=session.user?.id;
       if(!id)throw Error('User account is missing from the session');
@@ -376,7 +377,7 @@
     if(activeGameCode&&session&&document.visibilityState!=='hidden') reportGame(activeGameCode,'heartbeat');
   },40000);
   window.Play80Cloud=Object.freeze({
-    user:()=>session?.user||null,
+    user:()=>verifiedAuth?session?.user||null:null,
     rpc:async(name,payload={})=>db('rpc/'+encodeURIComponent(name),'POST',payload),
     reloadAccount:loadAccount
   });
@@ -522,6 +523,19 @@
     },true));
   }
 
+  async function verifySavedSession(){
+    if(!session)return;
+    try{
+      const id=session.user?.id;
+      const u=await raw('/auth/v1/user','GET',null,await token());
+      if(!id||!u?.id||u.id!==id||!u.email_confirmed_at)throw Error('Email verification or login expired');
+      session.user=u;verifiedAuth=true;persist();renderAuth();
+      await loadAccount();await loadMyMessages().catch(()=>{});
+    }catch(e){
+      session=null;verifiedAuth=false;profile=null;balance=null;
+      persist();renderAuth();status('Sign in with your email and six-digit PIN. Email verification is required.',true);
+    }
+  }
   renderAuth();
-  if(session){loadAccount();loadMyMessages().catch(()=>{});}
+  if(session)verifySavedSession();
 })();
