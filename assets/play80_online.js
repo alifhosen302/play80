@@ -386,15 +386,18 @@
   const regName=document.createElement('div');
   regName.className='formGroup';
   regName.innerHTML='<label for="cloudRegistrationUsername">Unique Username (required at signup)</label><input id="cloudRegistrationUsername" type="text" maxlength="24" minlength="3" autocomplete="off" autocapitalize="none" placeholder="e.g. player80" pattern="[a-zA-Z0-9_]{3,24}"><small>This username is permanent; it can never be reused by another player.</small>';
-  $('cloudLoginEmail').closest('.formGroup').before(regName);
+  $('cloudLoginEmail').closest('.formGroup').after(regName);
 
-  // Deliberate two-step flow: choose Login or Create Account, then set a hashed Player PIN after verified login.
+  // Two modes: Email + PIN login, or Email -> Username -> Phone -> Name -> Address -> PIN signup.
   const cloudSignedOut=$('cloudSignedOut');
   const modePanel=document.createElement('div');
   modePanel.className='p8AuthModes';
   modePanel.innerHTML='<button type="button" id="p8ModeLogin" class="selected">SIGN IN</button><button type="button" id="p8ModeSignup">CREATE ACCOUNT</button>';
   cloudSignedOut.querySelector('.sectionTitle').after(modePanel);
   function selectAuthMode(signup){
+    const emailGroup=$('cloudLoginEmail').closest('.formGroup'),pinGroup=$('cloudLoginPassword').closest('.formGroup');
+    if(signup&&$('p8SignupConfirmPIN'))$('p8SignupConfirmPIN').closest('.formGroup').before(pinGroup);
+    else emailGroup.after(pinGroup);
     regName.classList.toggle('hidden',!signup);
     $('cloudRegister').classList.toggle('hidden',!signup);
     $('cloudLogin').classList.toggle('hidden',signup);
@@ -412,7 +415,6 @@
     <div class="formGroup"><label for="p8SignupAddress">Address</label><textarea id="p8SignupAddress" maxlength="250" autocomplete="street-address" placeholder="Full address" rows="3" required></textarea></div>
     <div class="formGroup"><label for="p8SignupConfirmPIN">Confirm six-digit PIN</label><input id="p8SignupConfirmPIN" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="new-password" placeholder="●●●●●●" required></div>`;
   $('cloudLoginPassword').closest('.formGroup').after(regFields);
-  const oldSelectAuthMode=selectAuthMode;
   // signup state is driven from the visible tabs
   $('p8ModeLogin').addEventListener('click',()=>regFields.classList.add('hidden'));
   $('p8ModeSignup').addEventListener('click',()=>regFields.classList.remove('hidden'));
