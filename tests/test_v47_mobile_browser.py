@@ -32,6 +32,7 @@ try:
   assert page.locator('#p8RegistrationFields').is_hidden()
   # AUTH MOCK ONLY for UI testing. No actual Supabase account is created or authenticated here.
   page.route('**/rest/v1/**',lambda route:route.fulfill(status=200,content_type='application/json',body='[]'))
+  page.route('**/auth/v1/user',lambda route:route.fulfill(status=200,content_type='application/json',body='{"id":"00000000-0000-4000-8000-000000000001","email":"mock@example.test","email_confirmed_at":"2026-11-25T00:00:00Z","app_metadata":{"role":"player"}}'))
   page.evaluate('''() => localStorage.setItem('play80.secure_account.v1',JSON.stringify({
    access_token:'mock-ui-test-jwt',refresh_token:'mock-ui-test-refresh',
    expires_at:Math.floor(Date.now()/1000)+999999,
