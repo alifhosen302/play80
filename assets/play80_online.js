@@ -107,7 +107,7 @@
     const username=$('cloudRegistrationUsername')?.value.trim().toLowerCase();
     if(!/^[a-z0-9_]{3,24}$/.test(username||''))throw Error('Choose a unique username of 3–24 English letters, digits or _');
     const data=await auth('signup','POST',{email,password,data:{username,display_name:username}});
-    if(data?.access_token){saveSession(data);await loadAccount();status('Signed up successfully.');}
+    if(data?.access_token){saveSession(data);await loadAccount();await loadPlayerPinStatus();status('Signed up successfully.');}
     else status('Registration requested. Open your email and verify it, then sign in.');
     $('cloudLoginPassword').value='';
   }));
@@ -115,7 +115,7 @@
     const email=$('cloudLoginEmail').value.trim().toLowerCase();const password=$('cloudLoginPassword').value;
     if(!email||!password)throw Error('Email and password are required');
     const data=await auth('token?grant_type=password','POST',{email,password});
-    saveSession(data);$('cloudLoginPassword').value='';await loadAccount();
+    saveSession(data);$('cloudLoginPassword').value='';await loadAccount();await loadPlayerPinStatus();
   }));
   $('cloudRecover').addEventListener('click',e=>busy(e.currentTarget,async()=>{
     const email=$('cloudLoginEmail').value.trim().toLowerCase();
@@ -376,6 +376,53 @@
   regName.className='formGroup';
   regName.innerHTML='<label for="cloudRegistrationUsername">Unique Username (required at signup)</label><input id="cloudRegistrationUsername" type="text" maxlength="24" minlength="3" autocomplete="off" autocapitalize="none" placeholder="e.g. player80" pattern="[a-zA-Z0-9_]{3,24}"><small>This username is permanent; it can never be reused by another player.</small>';
   $('cloudLoginEmail').closest('.formGroup').before(regName);
+
+  // Deliberate two-step flow: choose Login or Create Account, then set a hashed Player PIN after verified login.
+  const cloudSignedOut=$('cloudSignedOut');
+  const modePanel=document.createElement('div');
+  modePanel.className='p8AuthModes';
+  modePanel.innerHTML='<button type="button" id="p8ModeLogin" class="selected">SIGN IN</button><button type="button" id="p8ModeSignup">CREATE ACCOUNT</button>';
+  cloudSignedOut.querySelector('.sectionTitle').after(modePanel);
+  function selectAuthMode(signup){
+    regName.classList.toggle('hidden',!signup);
+    $('cloudRegister').classList.toggle('hidden',!signup);
+    $('cloudLogin').classList.toggle('hidden',signup);
+    $('p8ModeSignup').classList.toggle('selected',signup);
+    $('p8ModeLogin').classList.toggle('selected',!signup);
+    $('cloudLoginPassword').autocomplete=signup?'new-password':'current-password';
+  }
+  $('p8ModeLogin').addEventListener('click',()=>selectAuthMode(false));
+  $('p8ModeSignup').addEventListener('click',()=>selectAuthMode(true));
+  selectAuthMode(false);
+  const pinPanel=document.createElement('div');
+  pinPanel.className='p8PlayerPinPanel';
+  pinPanel.innerHTML='<h3>🔐 Step 3: Secure Player PIN</h3><p>After signing in and verifying your email, set your own 6-digit Player PIN. This is different from the Owner/Admin Staff PIN. Your email and password remain required for login.</p><div class="p8PinFields"><input type="password" id="p8PlayerPin" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="6-digit PIN" autocomplete="off"><input type="password" id="p8PlayerPinAgain" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="Confirm new PIN" autocomplete="off"></div><div class="cloudActions"><button type="button" id="p8PinSet" class="action">SET PIN</button><button type="button" id="p8PinVerify" class="action secondary">VERIFY PIN</button></div><div id="p8PinMessage" class="cloudFeedback" role="status">PIN status not checked.</div>';
+  $('cloudSignedIn').insertBefore(pinPanel,$('cloudSignedIn').firstChild);
+  async function loadPlayerPinStatus(){
+    if(!session?.access_token)return;
+    const r=await db('rpc/play80_player_pin_status','POST',{});
+    $('p8PinSet').disabled=!!r.configured;
+    $('p8PlayerPinAgain').classList.toggle('hidden',!!r.configured);
+    $('p8PinMessage').textContent=r.configured?'PIN is configured. Use VERIFY PIN to test it.':'Create your secure 6-digit PIN after email verification.';
+  }
+  $('p8PinSet').addEventListener('click',e=>busy(e.currentTarget,async()=>{
+    const p=$('p8PlayerPin').value,v=$('p8PlayerPinAgain').value;
+    if(!/^[0-9]{6}$/.test(p)||p!==v)throw Error('Enter matching six-digit PINs');
+    await db('rpc/play80_set_player_pin','POST',{p_pin:p});
+    $('p8PlayerPin').value='';$('p8PlayerPinAgain').value='';
+    await loadPlayerPinStatus();status('Player PIN configured securely.');
+  }));
+  $('p8PinVerify').addEventListener('click',e=>busy(e.currentTarget,async()=>{
+    const p=$('p8PlayerPin').value;
+    if(!/^[0-9]{6}$/.test(p))throw Error('Enter 6 digits');
+    const result=await db('rpc/play80_verify_player_pin','POST',{p_pin:p});
+    $('p8PlayerPin').value='';$('p8PinMessage').textContent=result.message||'PIN check complete.';
+    if(!result.ok)throw Error(result.message||'PIN not verified');
+    status('Player PIN verified.');return result;
+  }));
+  const oldLoadPlayer=loadPlayerPinStatus;
+  document.querySelectorAll('[data-open="account"]').forEach(b=>b.addEventListener('click',()=>{if(session)oldLoadPlayer().catch(()=>{});}));
+  
   const ownerKeyNote=document.createElement('p');
   ownerKeyNote.className='tiny';
   ownerKeyNote.textContent='Owner has an unlimited authorised DEMO-COIN ISSUANCE capability (1–1,000,000 per audited operation), not cash. Other players have finite server balances.';
