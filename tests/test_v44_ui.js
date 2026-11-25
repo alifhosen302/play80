@@ -9,7 +9,7 @@ for(const f of files)assert(fs.existsSync(f)&&fs.statSync(f).size>1000,'Missing 
 assert(html.includes('src="play80_brand_premium.webp"'),'Brand logo displayed');
 assert(html.includes('id="screen-account"'),'Account tab exists');
 assert(html.includes('id="p8AccountIdentity"')&&html.includes('৬ সংখ্যার PIN'),'Premium PIN login panel present');
-assert(online.includes('selectAuthMode(false,false)')&&online.includes('selectAuthMode(true,false)')&&online.includes('selectAuthMode(false,true)'),'Player login, Owner login and signup tabs');
+assert(online.includes('selectAuthMode(false)')&&online.includes('selectAuthMode(true)')&&online.includes('selectAuthMode(true,true)'),'Unified Sign In/Sign Up with owner signup link');
 assert(online.includes("Six-digit PIN")&&online.includes("p8SignupConfirmPIN"),"Email and six-digit PIN with confirmation");
 assert(arena.includes('repeat(8,minmax(0,1fr))'),'Square chess grid columns and rows');
 assert(arena.includes('aspect-ratio:1/1'),'No squashed board');
