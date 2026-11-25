@@ -132,7 +132,7 @@
     const email=$('cloudLoginEmail').value.trim().toLowerCase();
     if(!email)throw Error('Enter your email above to request password reset');
     await auth('recover','POST',{email});
-    status('If that account exists, a password recovery email was sent. The recovery redirect must be configured in Supabase Auth settings.');
+    status('If that account exists, a PIN recovery email was sent. Follow the email instructions to reset your sign-in code.');
   }));
   $('cloudSaveUsername').addEventListener('click',e=>busy(e.currentTarget,async()=>{
     const username=$('cloudUsername').value.trim().toLowerCase();
