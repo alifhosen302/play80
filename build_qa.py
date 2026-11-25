@@ -28,7 +28,7 @@ def strdata(s):
 def axml():
     android_uri='http://schemas.android.com/apk/res/android'
     sset={
-        'android',android_uri,'manifest','package',APP_PACKAGE,'versionCode','versionName','4.5',
+        'android',android_uri,'manifest','package',APP_PACKAGE,'versionCode','versionName','4.6',
         'uses-sdk','uses-permission','android.permission.INTERNET','minSdkVersion','targetSdkVersion','application','label','play80',
         'hasCode','icon','activity','name',APP_ACTIVITY,'exported','intent-filter','action',
         'android.intent.action.MAIN','category','android.intent.category.LAUNCHER'
@@ -76,7 +76,7 @@ def axml():
     def end(tag):return chunk(0x0103,struct.pack('<II',NO,idx[tag]))
     content=bytearray()
     content+=start_ns()
-    content+=start('manifest',[('package',APP_PACKAGE,'s'),('versionCode',36,'i'),('versionName','4.5','s')])
+    content+=start('manifest',[('package',APP_PACKAGE,'s'),('versionCode',37,'i'),('versionName','4.6','s')])
     content+=start('uses-sdk',[('minSdkVersion',23,'i'),('targetSdkVersion',28,'i')]);content+=end('uses-sdk')
     content+=start('uses-permission',[('name','android.permission.INTERNET','s')]);content+=end('uses-permission')
     content+=start('application',[('label','play80','s'),('icon',0x7f010000,'r'),('hasCode',True,'b')])
