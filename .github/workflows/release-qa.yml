@@ -1,7 +1,13 @@
 name: Update the single PLAY80 APK (permanent signing required)
 
-# A single published APK. Deliberately manual until a permanent signing key is installed.
+# Always update the SAME Release asset; never create separate versioned releases.
+# Abort without publishing when the permanent signing key is unavailable.
 on:
+  push:
+    paths:
+      - '.github/workflows/release-qa.yml'
+      - 'build_qa.py'
+      - 'assets/**'
   workflow_dispatch:
 
 permissions:
@@ -62,7 +68,10 @@ jobs:
         run: |
           set -euo pipefail
           python build_qa.py
-          jarsigner -verify -certs ../PLAY80_V4_1_Practice_QA.apk
+          TOOLS="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
+          "$TOOLS/aapt" dump badging ../PLAY80_V4_1_Practice_QA.apk
+          "$TOOLS/zipalign" -c 4 ../PLAY80_V4_1_Practice_QA.apk
+          "$TOOLS/apksigner" verify --verbose --min-sdk-version 28 ../PLAY80_V4_1_Practice_QA.apk
           mkdir -p dist
           cp ../PLAY80_V4_1_Practice_QA.apk dist/PLAY80_V5_2_GitHub_QA.apk
           sha256sum dist/PLAY80_V5_2_GitHub_QA.apk
