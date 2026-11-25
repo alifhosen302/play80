@@ -1,0 +1,49 @@
+name: Diagnose PLAY80 Android APK install format (no release)
+on:
+  push:
+    paths:
+      - '.github/workflows/diagnose-apk.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check installed Android package tools
+        shell: bash
+        run: |
+          echo "ANDROID_HOME=${ANDROID_HOME:-}"
+          ls "${ANDROID_HOME:-/opt/android-sdk}/build-tools" || true
+          find "${ANDROID_HOME:-/opt/android-sdk}/build-tools" -maxdepth 2 \( -name aapt -o -name apksigner -o -name zipalign \) -print || true
+      - name: Make *diagnostic-only* signed APK, never publish it
+        shell: bash
+        run: |
+          set -euo pipefail
+          keytool -genkeypair -noprompt -alias play80 -keyalg RSA -keysize 2048 -validity 3 -dname "CN=PLAY80 DIAGNOSTIC" -storetype PKCS12 -keystore "$RUNNER_TEMP/diagnostic.jks" -storepass "temporary-diagnostic-signing" -keypass "temporary-diagnostic-signing"
+          export PLAY80_SIGNING_KEYSTORE="$RUNNER_TEMP/diagnostic.jks"
+          export PLAY80_SIGNING_PASSWORD="temporary-diagnostic-signing"
+          python build_qa.py
+      - name: Test APK manifest, signatures, zip alignment, DEX
+        shell: bash
+        run: |
+          set +e
+          APK=../PLAY80_V4_1_Practice_QA.apk
+          TOOLS="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
+          echo "TOOLS=$TOOLS"
+          ls -lh "$APK"
+          echo '== aapt dump badging =='
+          "$TOOLS/aapt" dump badging "$APK"; echo "EXIT:$?"
+          echo '== aapt dump xmltree =='
+          "$TOOLS/aapt" dump xmltree "$APK" AndroidManifest.xml; echo "EXIT:$?"
+          echo '== zipalign check =='
+          "$TOOLS/zipalign" -c -v 4 "$APK"; echo "EXIT:$?"
+          echo '== apksigner verify all supported API levels =='
+          "$TOOLS/apksigner" verify --verbose --print-certs "$APK"; echo "EXIT:$?"
+          echo '== apksigner verify minSdk 28 =='
+          "$TOOLS/apksigner" verify --min-sdk-version 28 --verbose "$APK"; echo "EXIT:$?"
+          echo '== DEX file data =='
+          unzip -p "$APK" classes.dex | head -c 112 | od -An -tx1 | head
+          exit 0
