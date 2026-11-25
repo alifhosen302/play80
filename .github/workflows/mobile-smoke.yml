@@ -1,0 +1,30 @@
+name: PLAY80 real mobile-browser smoke tests
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'assets/**'
+      - 'tests/test_v46_mobile_browser.py'
+      - '.github/workflows/mobile-smoke.yml'
+  pull_request:
+    paths:
+      - 'assets/**'
+      - 'tests/test_v46_mobile_browser.py'
+      - '.github/workflows/mobile-smoke.yml'
+permissions:
+  contents: read
+jobs:
+  mobile-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned Playwright and Chromium
+        run: |
+          python -m pip install playwright==1.56.0
+          python -m playwright install --with-deps chromium
+      - name: Run Android-sized UI/navigation/checkmate tests
+        run: python tests/test_v46_mobile_browser.py
