@@ -4,6 +4,16 @@
 'use strict';
 const $=id=>document.getElementById(id),home=$('p8TournamentCatalog'),detail=$('p8TournamentDetail'),live=$('p8TourMemoryLive'),upcoming=$('p8TourUpcoming');
 if(!home||!detail)return;
+if(live){
+  const card=document.createElement('div');
+  card.className='play80Surface';
+  card.id='p8TourPrizeBreakdown';
+  const rankRewards=[1800,1200,1000,900,800,700,600,500];
+  card.innerHTML='<h3>🏆 Tournament Prize Distribution</h3><p><b>Entry fee:</b> 500 non-redeemable Demo Coins once per person. <b>Maximum funded pool:</b> 7,500 Demo Coins. Actual awards scale with the funded prize pool; no company subsidy or cash redemption.</p>';
+  const list=document.createElement('div');list.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px';
+  rankRewards.forEach((amount,i)=>{const item=document.createElement('div');item.style.cssText='padding:10px;border:1px solid #a57ce2;border-radius:10px;background:#282041';item.textContent='#'+(i+1)+' · up to '+amount.toLocaleString('en-US')+' coins';list.append(item);});
+  card.append(list);live.append(card);
+}
 const games={bubble:'Bubble Shooter',block:'Block Puzzle',memory:'Memory Puzzle','2048':'2048 Puzzle'};
 let current='memory',grid=[],score=0,selected=0,pieces=[];
 const colors=['#ed527b','#42c6fd','#fac851','#8be88a','#af80ff'],rand=n=>Math.floor(Math.random()*n);
