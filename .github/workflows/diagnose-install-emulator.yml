@@ -1,0 +1,34 @@
+name: Diagnose Android install on real emulator (no release)
+on:
+  push:
+    paths:
+      - '.github/workflows/diagnose-install-emulator.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  emulator-install:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build existing APK just for emulator diagnostics
+        run: |
+          set -euo pipefail
+          keytool -genkeypair -noprompt -alias play80 -keyalg RSA -keysize 2048 -validity 3 -dname "CN=PLAY80 EMULATOR ONLY" -storetype PKCS12 -keystore "$RUNNER_TEMP/diagnostic.jks" -storepass "temporary-diagnostic-signing" -keypass "temporary-diagnostic-signing"
+          PLAY80_SIGNING_KEYSTORE="$RUNNER_TEMP/diagnostic.jks" PLAY80_SIGNING_PASSWORD="temporary-diagnostic-signing" python build_qa.py
+      - name: Install on clean Android 14 emulator and capture OS package-manager reason
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          profile: pixel_5
+          target: google_apis
+          emulator-boot-timeout: 600
+          script: |
+            adb shell getprop ro.build.version.release
+            adb shell pm list packages | grep play80 || true
+            adb install -r ../PLAY80_V4_1_Practice_QA.apk
+            adb shell am start -n com.play80.arcade.master.tournamentv41qa/.MainActivity
+            sleep 3
+            adb logcat -d -t 200 | grep -E 'PackageManager|PackageInstaller|FATAL EXCEPTION|AndroidRuntime|INSTALL_' | tail -80 || true
