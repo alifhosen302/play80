@@ -20,7 +20,8 @@ style.textContent=[
 "#p8RulesFoot{display:flex;gap:10px;flex:none;padding:13px 15px;border-top:1px solid #8b68ba75;background:#141730}",
 "#p8RulesFoot button{flex:1;min-width:0;min-height:46px;border:1px solid #9071cc;border-radius:12px;background:#282141;color:#fff;font-weight:800}",
 "#p8RulesAccept{background:linear-gradient(120deg,#ac62fa,#6845d6)!important}",
-".p8RulesNotice{border-radius:10px;border:1px solid #9d78c8;padding:11px;background:#372749}"
+".p8RulesNotice{border-radius:10px;border:1px solid #9d78c8;padding:11px;background:#372749}",
+"#screen-2048 .play80Surface>p,#screen-chess .play80Promo>p,#screen-chess .play80Surface>p.p8ChessNotice{display:none!important}"
 ].join('\n');
 document.head.append(style);
 function icon(name){const p=atlas[name];if(!p)return null;const x=document.createElement('span');x.className='p8PremiumIcon';x.setAttribute('aria-hidden','true');x.style.backgroundPosition=(p[0]*100/3)+'% '+(p[1]*100/3)+'%';return x;}
