@@ -717,6 +717,14 @@ body.p8-auth-locked .app{max-width:560px}
 #screen-remote-owner #p8OwnerLogout{background:#332247;color:#ffe2ad;border:1px solid #b988d7;border-radius:12px}
 @media(max-width:390px){#screen-account .p8AuthHero{padding:8px 4px 10px}#screen-account .p8AuthHero img{width:86px;height:86px}#screen-account .cloudPanel{padding:11px!important}}
 </style>
+<style id="p8SignupFeedback">
+#cloudSignedOut #cloudNotice,#cloudSignedOut #p8SignupResult{display:block;width:100%;box-sizing:border-box;margin:10px 0;padding:12px 14px;border-radius:12px;border:1px solid #7fa7cd;background:#182945;color:#f0fbff;font-size:14px;line-height:1.6;font-weight:700;overflow-wrap:anywhere}
+#cloudSignedOut #cloudNotice[hidden],#cloudSignedOut #p8SignupResult[hidden]{display:none!important}
+#cloudSignedOut #cloudNotice.p8AuthError{border-color:#e67c88;background:#4b233b;color:#ffe6e7!important}
+#cloudSignedOut #cloudNotice.p8AuthSuccess,#cloudSignedOut #p8SignupResult:not([hidden]){border-color:#60cea6;background:#1a403d;color:#dcffef!important}
+#cloudSignedOut .cloudActions{display:flex;flex-direction:column;gap:8px}
+#cloudSignedOut .cloudActions button{width:100%;min-height:50px}
+</style>
 </head>
 <body class="p8-auth-locked">
 <div class="app">
