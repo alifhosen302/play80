@@ -54,18 +54,27 @@
      const join=$('tourJoin');join.disabled=!signed||t.joined||!['running','registration_open'].includes(t.status);
      join.textContent=t.joined?'✓ REGISTERED':'JOIN · 500 DEMO COINS';
      const play=$('tourPlay');play.disabled=!signed||!(t.joined&&t.status==='running'&&t.game==='memory');
-     notice(!signed?'Public tournament details are visible. Sign in to register and see player rankings.':
+     notice(!signed?'Public tournament details and leaderboard shown. Sign in to join the match.':
         t.status==='registration_open'?'Registration open. Countdown shows when enrollment closes.':
         t.status==='running'?'Tournament live. View leaderboard.':'Waiting for next event.');
       countdown();
-      if(signed&&t.id)await loadLeaderboard(t.id);
-      else $('tourLeaderboard').textContent='Sign in to view individual player names and leaderboard.';
+      if(t.id)await loadLeaderboard(t.id,signed);
+      else $('tourLeaderboard').textContent='No active tournament entries yet.';
     }catch(e){notice('Server error: '+(e.message||e),true);setText('tourState','UNAVAILABLE');}
    finally{refreshing=false;}
  }
- async function loadLeaderboard(id){
+ async function loadLeaderboard(id,signed=!!active()){
    let ranks=[];
-   try{ranks=await call('play80_tournament_leaderboard',{p_tournament_id:id});}catch(e){setText('tourLeaderboard','Leaderboard unavailable: '+e.message);return;}
+   try{
+      if(signed)ranks=await call('play80_tournament_leaderboard',{p_tournament_id:id});
+      else {
+        const response=await fetch('https://suhpmjqrcqkzaslptpca.supabase.co/rest/v1/rpc/play80_tournament_public_leaderboard',{
+          method:'POST',headers:{apikey:'sb_publishable_8VvDZLfwAeztWeDS2EqNBQ_nlYFwFyK','Content-Type':'application/json'},
+          body:JSON.stringify({p_tournament_id:id})});
+        if(!response.ok)throw Error('Public leaderboard currently unavailable');
+        ranks=await response.json();
+      }
+   }catch(e){setText('tourLeaderboard','Leaderboard unavailable: '+e.message);return;}
    const list=$('tourLeaderboard');list.replaceChildren();
    if(!Array.isArray(ranks)||!ranks.length){list.textContent='No participants yet. The tournament begins automatically.';return;}
    for(const p of ranks.slice(0,150)){
@@ -75,7 +84,7 @@
      const avatar=document.createElement('span');avatar.textContent=p.avatar||'👤';
      const who=document.createElement('div');who.className='tourUser';
      const name=document.createElement('strong');name.textContent=p.username;
-     const meta=document.createElement('small');meta.textContent=(p.type==='ai'?'🤖 AI Player':'👤 Human')+' · '+String(p.user_id).slice(0,8)+' · '+fmt(p.games_played)+' games';
+     const meta=document.createElement('small');meta.textContent=(p.type==='ai'?'🤖 AI Player':'👤 Human')+' · '+fmt(p.games_played)+' games';
      who.append(name,meta);
      const score=document.createElement('div');score.className='tourPoints';
      const possible=Math.floor(Number(p.maximum_rank_reward||0)*Number(tournament?.funded_pool||0)/7500);
