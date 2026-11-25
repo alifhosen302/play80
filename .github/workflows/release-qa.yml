@@ -1,4 +1,4 @@
-name: Publish PLAY80 V4.8 QA prerelease
+name: Publish PLAY80 V4.9 QA prerelease
 
 on:
   push:
@@ -68,12 +68,12 @@ jobs:
           python build_qa.py
           jarsigner -verify -certs ../PLAY80_V4_1_Practice_QA.apk
           mkdir -p dist
-          cp ../PLAY80_V4_1_Practice_QA.apk dist/PLAY80_V4_8_GitHub_QA.apk
-          sha256sum dist/PLAY80_V4_8_GitHub_QA.apk
+          cp ../PLAY80_V4_1_Practice_QA.apk dist/PLAY80_V4_9_GitHub_QA.apk
+          sha256sum dist/PLAY80_V4_9_GitHub_QA.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: PLAY80-V4.8-QA
-          path: dist/PLAY80_V4_8_GitHub_QA.apk
+          name: PLAY80-V4.9-QA
+          path: dist/PLAY80_V4_9_GitHub_QA.apk
           retention-days: 14
       - name: Publish explicit prerelease (not production)
         shell: bash
@@ -81,13 +81,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG=qa-v4.8-pin-auth-bubble-20261125
+          TAG=qa-v4.9-pin-registration-bubble-20261125
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "Release tag already exists; leaving existing file unchanged."
             exit 0
           fi
-          gh release create "$TAG" dist/PLAY80_V4_8_GitHub_QA.apk \
+          gh release create "$TAG" dist/PLAY80_V4_9_GitHub_QA.apk \
             --target "$GITHUB_SHA" \
-            --title "PLAY80 V4.8 QA — GitHub build (not production)" \
+            --title "PLAY80 V4.9 QA — GitHub build (not production)" \
             --prerelease \
-            --notes "PLAY80 V4.8 QA: final Reset PIN wording; all gameplay is locked until a Supabase-authenticated, email-verified session; PIN-only visible account login using a six-digit code; sign-up asks unique username, email, phone, full name and address. Both emails and usernames are single-use. Old detached Account/Owner pages relocated to eliminate blank scroll. Bubble Shooter now features an aimable cannon, trajectory, current and NEXT bubbles, SWAP and two demo bombs. Existing Chess fixes and tournament navigation retained. WARNING: a six-digit PIN has low entropy. Real signup, mail delivery, retry protection and full security/device testing remain unverified. QA package uses disposable signing; not a production or real-money gambling build."
+            --notes "PLAY80 V4.9 QA: corrected signup field sequence, PIN-only auth, and final Reset PIN wording; all gameplay is locked until a Supabase-authenticated, email-verified session; PIN-only visible account login using a six-digit code; sign-up asks unique username, email, phone, full name and address. Both emails and usernames are single-use. Old detached Account/Owner pages relocated to eliminate blank scroll. Bubble Shooter now features an aimable cannon, trajectory, current and NEXT bubbles, SWAP and two demo bombs. Existing Chess fixes and tournament navigation retained. WARNING: a six-digit PIN has low entropy. Real signup, mail delivery, retry protection and full security/device testing remain unverified. QA package uses disposable signing; not a production or real-money gambling build."
