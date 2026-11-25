@@ -663,8 +663,24 @@ body.play80PracticeActive .footerNav{display:none!important}
 #p8TournamentDetail .tourRules{display:none!important}
 @media(max-width:360px){.p8TourCard{min-height:160px}.p8TourLogo{width:90px;height:90px;font-size:49px}}
 </style>
+<style id="play80-auth-entry-v47">
+/* Never expose gameplay until a real Supabase session exists. The account page is the entry screen. */
+body.p8-auth-locked>.app{display:none!important}
+body.p8-auth-locked #screen-account{display:block!important;visibility:visible!important;position:relative!important;top:auto!important;left:auto!important;width:100%!important;max-width:580px;margin:0 auto;min-height:100dvh;padding:14px 12px 40px;box-sizing:border-box}
+body.p8-auth-locked #screen-account .back{display:none!important}
+body.p8-auth-locked #screen-account .cloudPanel{margin-top:0}
+body.p8-auth-locked #screen-account .center{margin:0!important;padding:10px 0 5px!important}
+body.p8-auth-locked #screen-account .bigTitle{font-size:25px;margin:0 0 5px}
+body.p8-auth-locked #screen-account .demoBanner{margin-top:4px;font-size:12px;line-height:1.4}
+body.p8-auth-locked #screen-account .sectionTitle{margin-top:13px!important}
+body.p8-auth-locked{min-height:100dvh;background:linear-gradient(155deg,#090e20,#25133e 70%,#100e23)}
+#screen-account input,#screen-account textarea{font-size:16px!important}
+#p8RegistrationFields.hidden,.p8AuthModes .hidden{display:none!important}
+#screen-account .p8AuthModes{margin-top:12px}
+@media(max-width:380px){body.p8-auth-locked #screen-account{padding:8px 10px 30px}}
+</style>
 </head>
-<body>
+<body class="p8-auth-locked">
 <div class="app">
  <header class="top"><button id="globalBack" class="globalBack hidden" type="button" aria-label="Go back one step">❮</button><div class="logo"><span class="mark logoImageMark"><img src="play80_brand_premium.webp" alt="PLAY80 official premium logo" width="45" height="45"></span><div><div class="brand">play<span style="color:#c9a1ff">80</span></div><div class="small">Dice • Flight • Ludo • Spin</div></div></div><div class="walletBadge">✦ <span id="headerPoints">0</span> PTS</div></header>
  <nav class="play80TopTabs" aria-label="PLAY80 primary tabs">
@@ -923,16 +939,16 @@ body.play80PracticeActive .footerNav{display:none!important}
  <nav class="footerNav" aria-label="Main app navigation"><button class="navBtn active" data-open="home"><b>🎮</b>Games</button><button class="navBtn" data-open="account"><b>🌐</b>Account</button><button class="navBtn" data-open="rewards"><b>🎁</b>Rewards</button><button class="navBtn" data-open="account"><b>💬</b>Messages</button><button class="navBtn" data-open="account"><b>👤</b>Profile</button></nav>
 </div><section id="screen-account" class="screen hidden">
   <button class="back" data-open="home">❮ All Games</button>
-  <div class="center"><h1 class="bigTitle">🌐 PLAY80 Account</h1><p class="sub">Step 1: Create Account / Sign In → Step 2: Verify Email → Step 3: Set Player PIN</p></div>
+  <div class="center"><h1 class="bigTitle">🌐 PLAY80 Account</h1><p class="sub">Create an account with your details and six-digit PIN. Verify your email, then sign in.</p></div>
   <div class="panel cloudPanel">
     <div class="demoBanner"><b>ONLINE DEMO ONLY.</b> No payments, deposits of real money, bank or mobile wallet transfers, or cash redemption. Online coins and this phone's offline game coins are separate.</div>
     <div id="cloudSignedOut">
       <div class="sectionTitle"><h2>Email Registration / Login</h2></div>
       <div class="formGroup"><label for="cloudLoginEmail">Email</label><input id="cloudLoginEmail" type="email" autocomplete="email" placeholder="you@example.com" /></div>
-      <div class="formGroup"><label for="cloudLoginPassword">Password (8+ characters)</label><input id="cloudLoginPassword" type="password" autocomplete="current-password" /></div>
+      <div class="formGroup"><label for="cloudLoginPassword">6-digit PIN</label><input id="cloudLoginPassword" type="password" autocomplete="current-password" /></div>
       <div class="cloudActions"><button type="button" id="cloudRegister" class="action">CREATE ACCOUNT</button><button type="button" id="cloudLogin" class="action secondary">SIGN IN</button></div>
       <button type="button" class="smallAction" id="cloudRecover" style="margin-top:12px">Send password reset email</button>
-      <p class="tiny">Verify your email before login if prompted. Password recovery uses Supabase email; configure the recovery redirect before production use.</p>
+      <p class="tiny">Verify your email before login if prompted. To reset your PIN, use email recovery. Email verification is required.</p>
     </div>
     <div id="cloudSignedIn" class="hidden">
       <div class="sectionTitle"><h2 id="cloudEmail"></h2><span id="cloudRole"></span></div>
@@ -1020,7 +1036,7 @@ function save(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){} r
 function award(points,title){state.points+=points;state.earned+=points;state.games++;state.entries.unshift({points,title,date:new Date().toISOString()});state.entries=state.entries.slice(0,100);save()}
 function gift(points){state.points+=points;state.entries.unshift({points,title:'Demo Free Points',date:new Date().toISOString()});state.entries=state.entries.slice(0,100);save();toast(points+' free demo points added')}
 function render(){const fmt=n=>Number(n).toLocaleString('en-US');$('headerPoints').textContent=fmt(state.points);$('walletPoints').textContent=fmt(state.points);$('totalGames').textContent=fmt(state.games);$('earnedPoints').textContent=fmt(state.earned);$('ledger').innerHTML='';if(!state.entries.length){$('ledger').innerHTML='<div class="empty">No game history yet</div>'}else{state.entries.forEach(row=>{const el=document.createElement('div');el.className='entry';const left=document.createElement('div');const strong=document.createElement('strong');strong.textContent=row.title;const when=document.createElement('div');when.className='when';try{when.textContent=new Date(row.date).toLocaleString('en-US')}catch(e){when.textContent=''}left.append(strong,when);const val=document.createElement('div');val.className='plus';val.textContent=(row.points>=0?'+':'')+fmt(row.points);if(row.points<0)val.style.color='#ffb6b6';el.append(left,val);$('ledger').appendChild(el)})}renderRequests()}
-function go(name){if(['owner','profile','deposit','withdraw','admin'].includes(name))name='account';if(name!=='ludo')document.body.classList.remove('ludo-playing');screen=name;document.querySelectorAll('.screen').forEach(el=>el.classList.toggle('hidden',el.id!=='screen-'+name));document.querySelectorAll('.navBtn').forEach(el=>el.classList.toggle('active',el.dataset.open===name));window.scrollTo(0,0)}
+function go(name){if(['owner','profile','deposit','withdraw','admin'].includes(name))name='account';if(document.body.classList.contains('p8-auth-locked'))name='account';if(name!=='ludo')document.body.classList.remove('ludo-playing');screen=name;document.querySelectorAll('.screen').forEach(el=>el.classList.toggle('hidden',el.id!=='screen-'+name));document.querySelectorAll('.navBtn').forEach(el=>el.classList.toggle('active',el.dataset.open===name));window.scrollTo(0,0)}
 function toast(message){const el=document.createElement('div');el.className='notice';el.textContent=message;document.body.appendChild(el);setTimeout(()=>el.remove(),2000)}
 function addGameEntry(points,title){state.entries.unshift({points,title,date:new Date().toISOString()});state.entries=state.entries.slice(0,100);save()}
 function debitCoins(amount,title){if(!Number.isSafeInteger(amount)||amount<1||available()<amount)return false;state.points-=amount;addGameEntry(-amount,title);return true}
