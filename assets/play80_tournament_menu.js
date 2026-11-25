@@ -75,10 +75,10 @@ function reset(){score=0;if(current==='bubble'){grid=Array.from({length:64},(_,i
 function practice(){if(current==='2048'){$('screen-tournament').querySelector('[data-open="2048"]')?.click();return;}
  if(current!=='bubble'&&current!=='block')return;
  document.querySelectorAll('.screen').forEach(el=>el.classList.add('hidden'));screen.classList.remove('hidden');
- $('p8PracticeName').textContent=games[current]+' — PRACTICE';reset();window.scrollTo(0,0);
+ $('p8PracticeName').textContent=games[current]+' — PRACTICE';reset();if(current==='bubble')window.Play80BubbleDeluxe?.launch();else window.Play80BubbleDeluxe?.hide();window.scrollTo(0,0);
 }
 $('p8TourPractice').addEventListener('click',practice);
-$('p8PracticeReset').addEventListener('click',reset);
+$('p8PracticeReset').addEventListener('click',()=>{reset();if(current==='bubble')window.Play80BubbleDeluxe?.reset();});
 $('p8PracticeBack').addEventListener('click',()=>{screen.classList.add('hidden');$('screen-tournament').classList.remove('hidden');choose(current);});
 window.Play80TournamentMenu=Object.freeze({games:Object.keys(games),selected:()=>current});
 })();
