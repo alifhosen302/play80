@@ -182,6 +182,7 @@
     selectAuthMode(false);
     status('লগআউট সফল। আবার লগইন করতে Email ও PIN দাও।');
   }));
+  $('p8OwnerLogout')?.addEventListener('click',()=>$('cloudSignOut').click());
   async function staffRpc(name, data={}) {
     if(!isStaff()) throw Error('Verified Owner / Admin login required');
     if(!staffPinToken || Date.now()>=staffPinExpires) {
@@ -421,6 +422,14 @@
   cloudSignedOut.querySelector('.sectionTitle').after(modePanel);
   const modeHelp=document.createElement('p');modeHelp.id='p8ModeHelp';modeHelp.className='tiny';
   modePanel.after(modeHelp);
+  const firstOwner=document.createElement('button');
+  firstOwner.type='button';firstOwner.id='p8FirstOwnerSignup';firstOwner.className='smallAction hidden';
+  firstOwner.textContent='প্রথমবার Owner অ্যাকাউন্ট তৈরি করুন';
+  modeHelp.after(firstOwner);
+  firstOwner.addEventListener('click',()=>{
+    selectAuthMode(true,false);
+    $('cloudNotice').textContent='Owner তৈরির জন্য শুধুমাত্র অনুমোদিত Owner ইমেইল ব্যবহার করুন। ইমেইল যাচাই হলে সার্ভার Owner Role দেবে।';
+  });
   function selectAuthMode(signup,owner=false){
     loginMode=owner?'owner':'player';
     const emailGroup=$('cloudLoginEmail').closest('.formGroup'),pinGroup=$('cloudLoginPassword').closest('.formGroup');
@@ -436,6 +445,7 @@
     $('cloudLoginPassword').autocomplete=signup?'new-password':'current-password';
     $('cloudLoginPassword').value='';
     modeHelp.textContent=signup?'ইমেইল, ইউনিক ইউজার আইডি ও ৬ সংখ্যার PIN দিয়ে নতুন Player অ্যাকাউন্ট খোলো।':owner?'শুধু যাচাইকৃত Owner Email দিয়ে লগইন। অন্য অ্যাকাউন্ট Owner Panel খুলতে পারবে না।':'যাচাইকৃত Player Email ও ৬ সংখ্যার PIN দিয়ে লগইন করো।';
+    firstOwner.classList.toggle('hidden',!owner);
     status('');
     window.scrollTo(0,0);
   }
@@ -565,6 +575,7 @@
       if(!id||!u?.id||u.id!==id||!u.email_confirmed_at)throw Error('Email verification or login expired');
       session.user=u;verifiedAuth=true;persist();renderAuth();
       await loadAccount();await loadMyMessages().catch(()=>{});
+      if(isOwner())$('cloudOwnerEntry')?.click();
     }catch(e){
       session=null;verifiedAuth=false;profile=null;balance=null;
       persist();renderAuth();status('Sign in with your email and six-digit PIN. Email verification is required.',true);
