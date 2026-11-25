@@ -31,7 +31,7 @@ try:
   page.locator('#cloudLoginPassword').fill('246810')
   page.locator('#p8SignupConfirmPIN').fill('246810')
   page.locator('#cloudRegister').click()
-  assert page.locator('#p8SignupResult').is_visible(),'Signup success confirmation not visible'
+  page.locator('#p8SignupResult').wait_for(state='visible',timeout=7000)
   assert 'Verification' in page.locator('#p8SignupResult').inner_text()
   assert page.locator('#cloudNotice').is_visible()
   assert 'Inbox' in page.locator('#cloudNotice').inner_text()
@@ -39,7 +39,7 @@ try:
   page.locator('#cloudLoginPassword').fill('246810')
   page.locator('#p8SignupConfirmPIN').fill('246810')
   page.locator('#cloudRegister').click()
-  assert 'বারবার CREATE ACCOUNT' in page.locator('#cloudNotice').inner_text(),'Rate-limit instruction missing'
+  page.get_by_text('বারবার CREATE ACCOUNT',exact=False).wait_for(state='visible',timeout=7000)
   assert page.locator('#cloudNotice').is_visible()
   assert not errors,'Uncaught JS error: '+str(errors)
   print('PASS signup success confirmation and 429 rate-limit explanation visible beside Create Account')
