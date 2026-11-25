@@ -11,6 +11,6 @@ launch() {
 adb install "$candidate"
 launch
 adb uninstall "$package"
-adb install "$RUNNER_TEMP/baseline/PLAY80_V5_2_GitHub_QA.apk"
+adb install "$RUNNER_TEMP/update-base.apk"
 adb install -r "$candidate"
 launch

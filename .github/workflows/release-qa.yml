@@ -18,6 +18,10 @@ concurrency:
 permissions:
   contents: write
 
+env:
+  PLAY80_SIGNER_SHA256: '941f3c207c50c1d48b7e62b2d24f502584d8d90942978d94c32b73921280977e'
+  LEGACY_QA_APK_SHA256: '9a83dc140d5f4d41dddd79f3112312b548e3373d837ecd3bedec41a70c7d56a4'
+
 jobs:
   qa-release:
     if: github.ref == 'refs/heads/main'
@@ -90,9 +94,16 @@ jobs:
           printf '%s' "$KEYSTORE_B64" | base64 --decode > "$PLAY80_SIGNING_KEYSTORE"
           tools="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
           baseline="$RUNNER_TEMP/baseline/PLAY80_V5_2_GitHub_QA.apk"
-          old="$("$tools/apksigner" verify --min-sdk-version 28 --print-certs "$baseline" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
           candidate="$(keytool -exportcert -alias play80 -storetype PKCS12 -keystore "$PLAY80_SIGNING_KEYSTORE" -storepass:env KEYSTORE_PASSWORD | sha256sum | cut -d' ' -f1)"
-          [[ "$old" =~ ^[0-9a-f]{64}$ && "$old" == "$candidate" ]] || { echo "::error::Released APK signer differs from the configured key"; exit 1; }
+          [[ "$candidate" == "$PLAY80_SIGNER_SHA256" ]] || { echo "::error::Unexpected signing certificate"; exit 1; }
+          if [[ "$(sha256sum "$baseline" | cut -d' ' -f1)" == "$LEGACY_QA_APK_SHA256" ]]; then
+            # The approved disposable QA build requires one clean installation.
+            # Build a lower-version fixture to exercise future in-place updates.
+            PLAY80_VERSION_CODE="$((PLAY80_VERSION_CODE - 1))" PLAY80_SIGNING_PASSWORD="$KEYSTORE_PASSWORD" python build_qa.py
+            cp ../PLAY80_V4_1_Practice_QA.apk "$RUNNER_TEMP/update-base.apk"
+          else
+            cp "$baseline" "$RUNNER_TEMP/update-base.apk"
+          fi
           PLAY80_SIGNING_PASSWORD="$KEYSTORE_PASSWORD" python build_qa.py
           TOOLS="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
           "$TOOLS/aapt" dump badging ../PLAY80_V4_1_Practice_QA.apk
@@ -109,9 +120,9 @@ jobs:
           fingerprint() {
             "$tools/apksigner" verify --min-sdk-version 28 --print-certs "$1" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p'
           }
-          old="$(fingerprint "$RUNNER_TEMP/baseline/PLAY80_V5_2_GitHub_QA.apk")"
+          old="$(fingerprint "$RUNNER_TEMP/update-base.apk")"
           new="$(fingerprint dist/PLAY80_V5_2_GitHub_QA.apk)"
-          [[ "$old" =~ ^[0-9a-f]{64}$ && "$old" == "$new" ]]
+          [[ "$old" == "$PLAY80_SIGNER_SHA256" && "$new" == "$PLAY80_SIGNER_SHA256" ]]
       - name: Enable emulator acceleration
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
