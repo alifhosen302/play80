@@ -32,7 +32,17 @@
  .p8Square.sel{outline:3px solid #ffe662;outline-offset:-3px}.p8Square.target:after{content:'';position:absolute;inset:36%;background:#27a0779f;border-radius:50%;pointer-events:none}
  .p8ChessNotice{font-size:12px;line-height:1.5;margin:10px 0;color:#e6ddf7}
  .p8Pill{display:inline-block;background:#332759;border:1px solid #7964ad;padding:6px 10px;border-radius:30px;margin:4px 4px 4px 0;font-size:12px}
- `;
+
+ #screen-chess .p8ChessClean{padding:12px;min-width:0}
+ #screen-chess .p8ChessPlayer{display:flex;align-items:center;gap:12px;background:#161822;border:1px solid #666874;border-radius:13px;padding:9px 12px;margin:8px 0;color:#fff}
+ #screen-chess .p8ChessPlayer.active{border-color:#d8af4b;box-shadow:0 0 0 1px #d8af4b77}
+ #screen-chess .p8ChessPlayer input{width:100%;min-width:0;flex:1;font-size:15px;font-weight:800;background:transparent;border:0;color:#fff}
+ #screen-chess #p8ChessStatus{text-align:center;color:#ffdc8c;font-size:15px;font-weight:800;padding:8px}
+ #screen-chess .p8ChessWin{color:#ffe4a2;background:#34234f;border:1px solid #d8b56a;border-radius:10px;text-align:center;padding:11px;font-weight:900;margin:8px 0}
+ #screen-chess .p8ChessOptions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ #screen-chess .p8ChessOptions button{min-width:0;min-height:45px;border:1px solid #777984;border-radius:10px;background:#2c2e38;color:#fff;font-weight:800}
+ #screen-chess .p8ChessOptions button:disabled{opacity:.5}
+  `;
  document.head.append(style);
  promo.querySelector('.play80Promo').innerHTML='<h2>♟️ PLAY80 — BET ARENA</h2><p>Online room matching and friend invitations with virtual demo coin amounts. Real-money stakes and cash payouts are NOT supported. Remote game moves and winner settlement are not active yet.</p>';
  const section=promo.querySelectorAll('.play80Surface');
@@ -103,7 +113,15 @@
  el('p8Leave').addEventListener('click',()=>run(async()=>{if(!room)throw Error('No room.');await rpc('play80_bet_leave_room',{p_room:room.id});renderRoom(null);}));
  // Reconnect only to an existing room when this tab is open, without unauthenticated activity.
  watch=setInterval(()=>{if(room&&room.status==='waiting'&&!promo.classList.contains('hidden'))rpc('play80_bet_room_info',{p_room:room.id}).then(renderRoom).catch(()=>{});},5000);
- const chessSection=document.createElement('section');chessSection.id='screen-chess';chessSection.className='screen hidden';chessSection.innerHTML=`<div class="play80Promo"><img class="p8ChessBrand" src="play80_chess_logo_premium.webp" alt="PLAY80 Chess"><h2>♟️ Chess — Local Practice</h2><p>Two people share this device. Legal moves, check, castling, en passant and promotion. NOT an online match; no demo coin settlement.</p></div><div class="play80Surface"><div id="p8ChessStatus" class="p8ChessNotice">White to play</div><div id="p8ChessBoard" class="p8ChessBoard" role="grid" aria-label="Chessboard"></div><div class="p8ArenaActions"><button class="play80PrimaryBtn" id="p8ChessRestart" type="button">NEW CHESS GAME</button><button class="play80SecondaryBtn" id="p8ChessBack" type="button">BACK TO BET</button></div><p class="p8ChessNotice">Coupon player aliases PLAY80 and HOSSAIN302 apply to Ludo's disclosed local power rules, not to Chess. Chess pieces obey standard rules.</p></div>`;
+ const chessSection=document.createElement('section');chessSection.id='screen-chess';chessSection.className='screen hidden';
+ chessSection.innerHTML=`<div class="play80Surface p8ChessClean">
+ <div class="p8ChessPlayer" id="p8BlackRow"><span>♟</span><input id="p8BlackName" maxlength="28" aria-label="Black player" value="Black Player"><span>●</span></div>
+ <div id="p8ChessStatus" class="p8ChessNotice" role="status" aria-live="polite">White to play</div>
+ <div id="p8ChessWin" class="p8ChessWin hidden" role="status"></div>
+ <div id="p8ChessBoard" class="p8ChessBoard" role="grid" aria-label="Chessboard"></div>
+ <div class="p8ChessPlayer" id="p8WhiteRow"><span>♙</span><input id="p8WhiteName" maxlength="28" aria-label="White player" value="White Player"><span>●</span></div>
+ <div class="p8ChessOptions"><button id="p8ChessLeave" type="button">← LEAVE</button><button id="p8ChessResign" type="button">🏳 RESIGN</button><button id="p8ChessDraw" type="button">½ AGREE DRAW</button><button id="p8ChessRestart" type="button">↻ NEW GAME</button></div>
+ </div>`;
  promo.parentNode.insertBefore(chessSection,promo.nextSibling);
   const chessPieceOrder='KQRBNP';
   function chessPieceImage(piece){
@@ -116,11 +134,22 @@
     sprite.style.backgroundPosition=(col*20)+'% '+(piece===piece.toUpperCase()?'0%':'100%');
     return sprite;
   }
- function renderChess(message){
+ function chessName(side){return el(side==='w'?'p8WhiteName':'p8BlackName').value.trim()||(side==='w'?'White Player':'Black Player');}
+ function renderChess(){
   const board=el('p8ChessBoard');board.replaceChildren();
   const legal=selected<0?[]:window.PLAY80Chess.legal(chess,selected).map(m=>m.to);
-  for(let i=0;i<64;i++){const sq=document.createElement('button');sq.type='button';sq.className='p8Square '+((Math.floor(i/8)+i%8)%2===0?'light':'dark')+(i===selected?' sel':'')+(legal.includes(i)?' target':'');sq.dataset.cell=String(i);const piece=chessPieceImage(chess.board[i]);if(piece)sq.append(piece);sq.setAttribute('aria-label',String.fromCharCode(97+i%8)+(8-Math.floor(i/8))+' '+(chess.board[i]==='.'?'empty':chess.board[i]));board.append(sq);}
-  el('p8ChessStatus').textContent=message||(chess.finished==='checkmate'?'Checkmate — '+(chess.turn==='w'?'Black':'White')+' wins':chess.finished==='stalemate'?'Stalemate — draw':(chess.turn==='w'?'White':'Black')+' to play'+(window.PLAY80Chess.check(chess,chess.turn)?' • CHECK':''));
+  for(let i=0;i<64;i++){const sq=document.createElement('button');sq.type='button';sq.className='p8Square '+((Math.floor(i/8)+i%8)%2===0?'light':'dark')+(i===selected?' sel':'')+(legal.includes(i)?' target':'');sq.dataset.cell=String(i);sq.disabled=!!chess.finished;const piece=chessPieceImage(chess.board[i]);if(piece)sq.append(piece);sq.setAttribute('aria-label',String.fromCharCode(97+i%8)+(8-Math.floor(i/8))+' '+(chess.board[i]==='.'?'empty':chess.board[i]));board.append(sq);}
+  el('p8BlackRow').classList.toggle('active',chess.turn==='b'&&!chess.finished);el('p8WhiteRow').classList.toggle('active',chess.turn==='w'&&!chess.finished);
+  let message;
+  if(chess.finished==='checkmate')message='CHECKMATE — '+chessName(chess.turn==='w'?'b':'w')+' WINS!';
+  else if(chess.finished==='stalemate')message='STALEMATE — DRAW';
+  else if(chess.finished==='resignation')message=chessName(chess.winner)+' WINS — RESIGNATION';
+  else if(chess.finished==='agreed_draw')message='DRAW — AGREED';
+  else message=chessName(chess.turn)+' TO MOVE'+(window.PLAY80Chess.check(chess,chess.turn)?' • CHECK':'');
+  el('p8ChessStatus').textContent=message;
+  el('p8ChessWin').textContent=chess.finished?message:'';
+  el('p8ChessWin').classList.toggle('hidden',!chess.finished);
+  el('p8ChessResign').disabled=!!chess.finished;el('p8ChessDraw').disabled=!!chess.finished;
  }
  el('p8ChessBoard').addEventListener('click',e=>{
   const b=e.target.closest('[data-cell]');if(!b||chess.finished)return;const to=Number(b.dataset.cell),p=chess.board[to];
@@ -129,6 +158,10 @@
  });
  el('p8OpenChess')?.addEventListener('click',()=>{document.querySelectorAll('.screen').forEach(x=>x.classList.add('hidden'));chessSection.classList.remove('hidden');window.scrollTo(0,0);renderChess();});
  el('p8ChessRestart').addEventListener('click',()=>{chess=window.PLAY80Chess.start();selected=-1;renderChess();});
+ el('p8ChessLeave').addEventListener('click',()=>document.querySelector('[data-main-tab="bet"]')?.click());
+ el('p8ChessResign').addEventListener('click',()=>{if(chess.finished)return;if(!confirm(chessName(chess.turn)+' resigns and loses the match?'))return;const r=window.PLAY80Chess.resign(chess,chess.turn);if(r.ok){chess=r.state;selected=-1;renderChess();}});
+ el('p8ChessDraw').addEventListener('click',()=>{if(chess.finished)return;if(!confirm('Both players agree to a draw?'))return;const r=window.PLAY80Chess.agreeDraw(chess);if(r.ok){chess=r.state;selected=-1;renderChess();}});
+ for(const id of ['p8WhiteName','p8BlackName'])el(id).addEventListener('input',renderChess);
  el('p8ChessBack').addEventListener('click',()=>{document.querySelector('[data-open="bet"]')?.click();});
  renderChess();
 })();
