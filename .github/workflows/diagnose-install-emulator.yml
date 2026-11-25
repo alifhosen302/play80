@@ -1,9 +1,5 @@
 name: Diagnose Android install on real emulator (no release)
 on:
-  push:
-    paths:
-      - '.github/workflows/diagnose-install-emulator.yml'
-      - 'build_qa.py'
   workflow_dispatch:
 permissions:
   contents: read

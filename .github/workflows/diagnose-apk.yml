@@ -1,9 +1,5 @@
 name: Diagnose PLAY80 Android APK install format (no release)
 on:
-  push:
-    paths:
-      - '.github/workflows/diagnose-apk.yml'
-      - 'build_qa.py'
   workflow_dispatch:
 permissions:
   contents: read
