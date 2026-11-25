@@ -49,9 +49,9 @@ document.getElementById('p8RulesAccept').addEventListener('click',()=>{const el=
 document.addEventListener('keydown',e=>{if(overlay.classList.contains('open')&&e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();close();}},true);
 document.addEventListener('click',e=>{
 if(ignore||overlay.classList.contains('open'))return;
-const el=e.target.closest('[data-arcade],[data-open],#p8OpenChess,#localLudoBtn');
+const el=e.target.closest('[data-arcade],[data-open],#p8OpenChess,#localLudoBtn,#tourPlay');
 if(!el)return;
-const game=el.id==='p8OpenChess'?'chess':el.id==='localLudoBtn'?'ludo':el.dataset.arcade||el.dataset.open;
+const game=el.id==='p8OpenChess'?'chess':el.id==='tourPlay'?'memory':el.id==='localLudoBtn'?'ludo':el.dataset.arcade||el.dataset.open;
 if(!Object.prototype.hasOwnProperty.call(rules,game))return;
 e.preventDefault();e.stopImmediatePropagation();show(game,el);
 },true);
