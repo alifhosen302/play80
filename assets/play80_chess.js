@@ -79,5 +79,13 @@ function move(s,from,to,promo='Q'){
  if(!moves.length)n.finished=check(n,n.turn)?'checkmate':'stalemate';
  return {ok:true,state:n,move:found,check:check(n,n.turn),finished:n.finished};
 }
-return {start,legal,move,check,attacked,allMoves};
+function resign(s,side){
+ if(s.finished||!['w','b'].includes(side))return {ok:false,state:s};
+ const n=copy(s);n.finished='resignation';n.winner=enemy(side);return {ok:true,state:n,winner:n.winner};
+}
+function agreeDraw(s){
+ if(s.finished)return {ok:false,state:s};
+ const n=copy(s);n.finished='agreed_draw';n.winner=null;return {ok:true,state:n};
+}
+return {start,legal,move,check,attacked,allMoves,resign,agreeDraw};
 });
