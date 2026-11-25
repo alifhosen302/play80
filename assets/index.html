@@ -658,7 +658,7 @@ body.play80PracticeActive .footerNav{display:none!important}
 .p8TourCard{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;min-width:0;min-height:190px;padding:13px 8px;background:linear-gradient(150deg,#332258,#141a37);border:1px solid #ac85f4;border-radius:19px;color:#fff;box-shadow:0 7px 21px #0005;cursor:pointer}
 .p8TourCard strong{font-size:16px;text-align:center}
 .p8TourCard small{font-size:11px;color:#ecd69b}
-.p8TourLogo{display:grid;place-items:center;width:112px;height:112px;max-width:95%;aspect-ratio:1/1;border-radius:22px;background:radial-gradient(circle at 30% 20%,#a565eb,#4c287a 58%,#181731);font-size:61px;text-shadow:0 4px 7px #0009;box-shadow:inset 0 0 0 2px #dbac68,0 5px 15px #000a}
+.p8TourLogo{object-fit:contain;display:grid;place-items:center;width:112px;height:112px;max-width:95%;aspect-ratio:1/1;border-radius:22px;background:radial-gradient(circle at 30% 20%,#a565eb,#4c287a 58%,#181731);font-size:61px;text-shadow:0 4px 7px #0009;box-shadow:inset 0 0 0 2px #dbac68,0 5px 15px #000a}
 #p8TourBack{min-height:44px;margin:7px 0 15px}
 #p8TournamentDetail .tourRules{display:none!important}
 @media(max-width:360px){.p8TourCard{min-height:160px}.p8TourLogo{width:90px;height:90px;font-size:49px}}
@@ -853,10 +853,10 @@ body.play80PracticeActive .footerNav{display:none!important}
 <section id="screen-tournament" class="screen hidden"><div id="p8TournamentCatalog">
  <div class="p8TournamentHeadline"><h2>🏆 PLAY80 TOURNAMENT GAMES</h2><p>গেম বেছে নাও। প্রতিটি গেমের ভিতরে টুর্নামেন্টের অবস্থা, সময়, Entry Fee, Prize ও Leaderboard দেখাবে।</p></div>
  <div class="p8TourGrid">
-  <button type="button" class="p8TourCard" data-tour-choice="bubble"><span class="p8TourLogo" style="--p8IconX:0%;--p8IconY:0%">🫧</span><strong>Bubble Shooter</strong><small>Practice available</small></button>
-  <button type="button" class="p8TourCard" data-tour-choice="block"><span class="p8TourLogo" style="--p8IconX:100%;--p8IconY:100%">🧱</span><strong>Block Puzzle</strong><small>Practice available</small></button>
-  <button type="button" class="p8TourCard" data-tour-choice="memory"><span class="p8TourLogo" style="--p8IconX:66.667%;--p8IconY:100%">🧠</span><strong>Memory Puzzle</strong><small>Server tournament</small></button>
-  <button type="button" class="p8TourCard" data-tour-choice="2048"><span class="p8TourLogo" style="--p8IconX:100%;--p8IconY:100%">🔢</span><strong>2048 Puzzle</strong><small>Practice available</small></button>
+  <button type="button" class="p8TourCard" data-tour-choice="bubble"><img class="p8TourLogo" src="tournament_bubble_premium.svg" alt="bubble tournament game icon"><strong>Bubble Shooter</strong><small>Practice available</small></button>
+  <button type="button" class="p8TourCard" data-tour-choice="block"><img class="p8TourLogo" src="tournament_block_premium.svg" alt="block tournament game icon"><strong>Block Puzzle</strong><small>Practice available</small></button>
+  <button type="button" class="p8TourCard" data-tour-choice="memory"><img class="p8TourLogo" src="tournament_memory_premium.svg" alt="memory tournament game icon"><strong>Memory Puzzle</strong><small>Server tournament</small></button>
+  <button type="button" class="p8TourCard" data-tour-choice="2048"><img class="p8TourLogo" src="tournament_puzzle_premium.svg" alt="2048 tournament game icon"><strong>2048 Puzzle</strong><small>Practice available</small></button>
  </div></div><div id="p8TournamentDetail" class="hidden"><button type="button" id="p8TourBack" class="play80SecondaryBtn">← ALL TOURNAMENT GAMES</button>
  <div id="p8TourChosenHeader" class="play80Surface"><h2 id="p8TourChosenTitle">Tournament Details</h2><p id="p8TourChosenMeta">Select a game</p></div>
  <div id="p8TourUpcoming" class="play80Surface hidden"><div class="tourFacts"><div class="tourFact"><small>TOURNAMENT STATUS</small><strong id="p8TourUpcomingState">NOT SCHEDULED</strong></div><div class="tourFact"><small>TIME UNTIL START</small><strong>NOT ANNOUNCED</strong></div><div class="tourFact"><small>ENTRY FEE</small><strong>NOT SET</strong></div><div class="tourFact"><small>PRIZE POOL</small><strong>NOT SET</strong></div></div><p>এই গেমের জন্য Server Tournament এখনো প্রকাশিত হয়নি। নিচে শুধু Practice খেলা যাবে। কোনো Entry Fee নেওয়া হবে না এবং Tournament Prize দেওয়া হবে না।</p><button type="button" class="play80PrimaryBtn" id="p8TourPractice">PLAY PRACTICE</button></div>
