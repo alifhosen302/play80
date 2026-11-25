@@ -396,7 +396,7 @@
   cloudSignedOut.querySelector('.sectionTitle').after(modePanel);
   function selectAuthMode(signup){
     const emailGroup=$('cloudLoginEmail').closest('.formGroup'),pinGroup=$('cloudLoginPassword').closest('.formGroup');
-    if(signup&&$('p8SignupConfirmPIN'))$('p8SignupConfirmPIN').closest('.formGroup').before(pinGroup);
+    if(signup&&$('p8SignupConfirmPIN')){emailGroup.after(regName);$('p8SignupConfirmPIN').closest('.formGroup').before(pinGroup);}
     else emailGroup.after(pinGroup);
     regName.classList.toggle('hidden',!signup);
     $('cloudRegister').classList.toggle('hidden',!signup);
