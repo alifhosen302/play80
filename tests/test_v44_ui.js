@@ -8,13 +8,13 @@ const files=['assets/play80_brand_premium.webp','assets/play80_chess_logo_premiu
 for(const f of files)assert(fs.existsSync(f)&&fs.statSync(f).size>1000,'Missing premium asset: '+f);
 assert(html.includes('src="play80_brand_premium.webp"'),'Brand logo displayed');
 assert(html.includes('id="screen-account"'),'Account tab exists');
-assert(html.includes('Step 1: Create Account / Sign In'),'Login path labelled');
+assert(html.includes('Create an account with your details and six-digit PIN'),'PIN-only login path labelled');
 assert(online.includes('selectAuthMode(false)')&&online.includes('selectAuthMode(true)'),'Login and signup tabs');
-assert(online.includes("rpc/play80_set_player_pin")&&online.includes("rpc/play80_verify_player_pin"),'Server-hashed Player PIN RPCs');
+assert(online.includes("Six-digit PIN")&&online.includes("p8SignupConfirmPIN"),"Email and six-digit PIN with confirmation");
 assert(arena.includes('repeat(8,minmax(0,1fr))'),'Square chess grid columns and rows');
 assert(arena.includes('aspect-ratio:1/1'),'No squashed board');
 assert(arena.includes('background:#fafafa')&&arena.includes('background:#25262a'),'White black chess tiles');
 assert(arena.includes('play80_chess_3d_pieces.webp'),'3D sprite atlas');
 assert(arena.includes('play80_chess_logo_premium.webp'),'Premium Chess logo');
 assert(!arena.includes("sq.textContent=symbols[chess.board[i]]"),'Old 2D characters are removed');
-console.log('PASS: 12 PLAY80 V4.4 account/brand/chess UI checks');
+console.log('PASS: revised account-first PIN, premium brand and Chess asset UI checks');
