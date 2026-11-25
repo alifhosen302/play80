@@ -120,7 +120,7 @@
  <div id="p8ChessWin" class="p8ChessWin hidden" role="status"></div>
  <div id="p8ChessBoard" class="p8ChessBoard" role="grid" aria-label="Chessboard"></div>
  <div class="p8ChessPlayer" id="p8WhiteRow"><span>♙</span><input id="p8WhiteName" maxlength="28" aria-label="White player" value="White Player"><span>●</span></div>
- <div class="p8ChessOptions"><button id="p8ChessLeave" type="button">← LEAVE</button><button id="p8ChessResign" type="button">🏳 RESIGN</button><button id="p8ChessDraw" type="button">½ AGREE DRAW</button><button id="p8ChessRestart" type="button">↻ NEW GAME</button></div>
+ <div class="p8ChessOptions"><button id="p8ChessLeave" type="button">← LEAVE</button><button id="p8ChessResign" type="button">🏳 RESIGN</button><button id="p8ChessDraw" type="button">½ AGREE DRAW</button><button id="p8ChessRestart" type="button">↻ NEW GAME</button><button id="p8ChessOnline" type="button" style="grid-column:1/-1">🌐 ONLINE DEMO MATCH LOBBY</button></div>
  </div>`;
  promo.parentNode.insertBefore(chessSection,promo.nextSibling);
   const chessPieceOrder='KQRBNP';
@@ -158,10 +158,11 @@
  });
  el('p8OpenChess')?.addEventListener('click',()=>{document.querySelectorAll('.screen').forEach(x=>x.classList.add('hidden'));chessSection.classList.remove('hidden');window.scrollTo(0,0);renderChess();});
  el('p8ChessRestart').addEventListener('click',()=>{chess=window.PLAY80Chess.start();selected=-1;renderChess();});
+ el('p8ChessOnline').addEventListener('click',()=>{document.querySelector('[data-main-tab="bet"]')?.click();if(el('p8Game')){el('p8Game').value='chess';el('p8Game').dispatchEvent(new Event('change'));}el('p8Auto')?.scrollIntoView({behavior:'smooth',block:'center'});});
  el('p8ChessLeave').addEventListener('click',()=>document.querySelector('[data-main-tab="bet"]')?.click());
  el('p8ChessResign').addEventListener('click',()=>{if(chess.finished)return;if(!confirm(chessName(chess.turn)+' resigns and loses the match?'))return;const r=window.PLAY80Chess.resign(chess,chess.turn);if(r.ok){chess=r.state;selected=-1;renderChess();}});
  el('p8ChessDraw').addEventListener('click',()=>{if(chess.finished)return;if(!confirm('Both players agree to a draw?'))return;const r=window.PLAY80Chess.agreeDraw(chess);if(r.ok){chess=r.state;selected=-1;renderChess();}});
  for(const id of ['p8WhiteName','p8BlackName'])el(id).addEventListener('input',renderChess);
- el('p8ChessBack').addEventListener('click',()=>{document.querySelector('[data-open="bet"]')?.click();});
+
  renderChess();
 })();
