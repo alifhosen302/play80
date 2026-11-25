@@ -37,55 +37,52 @@ try:
   page.goto(url,wait_until='load')
   assert page.locator('#screen-account').is_visible()
   assert page.locator('.play80TopTabs').is_hidden()
-  assert page.locator('#p8ModeOwner').is_visible()
   assert page.locator('#p8ModeLogin').is_visible()
   assert page.locator('#p8ModeSignup').is_visible()
-  assert page.locator('#p8FirstOwnerSignup').is_hidden()
-  page.locator('#p8ModeOwner').click()
-  assert page.locator('#p8FirstOwnerSignup').is_visible()
-  assert page.locator('#cloudRegister').is_hidden()
-  page.locator('#p8FirstOwnerSignup').click()
+  assert page.locator('#p8ModeOwner').count()==0,'Separate Owner Login tab must be removed'
+  assert page.locator('#p8FirstOwnerSignup').is_visible(),'Small Create Owner Account link'
+  assert 'SIGN IN' in page.locator('#p8ModeLogin').inner_text()
+  assert 'SIGN UP' in page.locator('#p8ModeSignup').inner_text()
+  page.locator('#p8ModeSignup').click()
   assert page.locator('#p8RegistrationFields').is_visible()
   order=page.evaluate("""()=>['cloudLoginEmail','cloudRegistrationUsername','p8SignupPhone','p8SignupFullName','p8SignupAddress','cloudLoginPassword','p8SignupConfirmPIN'].map(id=>document.getElementById(id).getBoundingClientRect().top)""")
   assert order==sorted(order),'Registration field order is incorrect'
-  page.locator('#p8ModeOwner').click()
+  page.locator('#p8ModeLogin').click()
   assert page.locator('#p8RegistrationFields').is_hidden()
-  # Someone attempting to enter Owner dashboard using a player token is refused.
-  current_role[0]='player'
-  page.locator('#cloudLoginEmail').fill('testplayer@example.com')
-  page.locator('#cloudLoginPassword').fill('123456')
-  page.locator('#cloudLogin').click()
-  page.wait_for_timeout(250)
-  assert page.locator('.play80TopTabs').is_hidden(),'Player must not use owner entry'
-  assert 'Owner নয়' in page.locator('#cloudNotice').inner_text(),'Clear role error missing'
-  # Verified owner login grants owner-only entry
+  assert page.locator('#p8FirstOwnerSignup').is_visible()
+  page.locator('#p8FirstOwnerSignup').click()
+  assert page.locator('#p8RegistrationFields').is_visible()
+  assert 'Owner' in page.locator('#p8ModeHelp').inner_text()
+  page.locator('#p8ModeLogin').click()
+  # Same Sign In form must automatically route server-verified Owner to Owner dashboard.
   current_role[0]='owner'
   page.locator('#cloudLoginEmail').fill('play80.management@gmail.com')
   page.locator('#cloudLoginPassword').fill('123456')
   page.locator('#cloudLogin').click()
-  page.wait_for_timeout(350)
-  assert page.locator('.play80TopTabs').is_visible(),'Verified owner login failed'
+  page.wait_for_timeout(450)
+  assert page.locator('.play80TopTabs').is_visible(),'Verified Owner login failed'
   assert page.locator('#screen-remote-owner').is_visible(),'Owner dashboard not opened'
-  assert page.locator('#cloudStaffPinGate').is_visible(),'Admin action PIN gate missing'
+  assert page.locator('#cloudStaffPinGate').is_visible(),'Owner action PIN gate missing'
   assert page.locator('#p8OwnerLogout').is_visible()
   page.locator('#p8OwnerLogout').click()
-  assert page.locator('#screen-account').is_visible(),'Owner logout not returned to sign in'
-  assert page.locator('.play80TopTabs').is_hidden(),'Owner logout should lock gameplay'
-  assert page.evaluate("()=>!localStorage.getItem('play80.secure_account.v1')"),'Logout should clear session'
+  assert page.locator('#screen-account').is_visible(),'Owner logout not returned to Sign In'
+  assert page.locator('.play80TopTabs').is_hidden(),'Logout should lock gameplay'
+  assert page.evaluate("()=>!localStorage.getItem('play80.secure_account.v1')"),'Logout must clear session'
   page.reload()
-  assert page.locator('.play80TopTabs').is_hidden(),'Logout must remain locked after reload'
+  assert page.locator('.play80TopTabs').is_hidden(),'Logout lock must persist after reload'
   current_role[0]='player'
-  page.locator('#p8ModeLogin').click()
   page.locator('#cloudLoginEmail').fill('testplayer@example.com')
   page.locator('#cloudLoginPassword').fill('123456')
   page.locator('#cloudLogin').click()
-  page.wait_for_timeout(350)
+  page.wait_for_timeout(450)
   assert page.locator('.play80TopTabs').is_visible(),'Player login failed'
-  assert page.locator('#cloudOwnerEntry').is_hidden(),'Player must not access owner dashboard'
+  assert page.locator('#screen-home').is_visible(),'Player should enter Games, not Owner'
+  assert page.locator('#cloudOwnerEntry').is_hidden(),'Player must not access Owner panel'
+  page.locator('[data-main-tab="account"]').first.click()
   page.locator('#cloudSignOut').click()
   assert page.locator('.play80TopTabs').is_hidden(),'Player logout must lock gameplay'
   assert not errors,'Unexpected JavaScript exceptions: '+str(errors)
-  print('PASS: separate Player/Owner sign-in, owner role rejection, owner dashboard PIN, first-time signup, player login, owner/player logout and persistent lock')
+  print('PASS: unified Sign In/Sign Up, small Owner creation, server-role Owner/Player routing, PIN gate and logout')
   browser.close()
 finally:
  srv.shutdown();srv.server_close()
