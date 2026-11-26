@@ -1028,6 +1028,17 @@ body.p8-auth-locked .app{max-width:560px}
     <div id="cloudNotice" class="cloudFeedback" role="status">Player বা Owner Login নির্বাচন করুন।</div>
   </div>
 </section>
+<style>
+.p8-menu-grid{display:grid;gap:8px;margin:12px 0}
+.p8-menu-item,.p8-menu-grid .action{position:relative}
+.p8-menu-grid .action{text-align:left;padding-inline:16px;min-height:48px}
+.p8-menu-item[data-alert]::after{content:'';position:absolute;top:8px;right:9px;width:9px;height:9px;border-radius:50%;background:#ff526c;box-shadow:0 0 0 2px #272044}
+.p8-menu-section,.p8-user-profile{display:grid;gap:8px}
+.p8-menu-section[hidden]{display:none}
+</style>
+<section id="screen-menu" class="screen hidden">
+  <div class="panel cloudPanel"><h1 class="bigTitle">মেনু</h1><div id="p8MenuItems" class="p8-menu-grid"></div></div>
+</section>
 <section id="screen-remote-owner" class="screen hidden">
   <button class="back" data-open="account">❮ Online Account</button>
   <div class="center"><h1 class="bigTitle">🛡️ PLAY80 Owner Dashboard</h1><p class="sub">শুধুমাত্র Verified Owner • পরিচালনার জন্য আলাদা PIN সুরক্ষা</p></div>
@@ -1075,7 +1086,7 @@ body.p8-auth-locked .app{max-width:560px}
   </div>
 </section>
 </main>
- <nav class="footerNav" aria-label="Main app navigation"><button class="navBtn active" data-open="home"><b>🎮</b>Games</button><button class="navBtn" data-open="account"><b>🌐</b>Account</button><button class="navBtn" data-open="rewards"><b>🎁</b>Rewards</button><button class="navBtn" data-open="account"><b>💬</b>Messages</button><button class="navBtn" data-open="account"><b>👤</b>Profile</button></nav>
+ <nav class="footerNav" aria-label="Main app navigation"><button class="navBtn active" data-open="home"><b>🎮</b>Games</button><button class="navBtn" data-open="account"><b>🌐</b>Account</button><button class="navBtn" data-open="rewards"><b>🎁</b>Rewards</button><button class="navBtn" data-open="account"><b>💬</b>Messages</button><button class="navBtn p8-menu-item" id="p8MenuButton" data-open="menu"><b>☰</b>মেনু</button></nav>
 </div>
 
 <script>

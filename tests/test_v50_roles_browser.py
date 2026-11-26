@@ -63,6 +63,13 @@ try:
   assert page.locator('.play80TopTabs').is_visible(),'Verified Owner login failed'
   assert page.locator('#screen-remote-owner').is_visible(),'Owner dashboard not opened'
   assert page.locator('#cloudStaffPinGate').is_visible(),'Owner action PIN gate missing'
+  page.route('**/rest/v1/rpc/play80_menu_counts',lambda route:route.fulfill(json={'requests':1,'support':1}))
+  page.locator('#p8MenuButton').click()
+  page.locator('#p8MenuButton[data-alert]').wait_for(state='visible')
+  assert page.locator('#p8MenuItems [data-panel="wallet"][data-alert]').is_visible()
+  assert page.locator('#p8MenuItems [data-panel="inbox"][data-alert]').is_visible()
+  page.get_by_role('button',name='ইউজার দেখুন').click()
+  assert page.locator('#cloudStaffPinGate').is_visible()
   assert page.locator('#p8OwnerLogout').is_visible()
   page.locator('#p8OwnerLogout').click()
   assert page.locator('#screen-account').is_visible(),'Owner logout not returned to Sign In'
@@ -78,6 +85,11 @@ try:
   assert page.locator('.play80TopTabs').is_visible(),'Player login failed'
   assert page.locator('#screen-home').is_visible(),'Player should enter Games, not Owner'
   assert page.locator('#cloudOwnerEntry').is_hidden(),'Player must not access Owner panel'
+  page.locator('#p8MenuButton').click()
+  assert page.locator('#p8MenuItems [data-panel="wallet"]').count()==0
+  assert page.get_by_role('button',name='রেফার বোনাস').is_visible()
+  page.get_by_role('button',name='উইথড্র',exact=True).click()
+  assert page.locator('#cloudRequestKind').input_value()=='demo_debit'
   page.locator('[data-open="account"]').first.click()
   page.locator('#cloudSignOut').click()
   assert page.locator('.play80TopTabs').is_hidden(),'Player logout must lock gameplay'
