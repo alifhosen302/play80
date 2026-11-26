@@ -777,7 +777,7 @@
       root.append(button);
     };
     const account=(section,kind)=>async()=>{
-      go('account');selectAccountSection(section);
+      document.dispatchEvent(new CustomEvent('play80:menu-navigate',{detail:'account'}));selectAccountSection(section);
       if(kind){
         $('cloudRequestKind').value=kind;
         $('cloudRequestKind').dispatchEvent(new Event('change'));
@@ -788,7 +788,7 @@
     };
     const staff=tab=>async()=>{
       requestedStaffTab=tab;
-      go('remote-owner');
+      document.dispatchEvent(new CustomEvent('play80:menu-navigate',{detail:'remote-owner'}));
       if(staffPinToken&&Date.now()<staffPinExpires)await switchStaffTab(tab);
       else if(staffPinToken){staffPinToken=null;renderAuth();}
     };
