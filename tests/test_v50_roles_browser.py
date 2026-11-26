@@ -195,7 +195,7 @@ try:
   page.locator('#p8SupportText').fill('Demo reference 101')
   page.locator('#p8SendMessage').click()
   page.locator('#p8SupportReceipt').wait_for(state='visible')
-  assert sent[0]['p_body']=='[ডেমো ডিপোজিট সমস্যা]\\nDemo reference 101'
+  assert sent[0]['p_body']=='[ডেমো ডিপোজিট সমস্যা]\nDemo reference 101'
   page.locator('#p8MenuButton').click()
   page.locator('#p8MenuQuick').get_by_role('button',name='ডিপোজিট',exact=True).click()
   page.locator('#p8FirstCreditOffer').wait_for(state='visible')
