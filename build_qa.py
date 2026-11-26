@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
-"""Build a minimal offline Android WebView APK from source files without Android SDK.
-App content resides in assets/index.html. Minimal classes.dex is generated from
-Dalvik bytecode; the manifest is generated as compiled binary Android XML.
+"""Build the Android WebView APK from the bundled assets and Activity source.
 """
 from pathlib import Path
-import os, struct, hashlib, zlib, zipfile, subprocess, shutil
+import os, struct, hashlib, zipfile, subprocess, tempfile
 ROOT=Path(__file__).resolve().parent
 APP_PACKAGE='com.play80.arcade.master.tournamentv41qa'
 APP_ACTIVITY=APP_PACKAGE+'.MainActivity'
@@ -13,17 +11,6 @@ NO=0xffffffff
 
 def align(bb, a=4):
     while len(bb)%a: bb.append(0)
-
-def uleb(v):
-    v=int(v); result=bytearray()
-    while True:
-        b=v&0x7f; v>>=7
-        if v: result.append(b|0x80)
-        else: result.append(b);return bytes(result)
-
-def strdata(s):
-    encoded=s.encode('utf8')
-    return uleb(len(s.encode('utf-16le'))//2)+encoded+b'\x00'
 
 def axml():
     android_uri='http://schemas.android.com/apk/res/android'
@@ -131,138 +118,35 @@ def launcher_resource_table():
     table=struct.pack('<HHII',0x0002,12,12+len(full)+len(pkg),1)+full+pkg
     return table
 
-def dex():
-    cls='L'+APP_PACKAGE.replace('.','/')+'/MainActivity;'
-    ACT='Landroid/app/Activity;'; BUNDLE='Landroid/os/Bundle;'; CONTEXT='Landroid/content/Context;'
-    WVIEW='Landroid/webkit/WebView;'; WSET='Landroid/webkit/WebSettings;'; WCLIENT='Landroid/webkit/WebViewClient;'
-    VIEW='Landroid/view/View;';STRING='Ljava/lang/String;';V='V';Z='Z'
-    types=[cls,ACT,BUNDLE,CONTEXT,WVIEW,WSET,WCLIENT,VIEW,STRING,V,Z]
-    methods=[
-        (ACT,'<init>',V,()),(ACT,'onCreate',V,(BUNDLE,)),(ACT,'setContentView',V,(VIEW,)),
-        (WVIEW,'<init>',V,(CONTEXT,)),(WVIEW,'getSettings',WSET,()),(WVIEW,'setWebViewClient',V,(WCLIENT,)),(WVIEW,'loadUrl',V,(STRING,)),
-        (WSET,'setJavaScriptEnabled',V,(Z,)),(WSET,'setDomStorageEnabled',V,(Z,)),
-        (WCLIENT,'<init>',V,()),(cls,'<init>',V,()),(cls,'onCreate',V,(BUNDLE,)),(cls,'onBackPressed',V,())
-    ]
-    shorty=lambda d: 'L' if d[0] in '[L' else d
-    protos=sorted({(m[2],m[3]) for m in methods},key=lambda p:p)
-    all_strings={s for s in types}
-    all_strings.update(m[1] for m in methods)
-    all_strings.add('file:///android_asset/index.html')
-    all_strings.add('javascript:window.play80NativeBack()')
-    all_strings.add('webView')
-    all_strings.update(shorty(ret)+''.join(map(shorty,params)) for ret,params in protos)
-    strings=sorted(all_strings)
-    si={s:i for i,s in enumerate(strings)}
-    typeids=sorted(set(types),key=lambda s:si[s]);ti={t:i for i,t in enumerate(typeids)}
-    protos=sorted(protos,key=lambda p:(ti[p[0]],tuple(ti[t] for t in p[1])))
-    pi={p:i for i,p in enumerate(protos)}
-    methods=sorted(methods,key=lambda m:(ti[m[0]],si[m[1]],pi[(m[2],m[3])]))
-    mi={(m[0],m[1],m[2],m[3]):i for i,m in enumerate(methods)}
-    FIELD_ID=0
-    def method(c,n,r=V,p=()):return mi[(c,n,r,tuple(p))]
-    b=bytearray(b'\x00'*112)
-    def tab(block,sz):
-        align(b,4);off=len(b)
-        b.extend(b'\x00'*block*sz)
-        return off
-    string_ids_off=tab(len(strings),4)
-    type_ids_off=tab(len(typeids),4)
-    proto_ids_off=tab(len(protos),12)
-    field_ids_off=tab(1,8)
-    method_ids_off=tab(len(methods),8)
-    class_defs_off=tab(1,32)
-    data_off=len(b)
-    type_list_offsets={}
-    for p in protos:
-        if not p[1]:continue
-        params=p[1]
-        if params in type_list_offsets:continue
-        align(b);type_list_offsets[params]=len(b)
-        b+=struct.pack('<I',len(params))
-        for t in params:b+=struct.pack('<H',ti[t])
-        align(b)
-    string_data_off=len(b)
-    str_off=[]
-    for s in strings:str_off.append(len(b));b+=strdata(s)
-    align(b)
-    code_off=len(b)
-    def inv(op,ref,regs):
-        if len(regs)>5 or any(r>15 for r in regs):raise RuntimeError('bad regs')
-        reg=regs+[0]*(5-len(regs))
-        return [op|(len(regs)<<12)|(reg[4]<<8),ref,reg[0]|(reg[1]<<4)|(reg[2]<<8)|(reg[3]<<12)]
-    def new(reg,t):return [0x22|(reg<<8),ti[t]]
-    def move_result_obj(reg):return [0x0c|(reg<<8)]
-    def const4(reg,value):return [0x12|(reg<<8)|((value&15)<<12)]
-    def const_string(reg,value):return [0x1a|(reg<<8),si[value]]
-    constructor=inv(0x70,method(ACT,'<init>'),[0])+[0x0e]
-    oncreate=[]
-    oncreate+=inv(0x6f,method(ACT,'onCreate',p=(BUNDLE,)),[3,4])
-    oncreate+=new(0,WVIEW)
-    oncreate+=inv(0x70,method(WVIEW,'<init>',p=(CONTEXT,)),[0,3])
-    # Store the WebView on the activity instance: iput-object v0, v3, webView.
-    oncreate += [0x5b | (3<<12), FIELD_ID]
-    oncreate+=inv(0x6e,method(WVIEW,'getSettings',r=WSET),[0])
-    oncreate+=move_result_obj(1)
-    oncreate+=const4(2,1)
-    oncreate+=inv(0x6e,method(WSET,'setJavaScriptEnabled',p=(Z,)),[1,2])
-    oncreate+=inv(0x6e,method(WSET,'setDomStorageEnabled',p=(Z,)),[1,2])
-    oncreate+=new(1,WCLIENT)
-    oncreate+=inv(0x70,method(WCLIENT,'<init>'),[1])
-    oncreate+=inv(0x6e,method(WVIEW,'setWebViewClient',p=(WCLIENT,)),[0,1])
-    oncreate+=const_string(1,'file:///android_asset/index.html')
-    oncreate+=inv(0x6e,method(WVIEW,'loadUrl',p=(STRING,)),[0,1])
-    oncreate+=inv(0x6e,method(ACT,'setContentView',p=(VIEW,)),[3,0])
-    oncreate+=[0x0e]
-    # Native Android hardware Back button forwards to in-page navigation.
-    onback=[0x54 | (2<<12),FIELD_ID]  # iget-object v0, v2, this.webView
-    onback+=const_string(1,'javascript:window.play80NativeBack()')
-    onback+=inv(0x6e,method(WVIEW,'loadUrl',p=(STRING,)),[0,1])
-    onback+=[0x0e]
-    codes={}
-    for n,(regs,ins,outs,words) in [('ctor',(1,1,1,constructor)),('onCreate',(5,2,2,oncreate)),('onBackPressed',(3,1,2,onback))]:
-        align(b);codes[n]=len(b)
-        b+=struct.pack('<HHHHII',regs,ins,outs,0,0,len(words))
-        b+=struct.pack('<'+'H'*len(words),*words)
-    class_data_off=len(b)
-    class_data=uleb(0)+uleb(1)+uleb(1)+uleb(2)
-    class_data+=uleb(FIELD_ID)+uleb(0x2) # private WebView field
-    class_data+=uleb(method(cls,'<init>'))+uleb(0x10001)+uleb(codes['ctor'])
-    virtuals=sorted([(method(cls,'onCreate',p=(BUNDLE,)),0x4,codes['onCreate']),
-                     (method(cls,'onBackPressed'),0x1,codes['onBackPressed'])],key=lambda a:a[0])
-    prev=0
-    for m,flags,addr in virtuals:
-        class_data+=uleb(m-prev)+uleb(flags)+uleb(addr);prev=m
-    b+=class_data
-    align(b)
-    map_off=len(b)
-    # We have no fields. The map contains only sections present in this dex.
-    items=[
-        (0x0000,1,0),(0x0001,len(strings),string_ids_off),
-        (0x0002,len(typeids),type_ids_off),(0x0003,len(protos),proto_ids_off),
-        (0x0004,1,field_ids_off),(0x0005,len(methods),method_ids_off),(0x0006,1,class_defs_off),
-        (0x1001,len(type_list_offsets),data_off),(0x2002,len(strings),string_data_off),
-        (0x2001,3,code_off),(0x2000,1,class_data_off),(0x1000,1,map_off)
-    ]
-    items.sort(key=lambda item:item[2]);b+=struct.pack('<I',len(items))
-    for typ,count,off in items:b+=struct.pack('<HHII',typ,0,count,off)
-    for i,off in enumerate(str_off):struct.pack_into('<I',b,string_ids_off+i*4,off)
-    for i,t in enumerate(typeids):struct.pack_into('<I',b,type_ids_off+i*4,si[t])
-    for i,(ret,params) in enumerate(protos):
-        short=shorty(ret)+''.join(shorty(x) for x in params)
-        struct.pack_into('<III',b,proto_ids_off+i*12,si[short],ti[ret],type_list_offsets.get(params,0))
-    struct.pack_into('<HHI',b,field_ids_off,ti[cls],ti[WVIEW],si['webView'])
-    for i,(c,n,ret,params) in enumerate(methods):struct.pack_into('<HHI',b,method_ids_off+i*8,ti[c],pi[(ret,params)],si[n])
-    struct.pack_into('<IIIIIIII',b,class_defs_off,ti[cls],0x1,ti[ACT],0,NO,0,class_data_off,0)
-    header_vals=[len(b),112,0x12345678,0,0,map_off,len(strings),string_ids_off,len(typeids),type_ids_off,len(protos),proto_ids_off,1,field_ids_off,len(methods),method_ids_off,1,class_defs_off,len(b)-data_off,data_off]
-    b[:8]=b'dex\n035\x00'
-    struct.pack_into('<'+'I'*20,b,32,*header_vals)
-    b[12:32]=hashlib.sha1(b[32:]).digest()
-    struct.pack_into('<I',b,8,zlib.adler32(b[12:])&0xffffffff)
-    return bytes(b)
+def compile_activity(android_jar, d8):
+    with tempfile.TemporaryDirectory() as temp:
+        classes_dir = Path(temp)
+        source = ROOT / 'android' / 'MainActivity.java'
+        subprocess.run(['javac', '--release', '8', '-cp', str(android_jar),
+                        '-d', temp, str(source)], check=True)
+        classes = sorted(str(path) for path in classes_dir.rglob('*.class'))
+        subprocess.run([str(d8), '--lib', str(android_jar), '--min-api', '28',
+                        '--output', temp, *classes], check=True)
+        return (classes_dir / 'classes.dex').read_bytes()
 
 def main():
     ROOT.mkdir(parents=True,exist_ok=True)
-    manifest=axml(); classes=dex()
+    sdk=Path(os.environ.get('ANDROID_HOME') or os.environ.get('ANDROID_SDK_ROOT') or '')
+    build_tools=sdk/'build-tools'
+    versions=sorted((x for x in build_tools.glob('*') if x.is_dir()),
+                    key=lambda x:tuple(int(y) if y.isdecimal() else 0 for y in x.name.split('.')))
+    if not versions:
+        raise RuntimeError('Android SDK build-tools required for verified APK signing')
+    bin_dir=versions[-1]
+    platforms = sorted(
+        (p for p in (sdk / 'platforms').glob('android-*')
+         if p.name[8:].isdigit() and (p / 'android.jar').is_file()),
+        key=lambda p: int(p.name[8:]))
+    if not platforms:
+        raise RuntimeError('An installed Android SDK platform is required')
+    android_jar = platforms[-1] / 'android.jar'
+    manifest = axml()
+    classes = compile_activity(android_jar, bin_dir / 'd8')
     (ROOT/'build').mkdir(exist_ok=True)
     (ROOT/'build'/'classes.dex').write_bytes(classes)
     (ROOT/'build'/'AndroidManifest.xml').write_bytes(manifest)
@@ -286,13 +170,6 @@ def main():
     if not key.is_file():raise RuntimeError('The original play80 Master signing key must be supplied for every update')
     # Android 7+ supports APK Signature Scheme v2; avoid legacy jarsigner-only (v1)
     # release files. Align first, sign last, and verify using Android SDK tools.
-    sdk=Path(os.environ.get('ANDROID_HOME') or os.environ.get('ANDROID_SDK_ROOT') or '')
-    build_tools=sdk/'build-tools'
-    versions=sorted((x for x in build_tools.glob('*') if x.is_dir()),
-                    key=lambda x:tuple(int(y) if y.isdecimal() else 0 for y in x.name.split('.')))
-    if not versions:
-        raise RuntimeError('Android SDK build-tools required for verified APK signing')
-    bin_dir=versions[-1]
     align_tool=bin_dir/'zipalign'
     signer=bin_dir/'apksigner'
     if not align_tool.is_file() or not signer.is_file():

@@ -3,6 +3,9 @@ name: Update the single PLAY80 APK (permanent signing required)
 # Publish PLAY80 to the existing release after installation and upgrade checks.
 # Abort without publishing when the permanent signing key is unavailable.
 on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/release-qa.yml']
   push:
     branches: [main]
     paths: ['.github/workflows/release-qa.yml']
@@ -29,7 +32,6 @@ env:
 
 jobs:
   qa-release:
-    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -63,6 +65,18 @@ jobs:
           test -s tests/test_v50_roles_browser.py
           node --check assets/play80_bubble_deluxe.js
           python -m compileall -q build_qa.py release_check.py
+      - name: Verify rewards and support on an isolated database
+        shell: bash
+        run: |
+          set -euo pipefail
+          trap 'docker rm -f play80-db-test >/dev/null 2>&1 || true' EXIT
+          docker run --detach --name play80-db-test -e POSTGRES_HOST_AUTH_METHOD=trust postgres:16
+          for attempt in {1..30}; do
+            docker exec play80-db-test pg_isready -h 127.0.0.1 -U postgres && break
+            sleep 1
+          done
+          docker cp supabase/migrations/20261126193000_rewards_referrals_owner_support.sql play80-db-test:/tmp/play80-reward-migration.sql
+          docker exec -i play80-db-test psql -h 127.0.0.1 -U postgres -v ON_ERROR_STOP=1 < tests/play80_rewards_support.sql
       - name: Run account and signup browser tests
         run: |
           pip install playwright==1.56.0
@@ -170,6 +184,7 @@ jobs:
           target: google_apis
           script: bash tests/android_release_update.sh
       - uses: actions/upload-artifact@v4
+        continue-on-error: true
         if: ${{ !(inputs.publish || (github.event_name == 'push' && contains(github.event.head_commit.message, '[publish-tested-play80]'))) }}
         with:
           name: PLAY80-V5.2-QA
