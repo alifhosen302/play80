@@ -65,6 +65,18 @@ jobs:
           test -s tests/test_v50_roles_browser.py
           node --check assets/play80_bubble_deluxe.js
           python -m compileall -q build_qa.py release_check.py
+      - name: Verify rewards and support on an isolated database
+        shell: bash
+        run: |
+          set -euo pipefail
+          trap 'docker rm -f play80-db-test >/dev/null 2>&1 || true' EXIT
+          docker run --detach --name play80-db-test -e POSTGRES_HOST_AUTH_METHOD=trust postgres:16
+          for attempt in {1..30}; do
+            docker exec play80-db-test pg_isready -h 127.0.0.1 -U postgres && break
+            sleep 1
+          done
+          docker cp supabase/migrations/20261126193000_rewards_referrals_owner_support.sql play80-db-test:/tmp/play80-reward-migration.sql
+          docker exec -i play80-db-test psql -h 127.0.0.1 -U postgres -v ON_ERROR_STOP=1 < tests/play80_rewards_support.sql
       - name: Run account and signup browser tests
         run: |
           pip install playwright==1.56.0
