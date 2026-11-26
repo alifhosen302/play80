@@ -8,6 +8,12 @@
 - মালিকের [Google Drive ব্যাকআপ](https://drive.google.com/file/d/1sRl7dxlytHTfApe9h3xCwLWpw8BH6sMd/view) এবং GitHub-এ তৈরি এনক্রিপ্টেড ZIP-এর SHA-256 একই। মালিক পাসওয়ার্ড আলাদাভাবে সংরক্ষণ করেছেন।
 - ভবিষ্যতের সব বিতরণে একই স্থায়ী চাবি ব্যবহার করতে হবে। নতুন চাবি তৈরির দরকার নেই। PLAY80_SIGNING_KEYSTORE_B64 স্থায়ী Secret লেখার জন্য GitHub CLI অনুমোদনের অপেক্ষা। বর্তমান বিল্ডের সইয়ে যাচাইকৃত ব্যাকআপ ব্যবহৃত হয়েছে। Secret লেখা হলে এন্ট্রিটি হালনাগাদ করতে হবে।
 
+## ইমেইল যাচাইয়ের গন্তব্য
+
+- রিপোর্ট করা Customer অ্যাকাউন্ট Supabase-এ তৈরি ও ইমেইল-যাচাইকৃত ছিল। PLAY80 Auth-এর Site URL `http://localhost:3000` এবং redirect allowlist খালি দেখা গেছে। তাই email signup সফল হলেও ফোনে পরের পেজ খুলছিল না।
+- [PLAY80 HTTPS ফেরত যাওয়ার পেজ](https://suhpmjqrcqkzaslptpca.supabase.co/functions/v1/play80-auth-confirmed) আপডেট ও ব্রাউজারে যাচাই করা হয়েছে। Supabase Dashboard-এ স্থায়ী Site URL সেভ করার অ্যাকশন স্বয়ংক্রিয় অনুমোদন পর্যালোচনায় স্পষ্ট ব্যবহারকারীর সম্মতির অপেক্ষায় আছে। সেটিংস বদল সম্পন্ন হয়নি।
+- Auth Emails পেজে ডিফল্ট Supabase email service সক্রিয়। PLAY80 প্রেরকের জন্য নিজের অনুমোদিত SMTP সেটআপ প্রয়োজন। লগ বা রেকর্ডে Auth token, পরীক্ষা ব্যবহারকারীর তথ্য ও SMTP credentials রাখা যাবে না।
+
 ## Owner ড্যাশবোর্ড, প্রোফাইল ও এক ব্যালেন্স প্রদর্শন
 
 - লগইন করা Owner/Admin সরাসরি অনুমোদিত মেনু পেজ খুলতে পারেন। Owner ডিপোজিট–উইথড্র প্যানেল এবং সংবেদনশীল কাজ লগইনের PIN দিয়ে সুরক্ষিত।
