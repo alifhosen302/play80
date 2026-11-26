@@ -79,6 +79,14 @@ try:
   page.locator('#p8MenuButton[data-alert]').wait_for(state='visible')
   assert page.locator('#p8MenuQuick [data-panel="wallet"][data-alert]').is_visible()
   assert page.locator('#p8MenuItems [data-panel="inbox"][data-alert]').is_visible()
+  assert page.locator('.footerNav [data-p8-footer="support"][data-alert]').is_visible()
+  assert page.locator('.footerNav [data-p8-footer="bonus"]').is_hidden()
+  page.locator('.footerNav [data-p8-footer="support"]').click()
+  page.get_by_text('কোনো কথোপকথন নেই।',exact=True).wait_for()
+  assert page.locator('.footerNav [aria-current="page"]').get_attribute('data-p8-footer')=='support'
+  assert page.locator('.footerNav .active').count()==1
+  page.locator('#globalBack').click()
+  assert page.locator('#screen-menu').is_visible()
   assert page.locator('#p8MenuItems .p8-menu-icon').count()>=5
   assert page.locator('#p8MenuItems').evaluate("(grid) => getComputedStyle(grid).gridTemplateColumns.split(' ').length")==4
   assert page.locator('#p8MenuAvatar').is_visible()
@@ -118,12 +126,15 @@ try:
    route.fulfill(json={'ok':True})
   page.route('**/rest/v1/rpc/play80_confirm_staff_action',mock_review)
   page.locator('#p8MenuButton').click()
-  page.locator('#p8MenuQuick [data-panel="wallet"]').click()
+  page.locator('.footerNav [data-p8-footer="wallet"]').click()
   assert page.locator('#screen-owner-wallet').is_visible()
   assert page.locator('.cloudStaffTabs').is_hidden()
   assert page.locator('.play80TopTabs').is_hidden()
   page.locator('#cloudStaffPin').fill('123456')
   page.locator('#cloudStaffUnlock').click()
+  page.get_by_role('button',name='✓ অনুমোদন').wait_for()
+  page.locator('.footerNav [data-p8-footer="wallet"]').click()
+  assert page.locator('#cloudStaffPinGate').is_hidden()
   page.get_by_role('button',name='✓ অনুমোদন').click()
   assert staff_calls==[]
   page.locator('#play80ActionPinValue').fill('123456')
@@ -178,7 +189,7 @@ try:
   page.get_by_text('সফল রেফার ২টি').wait_for()
   assert page.get_by_label('PLAY80 আমন্ত্রণ লিংক').input_value().endswith('?ref=example_player')
   page.locator('#p8MenuButton').click()
-  page.get_by_role('button',name='বোনাস',exact=True).click()
+  page.locator('.footerNav [data-p8-footer="bonus"]').click()
   page.get_by_text('৫,০০০ কয়েন · ক্লেম ✓ পাওয়া হয়েছে').wait_for()
   assert page.locator('.p8-countdown').inner_text().startswith('23:59:')
   sent=[]
@@ -187,7 +198,7 @@ try:
    route.fulfill(json={'ok':True})
   page.route('**/rest/v1/rpc/play80_send_support_message',capture_support)
   page.locator('#p8MenuButton').click()
-  page.get_by_role('button',name='সাপোর্ট',exact=True).click()
+  page.locator('.footerNav [data-p8-footer="support"]').click()
   page.locator('#p8WithdrawSupport').click()
   assert 'উইথড্র' in page.locator('#p8SupportPrompt').inner_text()
   page.locator('#p8DepositSupport').click()
@@ -202,6 +213,14 @@ try:
   assert 'প্রথম অনুমোদিত ডিপোজিট ঠিক ১,০০০' in page.locator('#p8FirstCreditOffer').inner_text()
   assert page.get_by_label('ডেমো সেন্ড মানি নম্বর').input_value()=='00000000000'
   assert not page.get_by_label('ডেমো সেন্ড মানি নম্বর').is_editable()
+  page.get_by_role('button',name='রিকোয়েস্টের ইতিহাস',exact=True).click()
+  assert page.locator('#cloudSignedIn').get_attribute('data-section')=='history', page.locator('#cloudSignedIn').get_attribute('data-section')
+  assert page.locator('#screen-account').is_visible()
+  page.locator('#cloudRequests').wait_for(state='visible')
+  assert page.locator('#cloudSubmit').is_hidden()
+  assert page.locator('.footerNav [aria-current="page"]').get_attribute('data-p8-footer')=='wallet'
+  page.locator('#globalBack').click()
+  assert page.locator('#cloudSubmit').is_visible()
   page.get_by_role('button',name='অনুরোধ পাঠাও').click()
   page.get_by_text('ডেমো ট্রান্সেকশন নম্বর লিখুন।',exact=True).wait_for()
   page.get_by_label('ট্রান্সেকশন নম্বর',exact=True).fill('DEMO-1001')
@@ -224,7 +243,7 @@ try:
   assert page.locator('#play80ActionPin').is_visible()
   page.locator('#play80ActionPin button[value="cancel"]').click()
   assert page.locator('#play80ActionPin').is_hidden()
-  page.locator('.footerNav [data-open="account"]').first.click()
+  page.locator('.footerNav [data-p8-footer="wallet"]').first.click()
   page.locator('#cloudSignOut').click()
   assert page.locator('.play80TopTabs').is_hidden(),'Player logout must lock gameplay'
   current_role[0]='dsr'
@@ -233,8 +252,21 @@ try:
   page.locator('#cloudLogin').click()
   page.locator('#screen-home').wait_for(state='visible')
   assert page.locator('#cloudOwnerEntry').is_hidden()
-  page.locator('.footerNav [data-open="account"]').first.click()
+  page.locator('.footerNav [data-p8-footer="wallet"]').first.click()
   assert page.locator('#cloudRole').inner_text()=='DSR'
+  assert page.locator('.footerNav [data-p8-footer="bonus"]').is_hidden()
+  page.locator('#p8MenuButton').click()
+  assert page.locator('#p8MenuItems').get_by_role('button',name='রেফার বোনাস').count()==0
+  page.locator('#p8MenuItems').get_by_role('button',name='লগআউট').click()
+  current_role[0]='admin'
+  page.locator('#cloudLoginEmail').fill('admin@example.invalid')
+  page.locator('#cloudLoginPassword').fill('123456')
+  page.locator('#cloudLogin').click()
+  page.locator('#screen-remote-owner').wait_for(state='visible')
+  page.locator('#p8MenuButton').click()
+  assert page.locator('.footerNav [data-p8-footer="support"]').is_hidden()
+  assert page.locator('#p8MenuItems').get_by_role('button',name='কম্পিউটার প্লেয়ার').count()==0
+  assert page.locator('#p8MenuItems').get_by_role('button',name='টুর্নামেন্ট').count()==0
   assert not errors,'Unexpected JavaScript exceptions: '+str(errors)
   print('PASS: unified Sign In/Sign Up, small Owner creation, server-role Owner/Player routing, PIN gate and logout')
   browser.close()
