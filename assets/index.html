@@ -1028,6 +1028,17 @@ body.p8-auth-locked .app{max-width:560px}
     <div id="cloudNotice" class="cloudFeedback" role="status">Player বা Owner Login নির্বাচন করুন।</div>
   </div>
 </section>
+<style>
+.p8-menu-grid{display:grid;gap:8px;margin:12px 0}
+.p8-menu-item,.p8-menu-grid .action{position:relative}
+.p8-menu-grid .action{text-align:left;padding-inline:16px;min-height:48px}
+.p8-menu-item[data-alert]::after{content:'';position:absolute;top:8px;right:9px;width:9px;height:9px;border-radius:50%;background:#ff526c;box-shadow:0 0 0 2px #272044}
+.p8-menu-section,.p8-user-profile{display:grid;gap:8px}
+.p8-menu-section[hidden]{display:none}
+</style>
+<section id="screen-menu" class="screen hidden">
+  <div class="panel cloudPanel"><h1 class="bigTitle">মেনু</h1><div id="p8MenuItems" class="p8-menu-grid"></div></div>
+</section>
 <section id="screen-remote-owner" class="screen hidden">
   <button class="back" data-open="account">❮ Online Account</button>
   <div class="center"><h1 class="bigTitle">🛡️ PLAY80 Owner Dashboard</h1><p class="sub">শুধুমাত্র Verified Owner • পরিচালনার জন্য আলাদা PIN সুরক্ষা</p></div>
@@ -1075,7 +1086,7 @@ body.p8-auth-locked .app{max-width:560px}
   </div>
 </section>
 </main>
- <nav class="footerNav" aria-label="Main app navigation"><button class="navBtn active" data-open="home"><b>🎮</b>Games</button><button class="navBtn" data-open="account"><b>🌐</b>Account</button><button class="navBtn" data-open="rewards"><b>🎁</b>Rewards</button><button class="navBtn" data-open="account"><b>💬</b>Messages</button><button class="navBtn" data-open="account"><b>👤</b>Profile</button></nav>
+ <nav class="footerNav" aria-label="Main app navigation"><button class="navBtn active" data-open="home"><b>🎮</b>Games</button><button class="navBtn" data-open="account"><b>🌐</b>Account</button><button class="navBtn" data-open="rewards"><b>🎁</b>Rewards</button><button class="navBtn" data-open="account"><b>💬</b>Messages</button><button class="navBtn p8-menu-item" id="p8MenuButton" data-open="menu"><b>☰</b>মেনু</button></nav>
 </div>
 
 <script>
@@ -1098,6 +1109,7 @@ function award(points,title){state.points+=points;state.earned+=points;state.gam
 function gift(points){state.points+=points;state.entries.unshift({points,title:'Demo Free Points',date:new Date().toISOString()});state.entries=state.entries.slice(0,100);save();toast(points+' free demo points added')}
 function render(){const fmt=n=>Number(n).toLocaleString('en-US');$('headerPoints').textContent=fmt(state.points);$('walletPoints').textContent=fmt(state.points);$('totalGames').textContent=fmt(state.games);$('earnedPoints').textContent=fmt(state.earned);$('ledger').innerHTML='';if(!state.entries.length){$('ledger').innerHTML='<div class="empty">No game history yet</div>'}else{state.entries.forEach(row=>{const el=document.createElement('div');el.className='entry';const left=document.createElement('div');const strong=document.createElement('strong');strong.textContent=row.title;const when=document.createElement('div');when.className='when';try{when.textContent=new Date(row.date).toLocaleString('en-US')}catch(e){when.textContent=''}left.append(strong,when);const val=document.createElement('div');val.className='plus';val.textContent=(row.points>=0?'+':'')+fmt(row.points);if(row.points<0)val.style.color='#ffb6b6';el.append(left,val);$('ledger').appendChild(el)})}renderRequests()}
 function go(name){if(['owner','profile','deposit','withdraw','admin'].includes(name))name='account';if(document.body.classList.contains('p8-auth-locked'))name='account';if(name!=='ludo')document.body.classList.remove('ludo-playing');screen=name;document.querySelectorAll('.screen').forEach(el=>el.classList.toggle('hidden',el.id!=='screen-'+name));document.querySelectorAll('.navBtn').forEach(el=>el.classList.toggle('active',el.dataset.open===name));window.scrollTo(0,0)}
+document.addEventListener('play80:menu-navigate',e=>{if(['account','remote-owner'].includes(e.detail))go(e.detail);});
 function toast(message){const el=document.createElement('div');el.className='notice';el.textContent=message;document.body.appendChild(el);setTimeout(()=>el.remove(),2000)}
 function addGameEntry(points,title){state.entries.unshift({points,title,date:new Date().toISOString()});state.entries=state.entries.slice(0,100);save()}
 function debitCoins(amount,title){if(!Number.isSafeInteger(amount)||amount<1||available()<amount)return false;state.points-=amount;addGameEntry(-amount,title);return true}
