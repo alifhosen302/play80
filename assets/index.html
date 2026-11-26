@@ -1017,11 +1017,11 @@ body.p8-auth-locked .app{max-width:560px}
   <small>Bonus credited: <b id="cloudBonusEarned">—</b> · Required gameplay: <b id="cloudTurnoverRequired">—</b> · Completed: <b id="cloudTurnoverCompleted">—</b> · Remaining: <b id="cloudTurnoverRemaining">—</b></small>
  </div><div class="sectionTitle"><h2>কয়েনের অনুরোধ</h2></div>
       <div class="formGroup"><label for="cloudRequestKind">Request type</label><select id="cloudRequestKind" class="cloudSelect"><option value="demo_credit">➕ Add virtual coins (100–20,000)</option><option value="demo_debit">➖ Remove virtual coins (min 200)</option></select></div>
-      <div class="formGroup"><label for="cloudAmount">Virtual coin amount</label><input id="cloudAmount" type="number" min="100" step="1" value="100" /></div>
-      <div class="formGroup"><label for="cloudNote">Optional note (not payment details)</label><textarea id="cloudNote" maxlength="300" rows="2" placeholder="Optional message to Owner"></textarea></div>
+      <div class="formGroup"><label for="cloudAmount">কয়েনের পরিমাণ</label><input id="cloudAmount" type="number" min="100" step="1" value="100" /></div>
+      <div class="formGroup"><label for="cloudNote">নোট (ঐচ্ছিক)</label><textarea id="cloudNote" maxlength="300" rows="2" placeholder="Owner-এর জন্য ছোট নোট"></textarea></div>
       <button type="button" id="cloudSubmit" class="action">অনুরোধ পাঠাও</button>
-      <div class="sectionTitle"><h2>My Coin Requests</h2></div><div id="cloudRequests" class="cloudList"></div>
-      <button type="button" class="action secondary" id="cloudRefresh">REFRESH ONLINE ACCOUNT</button>
+      <div class="sectionTitle"><h2>আমার রিকোয়েস্টের ইতিহাস</h2></div><div id="cloudRequests" class="cloudList" tabindex="-1"></div>
+      <button type="button" class="action secondary" id="cloudRefresh">ব্যালেন্স ও ইতিহাস রিফ্রেশ</button>
       <button type="button" class="smallAction" id="cloudSignOut" style="margin-top:12px">↪ লগআউট</button>
       <button type="button" class="action secondary hidden" data-open="remote-owner" id="cloudOwnerEntry" style="margin-top:12px">🛡️ OWNER DASHBOARD</button>
     </div>
@@ -1037,21 +1037,35 @@ body.p8-auth-locked .app{max-width:560px}
 .p8-menu-section[hidden]{display:none}
 </style>
 <style>
-.p8-account-summary{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;margin:14px 0 18px;padding:12px;border:1px solid #42365a;border-radius:16px;background:linear-gradient(115deg,#26223c,#1a2037)}
-.p8-avatar{display:grid;place-items:center;background:#5a4193;color:#fff;border-radius:50%;width:44px;height:44px;font-weight:800}
-.p8-account-id,.p8-account-balance{display:grid;gap:3px;min-width:0}
-.p8-account-id small{overflow-wrap:anywhere}
+.p8-account-summary{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;margin:10px 0 12px;padding:13px 11px;border:1px solid #514265;border-radius:17px;background:linear-gradient(125deg,#312445,#202440 63%,#193641)}
+.p8-avatar{display:grid;place-items:center;background:#5a4193;color:#fff;border-radius:50%;width:46px;height:46px;font-weight:800;border:2px solid #bd9ffc}
+.p8-avatar:empty::before{content:'👤';font-size:21px}
+.p8-account-id,.p8-account-balance{display:grid;gap:4px;min-width:0}
+.p8-account-id strong,.p8-account-id small{overflow-wrap:anywhere}
 .p8-account-summary small,.p8-identity-details dt,.p8-metric small{color:#c8c1df;font-size:12px}
-.p8-account-balance{text-align:right}
+.p8-account-balance{text-align:right;padding:6px 8px;border-radius:10px;background:#141b32bd}
 .p8-account-balance strong,.p8-metric strong{color:#f5d68f;overflow-wrap:anywhere}
-#p8MenuItems{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .p8-menu-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .p8-menu-heading small{color:#c8c1df;white-space:nowrap}
-.p8-account-summary{grid-template-columns:auto minmax(0,1fr) minmax(61px,auto)}
-.p8-account-balance{padding:7px 8px;border:1px solid #644f88;border-radius:10px;background:#24203a}
-.p8-avatar:empty::before{content:'';width:18px;height:18px;border:2px solid #c1a6ff;border-radius:50%;opacity:.9}
-.p8-menu-grid .action{display:grid;align-content:center;gap:7px;min-height:78px;padding:10px 12px;border:1px solid #4c4268;border-radius:15px;background:#22253e;font-size:14px;line-height:1.35}
-.p8-menu-icon{display:grid;place-items:center;background:#342951;border-radius:10px;width:34px;height:34px;font-size:18px}
+#p8MenuQuick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0 19px}
+#p8MenuQuick .action{position:relative;display:flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:6px 9px;border:1px solid #75619d;border-radius:12px;background:#38295a;color:#fff;font-size:13px}
+#p8MenuQuick .action:first-child{background:#174646;border-color:#507e84}
+#p8MenuItems{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:0}
+#p8MenuItems .action{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:7px;min-height:83px;padding:7px 3px;border:1px solid #3b3854;border-radius:12px;background:#191c31;text-align:center;font-size:12px;line-height:1.25;overflow-wrap:anywhere}
+#p8MenuItems .p8-menu-label{max-width:100%}
+.p8-menu-icon{display:grid;place-items:center;background:#342951;border-radius:13px;width:36px;height:36px;font-size:18px;flex:none}
+#p8MenuQuick .p8-menu-icon{width:29px;height:29px;border-radius:9px;background:#ffffff20}
+.p8-menu-caption{font-size:15px;color:#e2d8f4;margin:0 0 9px}
+@media(max-width:355px){#p8MenuItems{grid-template-columns:repeat(3,minmax(0,1fr))}.p8-account-summary{gap:7px}.p8-avatar{width:39px;height:39px}}
+.p8-wallet-form .hubStat{border:1px solid #4c4063;border-radius:13px;background:#25213b;margin:0;padding:10px}
+.p8-wallet-form .sectionTitle{margin:12px 0 0}
+.p8-request-toolbar,.p8-amount-grid{display:grid;gap:7px}
+.p8-request-toolbar{grid-template-columns:repeat(2,minmax(0,1fr))}
+.p8-amount-grid{grid-template-columns:repeat(3,minmax(0,1fr));margin:6px 0}
+.p8-request-toolbar button,.p8-amount-grid button{background:#242640;color:#f5edff;border:1px solid #4d4568;border-radius:10px;min-height:42px;padding:5px;font:inherit;font-size:13px}
+.p8-request-toolbar button[aria-pressed="true"],.p8-amount-grid button[aria-pressed="true"]{background:#365054;border-color:#8bd2c8}
+.p8-wallet-form .formGroup{min-width:0}
+.p8-wallet-form .formGroup[hidden],.p8-wallet-form .sectionTitle[hidden]{display:none}
 .p8-identity-details{margin:0;padding:4px 12px;border:1px solid #403754;border-radius:15px;background:#191d34}
 .p8-identity-details div{display:grid;grid-template-columns:minmax(75px,1fr) minmax(0,2fr);gap:8px;padding:10px 0;border-bottom:1px solid #403754}
 .p8-identity-details div:last-child{border-bottom:0}
@@ -1061,7 +1075,7 @@ body.p8-auth-locked .app{max-width:560px}
 .p8-metric strong{font-size:19px}
 .p8-staff-heading{margin:8px 0 14px;font-size:25px}
 #cloudOwnerNotice:empty,#cloudSignedIn .formGroup[hidden]{display:none}
-#cloudSignedIn[data-section="profile"] > :is(.sectionTitle,#cloudOwnerEntry,#cloudSignOut),body:not(.p8-auth-locked) #screen-account:has(#cloudSignedIn[data-section="profile"]) :is(.p8AuthHero,.p8CoinDisclaimer){display:none}
+#cloudSignedIn[data-section="profile"] > :is(.sectionTitle,#cloudOwnerEntry,#cloudSignOut),body:not(.p8-auth-locked) #screen-account:has(#cloudSignedIn:is([data-section="profile"],[data-section="wallet"])) :is(.p8AuthHero,.p8CoinDisclaimer){display:none}
 </style>
 <section id="screen-menu" class="screen hidden">
   <div class="panel cloudPanel"><div class="p8-menu-heading"><h1 class="bigTitle">মেনু</h1><small id="p8BuildLabel">বিল্ড __PLAY80_BUILD_CODE__</small></div>
@@ -1069,7 +1083,10 @@ body.p8-auth-locked .app{max-width:560px}
       <span class="p8-avatar" id="p8MenuAvatar" aria-hidden="true"></span>
       <div class="p8-account-id"><strong id="p8MenuName">—</strong><small id="p8MenuUserId">—</small></div>
       <div class="p8-account-balance"><small>মোট ব্যালেন্স</small><strong id="p8MenuBalance">—</strong></div>
-    </div><div id="p8MenuItems" class="p8-menu-grid"></div></div>
+    </div>
+    <div id="p8MenuQuick" aria-label="দ্রুত কয়েনের কাজ"></div>
+    <h2 class="p8-menu-caption">অ্যাকাউন্টের অপশন</h2>
+    <div id="p8MenuItems" class="p8-menu-grid"></div></div>
 </section>
 <style>
 #play80ActionPin{width:min(90vw,420px);box-sizing:border-box;border:1px solid #796d94;border-radius:16px;background:#191630;color:#fff;padding:20px}

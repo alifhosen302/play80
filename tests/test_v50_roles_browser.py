@@ -77,10 +77,10 @@ try:
   page.route('**/rest/v1/rpc/play80_menu_counts',lambda route:route.fulfill(json={'requests':1,'support':1}))
   page.locator('#p8MenuButton').click()
   page.locator('#p8MenuButton[data-alert]').wait_for(state='visible')
-  assert page.locator('#p8MenuItems [data-panel="wallet"][data-alert]').is_visible()
+  assert page.locator('#p8MenuQuick [data-panel="wallet"][data-alert]').is_visible()
   assert page.locator('#p8MenuItems [data-panel="inbox"][data-alert]').is_visible()
   assert page.locator('#p8MenuItems .p8-menu-icon').count()>=5
-  assert page.locator('#p8MenuItems').evaluate("(grid) => getComputedStyle(grid).gridTemplateColumns.split(' ').length")==2
+  assert page.locator('#p8MenuItems').evaluate("(grid) => getComputedStyle(grid).gridTemplateColumns.split(' ').length")==4
   assert page.locator('#p8MenuAvatar').is_visible()
   assert page.locator('#p8MenuUserId').inner_text().startswith('আইডি ')
   assert page.locator('#headerPoints').count()==0
@@ -94,7 +94,7 @@ try:
   page.get_by_role('button',name='প্রোফাইল দেখুন').click()
   page.get_by_text('player@example.invalid',exact=True).wait_for()
   assert page.get_by_role('button',name='কয়েন পাঠান').is_visible()
-  page.get_by_label('কয়েনের পরিমাণ').fill('25')
+  page.locator('#cloudStaffUsers').get_by_label('কয়েনের পরিমাণ',exact=True).fill('25')
   page.get_by_role('button',name='কয়েন নিন').click()
   assert page.locator('#play80ActionPin').is_visible()
   page.locator('#play80ActionPin button[value="cancel"]').click()
@@ -118,7 +118,7 @@ try:
    route.fulfill(json={'ok':True})
   page.route('**/rest/v1/rpc/play80_confirm_staff_action',mock_review)
   page.locator('#p8MenuButton').click()
-  page.locator('#p8MenuItems [data-panel="wallet"]').click()
+  page.locator('#p8MenuQuick [data-panel="wallet"]').click()
   assert page.locator('#screen-owner-wallet').is_visible()
   assert page.locator('.cloudStaffTabs').is_hidden()
   assert page.locator('.play80TopTabs').is_hidden()
@@ -157,16 +157,22 @@ try:
   assert page.locator('#screen-home').is_visible(),'Player should enter Games, not Owner'
   assert page.locator('#cloudOwnerEntry').is_hidden(),'Player must not access Owner panel'
   page.locator('#p8MenuButton').click()
-  assert page.locator('#p8MenuItems [data-panel="wallet"]').count()==0
+  assert page.locator('#p8MenuQuick [data-panel="wallet"]').count()==0
   assert page.locator('#p8MenuBalance').inner_text()==page.locator('#headerCoins').inner_text()=='০'
   assert page.locator('#p8MenuName').inner_text()=='Player'
-  assert page.locator('#p8MenuItems .p8-menu-label').all_text_contents()[:5]==['ডিপোজিট','উইথড্র','বোনাস','রেফার বোনাস','সাপোর্ট']
+  assert page.locator('#p8MenuQuick .p8-menu-label').all_text_contents()==['ডিপোজিট','উইথড্র']
+  assert page.locator('#p8MenuItems .p8-menu-label').all_text_contents()[:3]==['বোনাস','রেফার বোনাস','সাপোর্ট']
   tiles=page.locator('#p8MenuItems button')
   assert tiles.nth(0).bounding_box()['y']==tiles.nth(1).bounding_box()['y']
-  assert tiles.nth(2).bounding_box()['y']>tiles.nth(0).bounding_box()['y']
+  assert tiles.nth(3).bounding_box()['y']==tiles.nth(0).bounding_box()['y']
+  assert tiles.nth(4).bounding_box()['y']>tiles.nth(0).bounding_box()['y']
   assert page.get_by_role('button',name='রেফার বোনাস').is_visible()
   page.get_by_role('button',name='উইথড্র',exact=True).click()
   assert page.locator('#cloudRequestKind').input_value()=='demo_debit'
+  assert page.locator('.p8-request-toolbar [data-kind="demo_debit"]').get_attribute('aria-pressed')=='true'
+  page.locator('.p8-amount-grid [data-amount="500"]').click()
+  assert page.locator('#cloudAmount').input_value()=='500'
+  assert page.locator('.p8-amount-grid [data-amount="500"]').get_attribute('aria-pressed')=='true'
   page.get_by_role('button',name='অনুরোধ পাঠাও').click()
   assert page.locator('#play80ActionPin').is_visible()
   page.locator('#play80ActionPin button[value="cancel"]').click()
