@@ -874,7 +874,8 @@
   const paymentMethod=createText('div','','p8-demo-method');
   const methodLabel=createText('button','','p8-demo-method-label');
   methodLabel.type='button';methodLabel.setAttribute('aria-pressed','true');
-  const walletIcon=createText('span','⇄','p8-demo-wallet-icon');walletIcon.setAttribute('aria-hidden','true');
+  const walletIcon=document.createElement('img');walletIcon.className='p8-demo-wallet-icon';
+  walletIcon.src='bkash-demo-mark.webp';walletIcon.alt='';
   const methodName=createText('strong','বিকাশ সেন্ড মানি');
   methodLabel.append(walletIcon,methodName,createText('span','ডেমো','p8-demo-label'));
   const demoNumberRow=createText('div','','p8-demo-number-row');
