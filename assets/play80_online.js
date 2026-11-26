@@ -980,11 +980,12 @@
     walletResponse.textContent=message;
     walletResponse.style.color=error?'#ffb8b8':'#a7e8c0';
   }
+  const requestList=$('cloudRequests');
   ownWallet.classList.add('p8-wallet-form');
   ownWallet.append(walletHeading,$('cloudBalance').closest('.hubStat'),requestToolbar,walletControls,paymentMethod,firstCreditOffer,...requestFields,$('cloudRefresh'));
   ownWallet.querySelector('#cloudSubmit').after(walletResponse);
   const historyPage=document.createElement('section');
-  historyPage.append(createText('h2','রিকোয়েস্টের ইতিহাস'),$('cloudRequests'),
+  historyPage.append(createText('h2','রিকোয়েস্টের ইতিহাস'),requestList,
     makeButton('ইতিহাস রিফ্রেশ',loadAccount,true));
   requestTitle.hidden=true;
   kindField.closest('.formGroup').hidden=true;

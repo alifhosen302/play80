@@ -216,11 +216,7 @@ try:
   page.get_by_role('button',name='রিকোয়েস্টের ইতিহাস',exact=True).click()
   assert page.locator('#cloudSignedIn').get_attribute('data-section')=='history', page.locator('#cloudSignedIn').get_attribute('data-section')
   assert page.locator('#screen-account').is_visible()
-  assert page.locator('#cloudRequests').is_visible(), page.locator('#cloudRequests').evaluate("""element=>{
-    const parents=[];
-    for(let node=element;node;node=node.parentElement)parents.push([node.tagName,node.id,node.className,node.hidden,getComputedStyle(node).display,node.getBoundingClientRect().height]);
-    return parents;
-  }""")
+  page.locator('#cloudRequests').wait_for(state='visible')
   assert page.locator('#cloudSubmit').is_hidden()
   assert page.locator('.footerNav [aria-current="page"]').get_attribute('data-p8-footer')=='wallet'
   page.locator('#globalBack').click()
