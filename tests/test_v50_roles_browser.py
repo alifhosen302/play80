@@ -56,20 +56,45 @@ try:
   page.locator('#p8ModeLogin').click()
   # Same Sign In form must automatically route server-verified Owner to Owner dashboard.
   current_role[0]='owner'
+  page.route('**/rest/v1/rpc/play80_staff_overview',lambda route:route.fulfill(json={
+    'users':2,'today_deposit':100,'today_withdraw':20,'total_deposit':160,'total_withdraw':50,
+    'deposit_users':1,'withdraw_users':1,'player_coins':110,'games':[{'username':'example_player','title':'Ludo'}]
+  }))
+  page.route('**/rest/v1/rpc/play80_staff_user_page',lambda route:route.fulfill(json=[{
+    'id':'mock-player-uuid','username':'example_player','email':'player@example.invalid',
+    'full_name':'Example Player','balance':200,'held_balance':0,'role':'player','email_verified':True
+  }]))
+  page.route('**/rest/v1/demo_wallets?*',lambda route:route.fulfill(json=[{'balance':50000,'held_balance':0}]))
+  page.route('**/rest/v1/profiles?*',lambda route:route.fulfill(json=[{'username':'play80','display_name':'Owner','address_text':'Owner QA address'}]))
   page.locator('#cloudLoginEmail').fill('play80.management@gmail.com')
   page.locator('#cloudLoginPassword').fill('123456')
   page.locator('#cloudLogin').click()
   page.wait_for_timeout(450)
   assert page.locator('.play80TopTabs').is_hidden(),'Game tabs must stay off the Owner page'
   assert page.locator('#screen-remote-owner').is_visible(),'Owner dashboard not opened'
-  assert page.locator('#cloudStaffPinGate').is_visible(),'Owner action PIN gate missing'
+  assert page.locator('#cloudStaffPinGate').is_hidden(),'Owner dashboard should open directly'
+  page.get_by_text('এখন কে কী খেলছেন').wait_for()
   page.route('**/rest/v1/rpc/play80_menu_counts',lambda route:route.fulfill(json={'requests':1,'support':1}))
   page.locator('#p8MenuButton').click()
   page.locator('#p8MenuButton[data-alert]').wait_for(state='visible')
   assert page.locator('#p8MenuItems [data-panel="wallet"][data-alert]').is_visible()
   assert page.locator('#p8MenuItems [data-panel="inbox"][data-alert]').is_visible()
+  assert page.locator('#p8MenuItems .p8-menu-icon').count()>=5
+  assert page.locator('#p8MenuBalance').inner_text()==page.locator('#headerCoins').inner_text()=='৫০,০০০'
+  page.get_by_role('button',name='প্রোফাইল',exact=True).click()
+  page.get_by_text('Owner QA address',exact=True).wait_for()
+  assert page.locator('#cloudStaffPinGate').is_hidden()
+  page.locator('#p8MenuButton').click()
   page.get_by_role('button',name='ইউজার দেখুন').click()
-  assert page.locator('#cloudStaffPinGate').is_visible()
+  assert page.locator('#cloudStaffPinGate').is_hidden()
+  page.get_by_role('button',name='প্রোফাইল দেখুন').click()
+  page.get_by_text('player@example.invalid',exact=True).wait_for()
+  assert page.get_by_role('button',name='কয়েন পাঠান').is_visible()
+  page.get_by_label('কয়েনের পরিমাণ').fill('25')
+  page.get_by_role('button',name='কয়েন নিন').click()
+  assert page.locator('#play80ActionPin').is_visible()
+  page.locator('#play80ActionPin button[value="cancel"]').click()
+
   page.route('**/rest/v1/rpc/play80_open_owner_panel',lambda route:route.fulfill(json={
    'ok':True,'token':'mock-staff-session','expires_in':180
   }))
@@ -109,8 +134,9 @@ try:
   assert page.get_by_role('button',name='✓ অনুমোদন').count()==0
   page.locator('#p8MenuButton').click()
   page.get_by_role('button',name='ড্যাশবোর্ড',exact=True).click()
-  assert page.locator('#p8OwnerLogout').is_visible()
-  page.locator('#p8OwnerLogout').click()
+  assert page.locator('#cloudStaffPinGate').is_hidden()
+  page.locator('#p8MenuButton').click()
+  page.get_by_role('button',name='লগআউট',exact=True).click()
   assert page.locator('#screen-account').is_visible(),'Owner logout not returned to Sign In'
   assert page.locator('.play80TopTabs').is_hidden(),'Logout should lock gameplay'
   assert page.evaluate("()=>!localStorage.getItem('play80.secure_account.v1')"),'Logout must clear session'
