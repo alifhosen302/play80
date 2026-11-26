@@ -70,34 +70,29 @@ try:
   assert page.locator('#p8MenuItems [data-panel="inbox"][data-alert]').is_visible()
   page.get_by_role('button',name='ইউজার দেখুন').click()
   assert page.locator('#cloudStaffPinGate').is_visible()
-  pin_calls=[]
-  def mock_staff_set(route):
-   pin_calls.append('set')
-   route.fulfill(json=True)
-  def mock_staff_unlock(route):
-   pin_calls.append('unlock')
-   if 'set' not in pin_calls:
-    route.fulfill(status=400,json={'message':'PIN not set yet'})
-   else:
-    route.fulfill(json={'ok':True,'token':'mock-staff-session','expires_in':180})
-  page.route('**/rest/v1/rpc/staff_set_pin',mock_staff_set)
-  page.route('**/rest/v1/rpc/staff_unlock_pin',mock_staff_unlock)
-  page.evaluate("window.confirm = () => false")
-  page.locator('#cloudStaffCreatePin').click()
-  assert page.locator('#cloudStaffNewPin').evaluate('(el) => el === document.activeElement')
-  page.locator('#cloudStaffCancelPin').click()
-  page.locator('#cloudStaffPin').fill('204680')
+  page.route('**/rest/v1/rpc/play80_open_owner_panel',lambda route:route.fulfill(json={
+   'ok':True,'token':'mock-staff-session','expires_in':180
+  }))
+  page.route('**/rest/v1/rpc/staff_list_demo_requests',lambda route:route.fulfill(json=[{
+   'id':'mock-wallet-request','request_kind':'demo_credit','amount':100,'username':'example_player','created_at':'2026-11-26T00:00:00Z'
+  }]))
+  staff_calls=[]
+  def mock_review(route):
+   staff_calls.append(route.request.post_data_json)
+   route.fulfill(json={'ok':True})
+  page.route('**/rest/v1/rpc/play80_confirm_staff_action',mock_review)
+  page.locator('#p8MenuButton').click()
+  page.locator('#p8MenuItems [data-panel="wallet"]').click()
+  page.locator('#cloudStaffPin').fill('123456')
   page.locator('#cloudStaffUnlock').click()
-  page.locator('#cloudStaffNewPin').wait_for(state='visible')
-  page.locator('#cloudStaffNewPin').fill('204680')
-  page.locator('#cloudStaffConfirmPin').fill('204681')
-  page.locator('#cloudStaffSavePin').click()
-  page.get_by_text('দুই ঘরের PIN মিলছে না।').wait_for()
-  assert pin_calls==['unlock']
-  page.locator('#cloudStaffConfirmPin').fill('204680')
-  page.locator('#cloudStaffSavePin').click()
-  page.locator('#cloudOwnerContent').wait_for(state='visible')
-  assert pin_calls==['unlock','set','unlock']
+  page.get_by_role('button',name='✓ অনুমোদন').click()
+  assert staff_calls==[]
+  page.locator('#play80ActionPinValue').fill('123456')
+  page.locator('#play80ActionPin button[value="confirm"]').click()
+  page.wait_for_function("() => !document.querySelector('#play80ActionPin').open")
+  page.get_by_text('Demo coin request approved.').wait_for()
+  assert staff_calls[0]['p_action']=='staff_review_demo_request'
+  assert staff_calls[0]['p_payload']['p_decision']=='approved'
   assert page.locator('#p8OwnerLogout').is_visible()
   page.locator('#p8OwnerLogout').click()
   assert page.locator('#screen-account').is_visible(),'Owner logout not returned to Sign In'
@@ -106,6 +101,7 @@ try:
   page.reload()
   assert page.locator('.play80TopTabs').is_hidden(),'Logout lock must persist after reload'
   current_role[0]='player'
+  page.route('**/rest/v1/profiles?*',lambda route:route.fulfill(json=[{'username':'example_player','display_name':'Player'}]))
   page.locator('#cloudLoginEmail').fill('testplayer@example.com')
   page.locator('#cloudLoginPassword').fill('123456')
   page.locator('#cloudLogin').click()
@@ -118,6 +114,10 @@ try:
   assert page.get_by_role('button',name='রেফার বোনাস').is_visible()
   page.get_by_role('button',name='উইথড্র',exact=True).click()
   assert page.locator('#cloudRequestKind').input_value()=='demo_debit'
+  page.get_by_role('button',name='অনুরোধ পাঠাও').click()
+  assert page.locator('#play80ActionPin').is_visible()
+  page.locator('#play80ActionPin button[value="cancel"]').click()
+  assert page.locator('#play80ActionPin').is_hidden()
   page.locator('.footerNav [data-open="account"]').first.click()
   page.locator('#cloudSignOut').click()
   assert page.locator('.play80TopTabs').is_hidden(),'Player logout must lock gameplay'
