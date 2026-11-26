@@ -88,7 +88,7 @@
     if(ownerBadge)ownerBadge.textContent=on?(isOwner()?'🛡️ Owner account':isStaff()?'🛡️ Staff account':isDsr()?'DSR account':'🎮 Player account'):'🔐 PLAY80 · Secure sign in';
     document.querySelectorAll('[data-p8-owner-only]').forEach(el=>el.classList.toggle('hidden',!on||!isOwner()));
   }
-  let accountLoadVersion=0;
+  let accountLoadVersion=0, firstCreditEligible=false;
   async function loadAccount(){
     if(!session||!verifiedAuth)return;
     const version=++accountLoadVersion;
@@ -111,6 +111,12 @@
       balance=wallets?.[0]||{balance:0,held_balance:0};
       $('cloudBalance').textContent=String(Number(balance.balance)-Number(balance.held_balance));
       renderIdentity();
+      try{
+        const approvedCredits=await db('demo_wallet_requests?select=id&user_id=eq.'+key+'&request_kind=eq.demo_credit&status=eq.approved&limit=1');
+        if(!stillCurrent())return;
+        firstCreditEligible=Array.isArray(approvedCredits)&&approvedCredits.length===0;
+        showFirstCreditOffer();
+      }catch(_){if(stillCurrent()){firstCreditEligible=false;showFirstCreditOffer();}}
       try{
         const bonusRows=await db('bonus_transactions?select=amount&user_id=eq.'+encodeURIComponent(id)+'&limit=2');
         const turnover=await db('turnover_records?select=required,completed&user_id=eq.'+encodeURIComponent(id)+'&limit=1');
@@ -258,13 +264,14 @@
     if(!profile?.username)throw Error('First save your unique username');
     const type=$('cloudRequestKind').value;
     const amount=Number($('cloudAmount').value);
-    const note=$('cloudNote').value.trim();
+    const reference=$('cloudNote').value.trim();
+    if(type==='demo_credit'&&!reference)throw Error('ডেমো ট্রান্সেকশন নম্বর লিখুন।');
     if(!Number.isSafeInteger(amount)||amount<1)throw Error('Enter a whole number of coins');
     if(type==='demo_credit'&&(amount<100||amount>20000))throw Error('Request between 100 and 20,000 coins');
     if(type==='demo_debit'&&(amount<200||amount>1000000))throw Error('Remove between 200 and 1,000,000 coins');
     const pin=await askLoginPin((type==='demo_credit'?'ডিপোজিট':'উইথড্র')+' রিকোয়েস্ট · '+amount+' ভার্চুয়াল কয়েন');
     if(pin===null)return;
-    requirePinSuccess(await db('rpc/play80_confirm_wallet_request','POST',{p_pin:pin,p_kind:type,p_amount:amount,p_note:note||null}));
+    requirePinSuccess(await db('rpc/play80_confirm_wallet_request','POST',{p_pin:pin,p_kind:type,p_amount:amount,p_note:type==='demo_credit'?'ডেমো ট্রান্সেকশন নম্বর: '+reference:null}));
     $('cloudNote').value='';await loadAccount();status('রিকোয়েস্ট পাঠানো হয়েছে। সিদ্ধান্ত রিকোয়েস্টের ইতিহাসে দেখাবে।');
   }));
   $('cloudRefresh').addEventListener('click',e=>busy(e.currentTarget,loadAccount));
@@ -273,6 +280,8 @@
     if(pinDialog.open)pinDialog.close('cancel');
     const oldAccessToken=session?.access_token;
     ++accountLoadVersion;
+    firstCreditEligible=false;
+    showFirstCreditOffer();
     session=null;profile=null;balance=null;staffPinToken=null;staffPinExpires=0;verifiedAuth=false;
     persist();renderAuth();
     document.querySelectorAll('.screen').forEach(el=>el.classList.toggle('hidden',el.id!=='screen-account'));
@@ -862,8 +871,38 @@
     $('cloudRequests').focus();
     $('cloudRequests').scrollIntoView({block:'start'});
   },true);
+  const paymentMethod=createText('div','','p8-demo-method');
+  const methodLabel=createText('button','','p8-demo-method-label');
+  methodLabel.type='button';methodLabel.setAttribute('aria-pressed','true');
+  const walletIcon=createText('span','⇄','p8-demo-wallet-icon');walletIcon.setAttribute('aria-hidden','true');
+  const methodName=createText('strong','বিকাশ সেন্ড মানি');
+  methodLabel.append(walletIcon,methodName,createText('span','ডেমো','p8-demo-label'));
+  const demoNumberRow=createText('div','','p8-demo-number-row');
+  const demoNumber=document.createElement('input');
+  demoNumber.type='text';demoNumber.readOnly=true;demoNumber.value='00000000000';
+  demoNumber.setAttribute('aria-label','ডেমো সেন্ড মানি নম্বর');
+  demoNumber.addEventListener('click',()=>demoNumber.select());
+  const copyMessage=createText('small','');copyMessage.setAttribute('role','status');
+  const copyNumber=createText('button','কপি','smallAction');copyNumber.type='button';
+  copyNumber.addEventListener('click',async()=>{
+    try{
+      if(!navigator.clipboard?.writeText)throw Error('Clipboard unavailable');
+      await navigator.clipboard.writeText(demoNumber.value);
+      copyMessage.textContent='ডেমো নম্বর কপি হয়েছে।';
+    }catch(_){
+      demoNumber.focus();demoNumber.select();
+      copyMessage.textContent=document.execCommand?.('copy')?'ডেমো নম্বর কপি হয়েছে।':'নির্বাচিত ডেমো নম্বরটি কপি করুন।';
+    }
+  });
+  demoNumberRow.append(demoNumber,copyNumber);
+  paymentMethod.append(methodLabel,demoNumberRow,copyMessage);
+  const firstCreditOffer=createText('p','প্রথম অনুমোদিত ডিপোজিট ঠিক ১,০০০ কয়েন হলে একবার ৫,০০০ বোনাস। অন্য পরিমাণে বা পরের ডিপোজিটে এই বোনাস প্রযোজ্য নয়।');
+  firstCreditOffer.id='p8FirstCreditOffer';firstCreditOffer.hidden=true;
+  function showFirstCreditOffer(){
+    firstCreditOffer.hidden=!firstCreditEligible||kindField.value!=='demo_credit';
+  }
   ownWallet.classList.add('p8-wallet-form');
-  ownWallet.append(walletHeading,$('cloudBalance').closest('.hubStat'),requestToolbar,walletControls,...requestFields,$('cloudRefresh'));
+  ownWallet.append(walletHeading,$('cloudBalance').closest('.hubStat'),requestToolbar,walletControls,paymentMethod,firstCreditOffer,...requestFields,$('cloudRefresh'));
   requestTitle.hidden=true;
   kindField.closest('.formGroup').hidden=true;
   amountInput.closest('.formGroup').before(amountGrid);
@@ -878,6 +917,12 @@
     amountInput.min=debit?'200':'100';
     amountInput.max=debit?'1000000':'20000';
     walletHeading.textContent='কয়েন '+label;
+    methodName.textContent=debit?'বিকাশ':'বিকাশ সেন্ড মানি';
+    demoNumberRow.hidden=debit;
+    copyMessage.textContent='';
+    $('play80DemoReferenceField').hidden=debit;
+    $('cloudNote').required=!debit;
+    showFirstCreditOffer();
     amountHint.textContent=walletMoney(amountInput.min)+' থেকে '+walletMoney(amountInput.max)+' ভার্চুয়াল কয়েন';
     for(const button of requestToolbar.children)button.setAttribute('aria-pressed',String(button.dataset.kind===kindField.value));
     amountGrid.replaceChildren();
