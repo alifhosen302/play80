@@ -1054,9 +1054,9 @@
       const u=await raw('/auth/v1/user','GET',null,await token());
       if(!id||!u?.id||u.id!==id||!u.email_confirmed_at)throw Object.assign(Error('Email verification or login expired'),{status:401});
       session.user=u;verifiedAuth=true;persist();renderAuth();
-      await loadAccount();await loadMyMessages().catch(()=>{});
       if(isStaff())$('cloudOwnerEntry')?.click();
       else document.querySelector('.footerNav [data-open="home"]')?.click();
+      await loadAccount();await loadMyMessages().catch(()=>{});
     }catch(e){
       if(session && e.status!==401 && e.status!==403){
         verifiedAuth=false;renderAuth();status('সংযোগ যাচাই করা যায়নি। ইন্টারনেট ফিরলে আবার চেষ্টা করো।',true);return;
