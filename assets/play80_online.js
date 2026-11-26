@@ -315,9 +315,9 @@
     return db('rpc/'+name,'POST',{p_pin_token:staffPinToken,...data});
   }
   const createText=(tag,content,cls='')=>{const el=document.createElement(tag);el.textContent=String(content??'');if(cls)el.className=cls;return el;};
-  const makeButton=(title,fn,secondary=false)=>{
+  const makeButton=(title,fn,secondary=false,writeStatus=ownerStatus)=>{
     const b=document.createElement('button');b.type='button';b.className='action'+(secondary?' secondary':'');
-    b.textContent=title;b.addEventListener('click',()=>busy(b,fn,ownerStatus));return b;
+    b.textContent=title;b.addEventListener('click',()=>busy(b,fn,writeStatus));return b;
   };
   const pinDialog=$('play80ActionPin');
   function askLoginPin(title){
@@ -1143,6 +1143,10 @@
       else button.removeAttribute('aria-current');
     }
   }
+  function navigationStatus(message,error){
+    const screen=document.body.dataset.play80Screen;
+    (screen==='owner-wallet'||screen==='remote-owner'?ownerStatus:status)(message,error);
+  }
   const footerActions={
     wallet:()=>isStaff()?openStaffPage('wallet'):openAccountPage('wallet','demo_credit'),
     bonus:()=>openAccountPage('bonus'),
@@ -1152,7 +1156,9 @@
     const action=footerActions[button.dataset.p8Footer];
     button.addEventListener('click',()=>{
       if(!verifiedAuth||button.hidden)return;
-      action().catch(error=>isOwner()?ownerStatus(error.message,true):status(error.message,true));
+      if(button.hasAttribute('aria-current')&&
+        !(button.dataset.p8Footer==='wallet'&&signedIn.dataset.section==='history'&&!isStaff()))return;
+      action().catch(error=>navigationStatus(error.message,true));
     });
   }
   document.addEventListener('play80:before-back',event=>{
@@ -1204,7 +1210,7 @@
     const quick=$('p8MenuQuick');
     root.replaceChildren();quick.replaceChildren();
     const add=(label,action,panel,area=root)=>{
-      const button=makeButton(label,action,true);
+      const button=makeButton(label,action,true,navigationStatus);
       const icon=createText('span',menuIcons[label],'p8-menu-icon');icon.setAttribute('aria-hidden','true');
       button.replaceChildren(icon,createText('span',label,'p8-menu-label'));
       if(panel){button.dataset.panel=panel;button.classList.add('p8-menu-item');}

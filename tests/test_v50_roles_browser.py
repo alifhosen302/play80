@@ -132,6 +132,9 @@ try:
   assert page.locator('.play80TopTabs').is_hidden()
   page.locator('#cloudStaffPin').fill('123456')
   page.locator('#cloudStaffUnlock').click()
+  page.get_by_role('button',name='✓ অনুমোদন').wait_for()
+  page.locator('.footerNav [data-p8-footer="wallet"]').click()
+  assert page.locator('#cloudStaffPinGate').is_hidden()
   page.get_by_role('button',name='✓ অনুমোদন').click()
   assert staff_calls==[]
   page.locator('#play80ActionPinValue').fill('123456')
@@ -186,7 +189,7 @@ try:
   page.get_by_text('সফল রেফার ২টি').wait_for()
   assert page.get_by_label('PLAY80 আমন্ত্রণ লিংক').input_value().endswith('?ref=example_player')
   page.locator('#p8MenuButton').click()
-  page.get_by_role('button',name='বোনাস',exact=True).click()
+  page.locator('.footerNav [data-p8-footer="bonus"]').click()
   page.get_by_text('৫,০০০ কয়েন · ক্লেম ✓ পাওয়া হয়েছে').wait_for()
   assert page.locator('.p8-countdown').inner_text().startswith('23:59:')
   sent=[]
@@ -195,7 +198,7 @@ try:
    route.fulfill(json={'ok':True})
   page.route('**/rest/v1/rpc/play80_send_support_message',capture_support)
   page.locator('#p8MenuButton').click()
-  page.get_by_role('button',name='সাপোর্ট',exact=True).click()
+  page.locator('.footerNav [data-p8-footer="support"]').click()
   page.locator('#p8WithdrawSupport').click()
   assert 'উইথড্র' in page.locator('#p8SupportPrompt').inner_text()
   page.locator('#p8DepositSupport').click()
