@@ -138,9 +138,13 @@ def main():
     if not versions:
         raise RuntimeError('Android SDK build-tools required for verified APK signing')
     bin_dir=versions[-1]
-    android_jar = sdk / 'platforms' / 'android-34' / 'android.jar'
-    if not android_jar.is_file():
-        raise RuntimeError('Android SDK platform android-34 is required')
+    platforms = sorted(
+        (p for p in (sdk / 'platforms').glob('android-*')
+         if p.name[8:].isdigit() and (p / 'android.jar').is_file()),
+        key=lambda p: int(p.name[8:]))
+    if not platforms:
+        raise RuntimeError('An installed Android SDK platform is required')
+    android_jar = platforms[-1] / 'android.jar'
     manifest = axml()
     classes = compile_activity(android_jar, bin_dir / 'd8')
     (ROOT/'build').mkdir(exist_ok=True)

@@ -84,8 +84,6 @@ jobs:
           python tests/test_v50_roles_browser.py
           python tests/test_v51_signup_feedback.py
           python tests/test_account_recovery.py
-      - name: Ensure the Android platform for the native share sheet is installed
-        run: sdkmanager 'platforms;android-34'
       - name: Fetch the currently distributed APK and derive the next version code
         env:
           GH_TOKEN: ${{ github.token }}
