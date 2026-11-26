@@ -272,8 +272,9 @@
     const pin=await askLoginPin((type==='demo_credit'?'ডিপোজিট':'উইথড্র')+' রিকোয়েস্ট · '+amount+' ভার্চুয়াল কয়েন');
     if(pin===null)return;
     requirePinSuccess(await db('rpc/play80_confirm_wallet_request','POST',{p_pin:pin,p_kind:type,p_amount:amount,p_note:type==='demo_credit'?'ডেমো ট্রান্সেকশন নম্বর: '+reference:null}));
-    $('cloudNote').value='';await loadAccount();status('রিকোয়েস্ট পাঠানো হয়েছে। সিদ্ধান্ত রিকোয়েস্টের ইতিহাসে দেখাবে।');
-  }));
+    $('cloudNote').value='';await loadAccount();
+    showWalletResponse('রিকোয়েস্ট পাঠানো হয়েছে। সিদ্ধান্ত রিকোয়েস্টের ইতিহাসে দেখাবে।');
+  },showWalletResponse));
   $('cloudRefresh').addEventListener('click',e=>busy(e.currentTarget,loadAccount));
   $('cloudSignOut').addEventListener('click',e=>busy(e.currentTarget,async()=>{
     dsrForm.reset();
@@ -904,8 +905,17 @@
   function showFirstCreditOffer(){
     firstCreditOffer.hidden=!firstCreditEligible||kindField.value!=='demo_credit';
   }
+  const walletResponse=createText('p','');
+  walletResponse.setAttribute('role','status');
+  walletResponse.hidden=true;
+  function showWalletResponse(message,error=false){
+    walletResponse.hidden=!message;
+    walletResponse.textContent=message;
+    walletResponse.style.color=error?'#ffb8b8':'#a7e8c0';
+  }
   ownWallet.classList.add('p8-wallet-form');
   ownWallet.append(walletHeading,$('cloudBalance').closest('.hubStat'),requestToolbar,walletControls,paymentMethod,firstCreditOffer,...requestFields,$('cloudRefresh'));
+  ownWallet.querySelector('#cloudSubmit').after(walletResponse);
   requestTitle.hidden=true;
   kindField.closest('.formGroup').hidden=true;
   amountInput.closest('.formGroup').before(amountGrid);
@@ -923,6 +933,7 @@
     methodName.textContent=debit?'বিকাশ':'বিকাশ সেন্ড মানি';
     demoNumberRow.hidden=debit;
     copyMessage.textContent='';
+    showWalletResponse('');
     referenceField.hidden=debit;
     referenceInput.required=!debit;
     showFirstCreditOffer();
