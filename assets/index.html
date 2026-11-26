@@ -1041,6 +1041,7 @@ button.p8-thread-preview{text-align:left;position:relative;display:grid;gap:5px;
 .p8-daily-reward{margin-bottom:12px}
 .p8-countdown{display:block;font-size:2rem;font-variant-numeric:tabular-nums;color:#ffe29c;margin:8px 0}
 .p8-claim{font-weight:700;margin-bottom:0}
+.footerNav .navBtn[hidden]{display:none!important}
 .p8-menu-item[data-alert]::after{content:'';position:absolute;top:8px;right:9px;width:9px;height:9px;border-radius:50%;background:#ff526c;box-shadow:0 0 0 2px #272044}
 .p8-menu-section,.p8-user-profile{display:grid;gap:8px}
 .p8-menu-section[hidden]{display:none}
@@ -1092,7 +1093,7 @@ button.p8-thread-preview{text-align:left;position:relative;display:grid;gap:5px;
 .p8-metric strong{font-size:19px}
 .p8-staff-heading{margin:8px 0 14px;font-size:25px}
 #cloudOwnerNotice:empty,#cloudSignedIn .formGroup[hidden]{display:none}
-#cloudSignedIn[data-section="profile"] > :is(.sectionTitle,#cloudOwnerEntry,#cloudSignOut),body:not(.p8-auth-locked) #screen-account:has(#cloudSignedIn:is([data-section="profile"],[data-section="wallet"])) :is(.p8AuthHero,.p8CoinDisclaimer){display:none}
+#cloudSignedIn[data-section="profile"] > :is(.sectionTitle,#cloudOwnerEntry,#cloudSignOut),body:not(.p8-auth-locked) #screen-account:has(#cloudSignedIn:is([data-section="profile"],[data-section="wallet"],[data-section="history"],[data-section="support"],[data-section="bonus"],[data-section="referral"])) :is(.p8AuthHero,.p8CoinDisclaimer){display:none}
 </style>
 <section id="screen-menu" class="screen hidden">
   <div class="panel cloudPanel"><div class="p8-menu-heading"><h1 class="bigTitle">মেনু</h1><small id="p8BuildLabel">বিল্ড __PLAY80_BUILD_CODE__</small></div>
@@ -1201,7 +1202,13 @@ body[data-play80-screen="owner-wallet"] .top{display:none}
   </div>
 </section>
 </main>
- <nav class="footerNav" aria-label="Main app navigation"><button class="navBtn active" data-open="home"><b>🎮</b>Games</button><button class="navBtn" data-open="account"><b>🌐</b>Account</button><button class="navBtn" data-open="rewards"><b>🎁</b>Rewards</button><button class="navBtn" data-open="account"><b>💬</b>Messages</button><button class="navBtn p8-menu-item" id="p8MenuButton" data-open="menu"><b>☰</b>মেনু</button></nav>
+ <nav class="footerNav" aria-label="প্রধান মেনু">
+   <button type="button" class="navBtn active" data-open="home"><b aria-hidden="true">🎮</b>গেম</button>
+   <button type="button" class="navBtn p8-menu-item" data-p8-footer="wallet"><b aria-hidden="true">◉</b>কয়েন</button>
+   <button type="button" class="navBtn" data-p8-footer="bonus"><b aria-hidden="true">🎁</b>বোনাস</button>
+   <button type="button" class="navBtn p8-menu-item" data-p8-footer="support"><b aria-hidden="true">💬</b>সাপোর্ট</button>
+   <button type="button" class="navBtn p8-menu-item" id="p8MenuButton" data-open="menu"><b aria-hidden="true">☰</b>মেনু</button>
+ </nav>
 </div>
 
 <script>
@@ -2011,6 +2018,7 @@ function play80Back(){
  if(!$('ludoExitOverlay').classList.contains('hidden')){hideLudoExitDialog();return;}
  if(!$('ludoSkillPopup').classList.contains('hidden')){hideSkillPopup();return;}
  if(screen==='ludo'&&!$('ludoGameplay').classList.contains('hidden')){showLudoExitDialog();return;}
+ if(!document.dispatchEvent(new Event('play80:before-back',{cancelable:true})))return;
  if(screen==='home'){toast('You are on the Games screen');return;}
  if(screen==='deposit'||screen==='withdraw'){go('wallet');return;}
  const prev=play80NavStack.pop()||'home';play80GoBase(prev==='ludo'?'home':prev);document.body.classList.toggle('ludo-screen',prev==='ludo');

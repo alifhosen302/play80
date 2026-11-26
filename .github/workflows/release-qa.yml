@@ -144,6 +144,8 @@ jobs:
           grep -Fq 'p8FirstCreditOffer' "$RUNNER_TEMP/play80-opened-account.js"
           grep -Fq 'id="headerCoins"' "$RUNNER_TEMP/play80-opened-apk.html"
           if grep -Fq 'id="headerPoints"' "$RUNNER_TEMP/play80-opened-apk.html"; then exit 1; fi
+          grep -Fq 'data-p8-footer="wallet"' "$RUNNER_TEMP/play80-opened-apk.html"
+          grep -Fq 'function syncFooter()' "$RUNNER_TEMP/play80-opened-account.js"
           echo "Verified menu and server coin header inside APK build $PLAY80_VERSION_CODE"
           "$TOOLS/apksigner" verify --verbose --min-sdk-version 28 ../PLAY80_V4_1_Practice_QA.apk
           mkdir -p dist
