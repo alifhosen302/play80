@@ -909,6 +909,7 @@
       session.user=u;verifiedAuth=true;persist();renderAuth();
       await loadAccount();await loadMyMessages().catch(()=>{});
       if(isStaff())$('cloudOwnerEntry')?.click();
+      else document.querySelector('.footerNav [data-open="home"]')?.click();
     }catch(e){
       if(session && e.status!==401 && e.status!==403){
         verifiedAuth=false;renderAuth();status('সংযোগ যাচাই করা যায়নি। ইন্টারনেট ফিরলে আবার চেষ্টা করো।',true);return;
