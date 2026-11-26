@@ -94,7 +94,7 @@ try:
   page.get_by_role('button',name='প্রোফাইল দেখুন').click()
   page.get_by_text('player@example.invalid',exact=True).wait_for()
   assert page.get_by_role('button',name='কয়েন পাঠান').is_visible()
-  page.get_by_label('কয়েনের পরিমাণ').fill('25')
+  page.locator('#cloudStaffUsers').get_by_label('কয়েনের পরিমাণ',exact=True).fill('25')
   page.get_by_role('button',name='কয়েন নিন').click()
   assert page.locator('#play80ActionPin').is_visible()
   page.locator('#play80ActionPin button[value="cancel"]').click()
