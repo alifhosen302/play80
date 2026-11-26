@@ -80,6 +80,10 @@ try:
   assert page.locator('#p8MenuItems [data-panel="wallet"][data-alert]').is_visible()
   assert page.locator('#p8MenuItems [data-panel="inbox"][data-alert]').is_visible()
   assert page.locator('#p8MenuItems .p8-menu-icon').count()>=5
+  assert page.locator('#p8MenuItems').evaluate("(grid) => getComputedStyle(grid).gridTemplateColumns.split(' ').length")==2
+  assert page.locator('#p8MenuAvatar').is_visible()
+  assert page.locator('#p8MenuUserId').inner_text().startswith('আইডি ')
+  assert page.locator('#headerPoints').count()==0
   assert page.locator('#p8MenuBalance').inner_text()==page.locator('#headerCoins').inner_text()=='৫০,০০০'
   page.get_by_role('button',name='প্রোফাইল',exact=True).click()
   page.get_by_text('Owner QA address',exact=True).wait_for()
@@ -143,6 +147,7 @@ try:
   page.reload()
   assert page.locator('.play80TopTabs').is_hidden(),'Logout lock must persist after reload'
   current_role[0]='player'
+  page.route('**/rest/v1/demo_wallets?*',lambda route:route.fulfill(json=[{'balance':0,'held_balance':0}]))
   page.route('**/rest/v1/profiles?*',lambda route:route.fulfill(json=[{'username':'example_player','display_name':'Player'}]))
   page.locator('#cloudLoginEmail').fill('testplayer@example.com')
   page.locator('#cloudLoginPassword').fill('123456')
@@ -153,6 +158,12 @@ try:
   assert page.locator('#cloudOwnerEntry').is_hidden(),'Player must not access Owner panel'
   page.locator('#p8MenuButton').click()
   assert page.locator('#p8MenuItems [data-panel="wallet"]').count()==0
+  assert page.locator('#p8MenuBalance').inner_text()==page.locator('#headerCoins').inner_text()=='০'
+  assert page.locator('#p8MenuName').inner_text()=='Player'
+  assert page.locator('#p8MenuItems .p8-menu-label').all_text_contents()[:5]==['ডিপোজিট','উইথড্র','বোনাস','রেফার বোনাস','সাপোর্ট']
+  tiles=page.locator('#p8MenuItems button')
+  assert tiles.nth(0).bounding_box()['y']==tiles.nth(1).bounding_box()['y']
+  assert tiles.nth(2).bounding_box()['y']>tiles.nth(0).bounding_box()['y']
   assert page.get_by_role('button',name='রেফার বোনাস').is_visible()
   page.get_by_role('button',name='উইথড্র',exact=True).click()
   assert page.locator('#cloudRequestKind').input_value()=='demo_debit'

@@ -741,7 +741,7 @@ body.p8-auth-locked .app{max-width:560px}
 </head>
 <body class="p8-auth-locked">
 <div class="app">
- <header class="top"><button id="globalBack" class="globalBack hidden" type="button" aria-label="Go back one step">❮</button><div class="logo"><span class="mark logoImageMark"><img src="play80_brand_premium.webp" alt="PLAY80 official premium logo" width="45" height="45"></span><div><div class="brand">play<span style="color:#c9a1ff">80</span></div><div class="small">Dice • Flight • Ludo • Spin</div></div></div><span id="headerPoints" hidden></span><div class="walletBadge"><span id="headerCoins">—</span> কয়েন</div></header>
+ <header class="top"><button id="globalBack" class="globalBack hidden" type="button" aria-label="Go back one step">❮</button><div class="logo"><span class="mark logoImageMark"><img src="play80_brand_premium.webp" alt="PLAY80 official premium logo" width="45" height="45"></span><div><div class="brand">play<span style="color:#c9a1ff">80</span></div><div class="small">Dice • Flight • Ludo • Spin</div></div></div><div class="walletBadge"><span id="headerCoins">—</span> কয়েন</div></header>
  <nav class="play80TopTabs" aria-label="PLAY80 primary tabs">
  <button type="button" data-open="home" data-main-tab="home" class="active">🎰 Casino</button>
  <button type="button" data-open="bet" data-main-tab="bet">♟️ Bet</button>
@@ -1044,7 +1044,12 @@ body.p8-auth-locked .app{max-width:560px}
 .p8-account-summary small,.p8-identity-details dt,.p8-metric small{color:#c8c1df;font-size:12px}
 .p8-account-balance{text-align:right}
 .p8-account-balance strong,.p8-metric strong{color:#f5d68f;overflow-wrap:anywhere}
-.p8-menu-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+#p8MenuItems{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.p8-menu-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.p8-menu-heading small{color:#c8c1df;white-space:nowrap}
+.p8-account-summary{grid-template-columns:auto minmax(0,1fr) minmax(61px,auto)}
+.p8-account-balance{padding:7px 8px;border:1px solid #644f88;border-radius:10px;background:#24203a}
+.p8-avatar:empty::before{content:'';width:18px;height:18px;border:2px solid #c1a6ff;border-radius:50%;opacity:.9}
 .p8-menu-grid .action{display:grid;align-content:center;gap:7px;min-height:78px;padding:10px 12px;border:1px solid #4c4268;border-radius:15px;background:#22253e;font-size:14px;line-height:1.35}
 .p8-menu-icon{display:grid;place-items:center;background:#342951;border-radius:10px;width:34px;height:34px;font-size:18px}
 .p8-identity-details{margin:0;padding:4px 12px;border:1px solid #403754;border-radius:15px;background:#191d34}
@@ -1059,9 +1064,9 @@ body.p8-auth-locked .app{max-width:560px}
 #cloudSignedIn[data-section="profile"] > :is(.sectionTitle,#cloudOwnerEntry,#cloudSignOut),body:not(.p8-auth-locked) #screen-account:has(#cloudSignedIn[data-section="profile"]) :is(.p8AuthHero,.p8CoinDisclaimer){display:none}
 </style>
 <section id="screen-menu" class="screen hidden">
-  <div class="panel cloudPanel"><h1 class="bigTitle">মেনু</h1>
+  <div class="panel cloudPanel"><div class="p8-menu-heading"><h1 class="bigTitle">মেনু</h1><small id="p8BuildLabel">বিল্ড __PLAY80_BUILD_CODE__</small></div>
     <div class="p8-account-summary">
-      <span class="p8-avatar" id="p8MenuAvatar" aria-hidden="true">P</span>
+      <span class="p8-avatar" id="p8MenuAvatar" aria-hidden="true"></span>
       <div class="p8-account-id"><strong id="p8MenuName">—</strong><small id="p8MenuUserId">—</small></div>
       <div class="p8-account-balance"><small>মোট ব্যালেন্স</small><strong id="p8MenuBalance">—</strong></div>
     </div><div id="p8MenuItems" class="p8-menu-grid"></div></div>
@@ -1183,7 +1188,7 @@ let wheelStake=1;
 function save(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){} render()}
 function award(points,title){state.points+=points;state.earned+=points;state.games++;state.entries.unshift({points,title,date:new Date().toISOString()});state.entries=state.entries.slice(0,100);save()}
 function gift(points){state.points+=points;state.entries.unshift({points,title:'Demo Free Points',date:new Date().toISOString()});state.entries=state.entries.slice(0,100);save();toast(points+' free demo points added')}
-function render(){const fmt=n=>Number(n).toLocaleString('en-US');$('headerPoints').textContent=fmt(state.points);$('walletPoints').textContent=fmt(state.points);$('totalGames').textContent=fmt(state.games);$('earnedPoints').textContent=fmt(state.earned);$('ledger').innerHTML='';if(!state.entries.length){$('ledger').innerHTML='<div class="empty">No game history yet</div>'}else{state.entries.forEach(row=>{const el=document.createElement('div');el.className='entry';const left=document.createElement('div');const strong=document.createElement('strong');strong.textContent=row.title;const when=document.createElement('div');when.className='when';try{when.textContent=new Date(row.date).toLocaleString('en-US')}catch(e){when.textContent=''}left.append(strong,when);const val=document.createElement('div');val.className='plus';val.textContent=(row.points>=0?'+':'')+fmt(row.points);if(row.points<0)val.style.color='#ffb6b6';el.append(left,val);$('ledger').appendChild(el)})}renderRequests()}
+function render(){const fmt=n=>Number(n).toLocaleString('en-US');$('walletPoints').textContent=fmt(state.points);$('totalGames').textContent=fmt(state.games);$('earnedPoints').textContent=fmt(state.earned);$('ledger').innerHTML='';if(!state.entries.length){$('ledger').innerHTML='<div class="empty">No game history yet</div>'}else{state.entries.forEach(row=>{const el=document.createElement('div');el.className='entry';const left=document.createElement('div');const strong=document.createElement('strong');strong.textContent=row.title;const when=document.createElement('div');when.className='when';try{when.textContent=new Date(row.date).toLocaleString('en-US')}catch(e){when.textContent=''}left.append(strong,when);const val=document.createElement('div');val.className='plus';val.textContent=(row.points>=0?'+':'')+fmt(row.points);if(row.points<0)val.style.color='#ffb6b6';el.append(left,val);$('ledger').appendChild(el)})}renderRequests()}
 function go(name){if(['owner','profile','deposit','withdraw','admin'].includes(name))name='account';if(document.body.classList.contains('p8-auth-locked'))name='account';if(name!=='ludo')document.body.classList.remove('ludo-playing');screen=name;document.body.dataset.play80Screen=name;document.body.classList.toggle('play80-game-section',['home','crazyshow','arcade','wheel','dice','flight','ludo','bet','tournament','2048','memory'].includes(name));document.querySelectorAll('.screen').forEach(el=>el.classList.toggle('hidden',el.id!=='screen-'+name));document.querySelectorAll('.navBtn').forEach(el=>el.classList.toggle('active',el.dataset.open===name));window.scrollTo(0,0);document.dispatchEvent(new CustomEvent('play80:screen-changed',{detail:name}));}
 document.addEventListener('play80:menu-navigate',e=>{if(['account','remote-owner','owner-wallet'].includes(e.detail))go(e.detail);});
 function toast(message){const el=document.createElement('div');el.className='notice';el.textContent=message;document.body.appendChild(el);setTimeout(()=>el.remove(),2000)}
@@ -1237,7 +1242,6 @@ function renderRequests(){
   $('availablePoints').textContent=available().toLocaleString('en-US');
   $('withdrawAmount').max=String(available());
   $('walletPoints').textContent=available().toLocaleString('en-US');
-  $('headerPoints').textContent=available().toLocaleString('en-US');
 }
 function submitDemoRequest(type,amount,note='',demoNumber=''){
   const n=Number(amount);
