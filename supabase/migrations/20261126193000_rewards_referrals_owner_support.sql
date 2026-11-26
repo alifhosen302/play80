@@ -10,6 +10,8 @@ create table private.play80_referral_awards (
   awarded_at timestamptz not null default now()
 );
 
+revoke all on private.play80_daily_reward_clock, private.play80_referral_awards from public, anon, authenticated;
+
 create function private.play80_credit_reward(p_user uuid, p_amount bigint)
 returns void language sql security definer set search_path = '' as $$
   with credited as (
@@ -110,6 +112,8 @@ join (select user_id,count(*) message_count,
       max(created_at) filter(where sender_role='player') last_incoming,
       max(created_at) filter(where sender_role='owner') last_reply
       from public.play80_support_messages group by user_id) state using(user_id);
+
+revoke all on private.play80_support_threads from public, anon, authenticated;
 
 create function private.play80_lock_support_insert()
 returns trigger language plpgsql security definer set search_path = '' as $$
