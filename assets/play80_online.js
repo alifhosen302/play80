@@ -236,7 +236,9 @@
   $('cloudSaveUsername').addEventListener('click',e=>busy(e.currentTarget,async()=>{
     const username=$('cloudUsername').value.trim().toLowerCase();
     if(!/^[a-z0-9_]{3,24}$/.test(username))throw Error('Username: 3–24 English letters, digits or underscore');
-    await db('profiles?id=eq.'+encodeURIComponent(session.user.id),'PATCH',{username});
+    const pin=await askLoginPin('ইউজারনেম সেভ করুন');
+    if(pin===null)return;
+    requirePinSuccess(await db('rpc/play80_confirm_username','POST',{p_pin:pin,p_username:username}));
     await loadAccount();status('Unique username saved.');
   }));
   $('cloudSubmit').addEventListener('click',e=>busy(e.currentTarget,async()=>{
@@ -247,14 +249,15 @@
     if(!Number.isSafeInteger(amount)||amount<1)throw Error('Enter a whole number of coins');
     if(type==='demo_credit'&&(amount<100||amount>20000))throw Error('Request between 100 and 20,000 coins');
     if(type==='demo_debit'&&(amount<200||amount>1000000))throw Error('Remove between 200 and 1,000,000 coins');
-    if(type==='demo_debit'&&(!confirm('Demo removal only. No cash or real money can be paid. Proceed?')))return;
-    await db('rpc/submit_demo_wallet_request','POST',{p_kind:type,p_amount:amount,p_note:note||null});
+    const pin=await askLoginPin((type==='demo_credit'?'ডিপোজিট':'উইথড্র')+' রিকোয়েস্ট · '+amount+' ভার্চুয়াল কয়েন');
+    if(pin===null)return;
+    requirePinSuccess(await db('rpc/play80_confirm_wallet_request','POST',{p_pin:pin,p_kind:type,p_amount:amount,p_note:note||null}));
     $('cloudNote').value='';await loadAccount();status('Demo coin request was sent to the secure Owner account.');
   }));
   $('cloudRefresh').addEventListener('click',e=>busy(e.currentTarget,loadAccount));
   $('cloudSignOut').addEventListener('click',e=>busy(e.currentTarget,async()=>{
     dsrForm.reset();
-    showStaffPinSetup(false);
+    if(pinDialog.open)pinDialog.close('cancel');
     const oldAccessToken=session?.access_token;
     session=null;profile=null;balance=null;staffPinToken=null;staffPinExpires=0;verifiedAuth=false;
     persist();renderAuth();
@@ -281,62 +284,49 @@
     const b=document.createElement('button');b.type='button';b.className='action'+(secondary?' secondary':'');
     b.textContent=title;b.addEventListener('click',()=>busy(b,fn,ownerStatus));return b;
   };
-  function showStaffPinSetup(setup) {
-    show('cloudStaffPinSetup',setup);
-    show('cloudStaffUnlockField',!setup);
-    show('cloudStaffUnlockActions',!setup);
-    for(const id of ['cloudStaffPin','cloudStaffNewPin','cloudStaffConfirmPin'])$(id).value='';
-    if(setup)$('cloudStaffNewPin').focus();
+  const pinDialog=$('play80ActionPin');
+  function askLoginPin(title){
+    return new Promise(resolve=>{
+      if(pinDialog.open){resolve(null);return;}
+      $('play80ActionTitle').textContent=title;
+      const field=$('play80ActionPinValue');
+      field.value='';pinDialog.returnValue='';
+      pinDialog.addEventListener('close',()=>{
+        const pin=pinDialog.returnValue==='confirm'?field.value:null;
+        field.value='';resolve(pin);
+      },{once:true});
+      pinDialog.showModal();field.focus();
+    });
   }
-  function staffOpenGate() {
+  function requirePinSuccess(response){
+    if(!response?.ok)throw Error('লগইনের PIN মেলেনি বা সাময়িকভাবে লক আছে।');
+    return response;
+  }
+  async function confirmStaffAction(name,payload,title){
+    if(!staffPinToken||Date.now()>=staffPinExpires){staffOpenGate();throw Error('প্যানেল খুলতে লগইনের PIN দাও।');}
+    const pin=await askLoginPin(title);
+    if(pin===null)return null;
+    const result=requirePinSuccess(await db('rpc/play80_confirm_staff_action','POST',{
+      p_panel_token:staffPinToken,p_pin:pin,p_action:name,p_payload:payload
+    }));
+    return result.result??true;
+  }
+  function staffOpenGate(){
     staffPinToken=null;staffPinExpires=0;
     show('cloudOwnerContent',false);show('cloudStaffPinGate',isStaff());
-    showStaffPinSetup(false);
-    ownerStatus(isStaff()?'Staff PIN লিখুন। প্রথমবার হলে PIN সেট করুন।':'যাচাইকৃত Owner বা Admin অ্যাকাউন্টে লগইন করুন।',!isStaff());
+    $('cloudStaffPin').value='';
+    ownerStatus(isStaff()?'এখানে লগইনের PIN দাও।':'যাচাইকৃত Owner বা Admin অ্যাকাউন্টে লগইন করো।',!isStaff());
   }
-  $('cloudStaffCreatePin').addEventListener('click',()=>{
-    showStaffPinSetup(true);
-    ownerStatus('নতুন Staff PIN লিখুন এবং একই PIN আবার দিন।');
-  });
-  $('cloudStaffCancelPin').addEventListener('click',staffOpenGate);
-  async function unlockStaffPanel(pin) {
-    let data;
-    try{data=await db('rpc/staff_unlock_pin','POST',{p_pin:pin});}
-    catch(e){
-      if(e.message==='PIN not set yet'){
-        showStaffPinSetup(true);
-        ownerStatus('Staff PIN এখনও সেট হয়নি। নিচের দুই ঘরে নতুন PIN লিখুন।');
-        return;
-      }
-      throw e;
-    }
-    if(!data?.ok||!data.token)throw Error(data?.message||'Staff PIN যাচাই করা যায়নি।');
+  $('cloudStaffUnlock').addEventListener('click',e=>busy(e.currentTarget,async()=>{
+    const pin=$('cloudStaffPin').value;
+    $('cloudStaffPin').value='';
+    if(!/^[0-9]{6}$/.test(pin))throw Error('লগইনের PIN-এ ইংরেজি ৬টি সংখ্যা দাও।');
+    const data=requirePinSuccess(await db('rpc/play80_open_owner_panel','POST',{p_pin:pin}));
+    if(!data.token)throw Error('প্যানেল খোলার অনুমতি পাওয়া যায়নি।');
     staffPinToken=data.token;staffPinExpires=Date.now()+Math.max(0,Number(data.expires_in||180)-8)*1000;
-    showStaffPinSetup(false);
     show('cloudStaffPinGate',false);show('cloudOwnerContent',true);
     ownerStatus('Owner প্যানেল খুলেছে।');
     await switchStaffTab(requestedStaffTab);await refreshMenuCounts();
-  }
-  $('cloudStaffSavePin').addEventListener('click',e=>busy(e.currentTarget,async()=>{
-    const pin=$('cloudStaffNewPin').value;
-    if(!/^[0-9]{6}$/.test(pin))throw Error('নতুন Staff PIN-এ ইংরেজি ৬টি সংখ্যা দিন।');
-    if(pin!==$('cloudStaffConfirmPin').value)throw Error('দুই ঘরের PIN মিলছে না।');
-    try{await db('rpc/staff_set_pin','POST',{p_pin:pin});}
-    catch(e){
-      if(!e.message.startsWith('PIN already configured'))throw e;
-      showStaffPinSetup(false);
-      ownerStatus('Staff PIN আগে থেকেই সেট আছে। সেই PIN দিয়ে প্যানেল খুলুন।',true);
-      return;
-    }
-    showStaffPinSetup(false);
-    ownerStatus('Staff PIN সেভ হয়েছে। প্যানেল খুলছে…');
-    await unlockStaffPanel(pin);
-  },ownerStatus));
-  $('cloudStaffUnlock').addEventListener('click',e=>busy(e.currentTarget,async()=>{
-    const pin=$('cloudStaffPin').value;
-    if(!/^[0-9]{6}$/.test(pin))throw Error('Staff PIN-এ ইংরেজি ৬টি সংখ্যা দিন।');
-    $('cloudStaffPin').value='';
-    await unlockStaffPanel(pin);
   },ownerStatus));
   function makeOwnerItem(r){
     const el=document.createElement('div');el.className='cloudRequestItem';
@@ -345,10 +335,10 @@
     const note=document.createElement('input');note.placeholder='Rejection reason (required)';note.maxLength=500;
     const actions=document.createElement('div');actions.className='cloudActions';
     for(const decision of ['approved','rejected']){
-      actions.append(makeButton(decision==='approved'?'✓ APPROVE':'✕ REJECT',async()=>{
+      actions.append(makeButton(decision==='approved'?'✓ অনুমোদন':'✕ বাতিল',async()=>{
         if(decision==='rejected'&&!note.value.trim())throw Error('Rejection reason required');
-        if(!confirm('Confirm '+decision.toUpperCase()+' '+r.amount+' DEMO coins for '+(r.username||r.email||r.user_id)+'? No real-money transfer.'))return;
-        await staffRpc('staff_review_demo_request',{p_request_id:r.id,p_decision:decision,p_review_note:note.value.trim()||null});
+
+        if(await confirmStaffAction('staff_review_demo_request',{p_request_id:r.id,p_decision:decision,p_review_note:note.value.trim()||null},(decision==='approved'?'অনুমোদন':'বাতিল')+' · '+r.amount+' কয়েন · '+(r.username||r.email||r.user_id))===null)return;
         ownerStatus('Demo coin request '+decision+'.');await loadOwnerRequests();await loadAccount();
       },decision==='rejected'));
     }
@@ -357,6 +347,9 @@
   async function loadOwnerRequests(){
     const requests=await staffRpc('staff_list_demo_requests',{p_status:'pending'});
     const list=$('cloudOwnerRequests');list.replaceChildren();
+    const counts=await db('rpc/play80_menu_counts','POST',{});
+    const amount=kind=>Number(counts?.[kind]||0).toLocaleString('bn-BD');
+    $('play80WalletSummary').textContent='অপেক্ষমাণ ডিপোজিট '+amount('deposit_count')+'টি · '+amount('deposit_amount')+' কয়েন | উইথড্র '+amount('withdraw_count')+'টি · '+amount('withdraw_amount')+' কয়েন';
     if(!requests.length)list.textContent='No pending online DEMO coin requests.';
     requests.forEach(r=>list.append(makeOwnerItem(r)));
     $('cloudOwnerCount').textContent=String(requests.length);
@@ -400,7 +393,8 @@
         if(!Number.isSafeInteger(num)||num<1||num>1000000)throw Error('Enter a valid whole coin amount');
         if(!confirm('Send '+num+' VIRTUAL coins to '+(u.email||u.id)+'? Confirm?'))return;
         const operation=crypto.randomUUID?crypto.randomUUID():([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16));
-        const result=await staffRpc('staff_send_demo_coins',{p_target_user:u.id,p_amount:num,p_operation_id:operation,p_note:grantNote.value.trim()||'Owner manually credited virtual Demo Coins'});
+        const result=await confirmStaffAction('staff_send_demo_coins',{p_target_user:u.id,p_amount:num,p_operation_id:operation,p_note:grantNote.value.trim()||'Owner manually credited virtual Demo Coins'},'কয়েন পাঠান · '+num+' · '+(u.username||u.email||u.id));
+        if(result===null)return;
         ownerStatus(result?.duplicate?'Already processed this request.':'Sent '+num+' virtual coins. New total '+result.balance_after);
         amount.value='';await loadStaffUsers();
       }));
@@ -409,8 +403,8 @@
       if(isOwner() && u.role!=='owner'){
         card.append(makeButton(u.role==='admin'?'REMOVE ADMIN ROLE':'MAKE ADMIN',async()=>{
           const action=u.role==='admin'?'revoke':'grant';
-          if(!confirm((action==='revoke'?'Remove ADMIN permissions from ':'Grant ADMIN permissions to ')+(u.email||u.id)+'? The user account will NOT be deleted.'))return;
-          await staffRpc('staff_manage_admin',{p_target_user:u.id,p_action:action});
+
+          if(await confirmStaffAction('staff_manage_admin',{p_target_user:u.id,p_action:action},'Admin অনুমতি পরিবর্তন')===null)return;
           ownerStatus('Admin '+(action==='grant'?'created':'permissions revoked')+' for '+(u.email||u.id)+'. Ask this user to sign in again.');
           await loadStaffUsers();
         },true));
@@ -426,8 +420,9 @@
       card.append(createText('strong',u.role.toUpperCase()+' • '+(u.username||u.email)));
       card.append(createText('small',u.email+' • Joined '+escDate(u.created_at)));
       if(u.role==='admin'&&isOwner())card.append(makeButton('REVOKE ADMIN ROLE',async()=>{
-        if(!confirm('Remove ADMIN rights of '+u.email+'? This will NOT delete the account.'))return;
-        await staffRpc('staff_manage_admin',{p_target_user:u.id,p_action:'revoke'});await loadAdmins();
+
+        if(await confirmStaffAction('staff_manage_admin',{p_target_user:u.id,p_action:'revoke'},'Admin অনুমতি পরিবর্তন')===null)return;
+        await loadAdmins();
         ownerStatus('Admin role removed for '+u.email);
       },true));
       list.append(card);
@@ -489,9 +484,9 @@
     const username=$('cloudBotUsername').value.trim(),avatar=$('cloudBotAvatar').value.trim(),
       skill=$('cloudBotSkill').value,id=$('cloudBotId').value||null;
     if(username.length<3||!avatar)throw Error('Enter a name and an avatar');
-    if(!confirm('Save AI profile for future tournaments only? Live tournament scores and rewards will not change.'))return;
-    await staffRpc('play80_owner_bot_upsert',{p_bot_id:id,p_username:username,p_avatar:avatar,
-      p_skill:skill,p_active:$('cloudBotActive').checked});
+
+    if(await confirmStaffAction('play80_owner_bot_upsert',{p_bot_id:id,p_username:username,p_avatar:avatar,
+      p_skill:skill,p_active:$('cloudBotActive').checked},'কম্পিউটার প্লেয়ারের তথ্য সেভ')===null)return;
     ownerStatus('AI profile saved for future tournaments.');await loadBotOwner();
   },ownerStatus));
   $('cloudBotsRefresh').addEventListener('click',e=>busy(e.currentTarget,loadBotOwner,ownerStatus));
@@ -642,8 +637,9 @@
   }));
   $('p8RequestDeletion').addEventListener('click',e=>busy(e.currentTarget,async()=>{
     const body=$('p8SupportText').value.trim()||'I request review and deletion of my PLAY80 account.';
-    if(!confirm('Submit an account deletion REQUEST to Owner? Your account will not be deleted automatically.'))return;
-    await db('rpc/play80_send_support_message','POST',{p_body:body,p_category:'account_deletion'});
+    const pin=await askLoginPin('অ্যাকাউন্ট মুছতে সাপোর্ট রিকোয়েস্ট পাঠান');
+    if(pin===null)return;
+    requirePinSuccess(await db('rpc/play80_request_account_review','POST',{p_pin:pin,p_body:body}));
     $('p8SupportText').value='';await loadMyMessages();status('Account deletion request recorded. Owner will review it.');
   }));
   $('p8MyMessagesRefresh').addEventListener('click',e=>busy(e.currentTarget,loadMyMessages));
@@ -674,8 +670,8 @@
       const reply=document.createElement('input');reply.maxLength=1000;reply.placeholder='Send Owner reply to this player';card.append(reply);
       card.append(makeButton('SEND REPLY',async()=>{
         if(!reply.value.trim())throw Error('Write a reply');
-        if(!confirm('Send this reply to '+r.user_id+'?'))return;
-        await staffRpc('play80_owner_send_message',{p_user:r.user_id,p_note:reply.value.trim()});
+
+        if(await confirmStaffAction('play80_owner_send_message',{p_user:r.user_id,p_note:reply.value.trim()},'সাপোর্ট মেসেজ পাঠান')===null)return;
         reply.value='';await loadOwnerInbox();
       }));
       list.append(card);
@@ -695,26 +691,27 @@
     card.append(makeButton('↩ RECLAIM COINS',async()=>{
       const amount=Number(num.value),reason=note.value.trim();
       if(!Number.isSafeInteger(amount)||amount<1||amount>1000000||reason.length<5)throw Error('Enter 1–1,000,000 coins and a correction reason (5+ chars)');
-      if(!confirm('Take back '+amount+' DEMO Coins from '+u.id+'? Reason: '+reason+'. No real money.'))return;
-      const result=await staffRpc('play80_owner_reclaim_coins',{p_target_user:u.id,p_amount:amount,p_note:reason,p_operation_id:newId()});
+
+      const result=await confirmStaffAction('play80_owner_reclaim_coins',{p_target_user:u.id,p_amount:amount,p_note:reason,p_operation_id:newId()},'কয়েন কেটে নিন · '+amount+' · '+u.id);
+        if(result===null)return;
       ownerStatus('Owner correction recorded. Remaining wallet balance: '+result.balance_after);await loadStaffUsers();
     },true));
     card.append(makeButton('💬 SEND USER NOTICE',async()=>{
       if(!note.value.trim())throw Error('Type a message');
-      if(!confirm('Send this message to User ID '+u.id+'?'))return;
-      await staffRpc('play80_owner_send_message',{p_user:u.id,p_note:note.value.trim()});
+
+      if(await confirmStaffAction('play80_owner_send_message',{p_user:u.id,p_note:note.value.trim()},'সাপোর্ট মেসেজ পাঠান')===null)return;
       ownerStatus('Message delivered to user.');
     },true));
     const suspend=makeButton('⛔ SUSPEND PLAYER',async()=>{
       const reason=note.value.trim();if(reason.length<5)throw Error('Reason required (5+ chars)');
-      if(!confirm('SUSPEND Account ID '+u.id+'?\nEmail: '+u.email+'\nReason: '+reason+'\nThis blocks new sign-ins. Existing active sessions may remain until token expiry. No permanent deletion.'))return;
-      await staffRpc('play80_owner_account_control',{p_target_user:u.id,p_action:'suspend',p_note:reason});
+
+      if(await confirmStaffAction('play80_owner_account_control',{p_target_user:u.id,p_action:'suspend',p_note:reason},'ইউজারের অ্যাকাউন্ট স্ট্যাটাস পরিবর্তন')===null)return;
       ownerStatus('Account suspended; full account deletion was NOT performed.');
     },true);card.append(suspend);
     card.append(makeButton('✅ RESTORE PLAYER',async()=>{
       const reason=note.value.trim();if(reason.length<5)throw Error('Reason required (5+ chars)');
-      if(!confirm('RESTORE player '+u.id+'?'))return;
-      await staffRpc('play80_owner_account_control',{p_target_user:u.id,p_action:'restore',p_note:reason});
+
+      if(await confirmStaffAction('play80_owner_account_control',{p_target_user:u.id,p_action:'restore',p_note:reason},'ইউজারের অ্যাকাউন্ট স্ট্যাটাস পরিবর্তন')===null)return;
       ownerStatus('Account restored.');
     },true));
   }
@@ -739,7 +736,10 @@
       if(!isOwner()||!staffPinToken)throw Error('Owner action PIN required');
       const fields=Object.fromEntries(new FormData(dsrForm));
       fields.email=fields.email.trim().toLowerCase();fields.username=fields.username.trim().toLowerCase();
-      const result=await raw('/functions/v1/play80-create-dsr','POST',{...fields,pin_token:staffPinToken},await token());
+      const pin=await askLoginPin('DSR অ্যাকাউন্ট তৈরি');
+      if(pin===null)return;
+      const confirmation=requirePinSuccess(await db('rpc/play80_open_owner_panel','POST',{p_pin:pin,p_scope:'dsr'}));
+      const result=await raw('/functions/v1/play80-create-dsr','POST',{...fields,pin_token:confirmation.token},await token());
       dsrForm.reset();ownerStatus(result.message);
     },ownerStatus);
   };

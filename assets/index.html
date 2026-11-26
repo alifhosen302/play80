@@ -1039,21 +1039,29 @@ body.p8-auth-locked .app{max-width:560px}
 <section id="screen-menu" class="screen hidden">
   <div class="panel cloudPanel"><h1 class="bigTitle">মেনু</h1><div id="p8MenuItems" class="p8-menu-grid"></div></div>
 </section>
+<style>
+#play80ActionPin{width:min(90vw,420px);box-sizing:border-box;border:1px solid #796d94;border-radius:16px;background:#191630;color:#fff;padding:20px}
+#play80ActionPin::backdrop{background:#090615bc}
+#play80ActionPin input{width:100%;box-sizing:border-box;margin:8px 0 12px}
+#play80ActionPin .cloudActions{display:flex;gap:8px}
+</style>
+<dialog id="play80ActionPin" aria-labelledby="play80ActionTitle">
+  <form method="dialog">
+    <h2 id="play80ActionTitle"></h2>
+    <label for="play80ActionPinValue">লগইনের PIN</label>
+    <input id="play80ActionPinValue" type="password" inputmode="numeric" autocomplete="off" maxlength="6" pattern="[0-9]{6}" required />
+    <div class="cloudActions"><button class="action" type="submit" value="confirm">নিশ্চিত করুন</button><button class="action secondary" type="submit" value="cancel" formnovalidate>ফিরে যান</button></div>
+  </form>
+</dialog>
 <section id="screen-remote-owner" class="screen hidden">
   <button class="back" data-open="account">❮ Online Account</button>
   <div class="center"><h1 class="bigTitle">🛡️ PLAY80 Owner Dashboard</h1><p class="sub">শুধুমাত্র Verified Owner • পরিচালনার জন্য আলাদা PIN সুরক্ষা</p></div>
   <div class="panel cloudPanel"><div class="p8CoinDisclaimer">PLAY80 Coin-এর নগদ মূল্য নেই। এখানে সব অনুমোদন সার্ভারে যাচাই করা হয়।</div><button type="button" id="p8OwnerLogout" class="smallAction" style="width:100%;min-height:43px;margin:8px 0 12px">↪ Owner Logout</button>
     <div id="cloudOwnerAuthBlocked">Sign in with the verified Play80 Owner email to access online requests.</div>
     <div id="cloudStaffPinGate" class="hidden">
-      <p class="sub">Owner ও Admin-এর সব পরিচালনামূলক কাজের আগে ৬ সংখ্যার PIN প্রয়োজন। PIN সার্ভারে যাচাই করা হয় এবং ৩ মিনিট পর পুনরায় দিতে হবে।</p>
-      <div id="cloudStaffUnlockField" class="formGroup"><label for="cloudStaffPin">6-digit staff PIN</label><input id="cloudStaffPin" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" placeholder="••••••" /></div>
-      <div id="cloudStaffUnlockActions" class="cloudActions"><button id="cloudStaffUnlock" class="action" type="button">🔓 UNLOCK PANEL</button><button id="cloudStaffCreatePin" class="action secondary" type="button">প্রথমবার PIN সেট করুন</button></div>
-      <div id="cloudStaffPinSetup" class="hidden">
-        <div class="formGroup"><label for="cloudStaffNewPin">নতুন Staff PIN</label><input id="cloudStaffNewPin" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password" /></div>
-        <div class="formGroup"><label for="cloudStaffConfirmPin">নতুন PIN আবার লিখুন</label><input id="cloudStaffConfirmPin" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password" /></div>
-        <div class="cloudActions"><button id="cloudStaffSavePin" class="action" type="button">PIN সেভ করে প্যানেল খুলুন</button><button id="cloudStaffCancelPin" class="action secondary" type="button">ফিরে যান</button></div>
-      </div>
-      <p class="tiny">PIN কাউকে দেবে না। Owner Login-এর PIN এবং প্রশাসনিক অনুমোদনের Staff PIN আলাদা নিরাপত্তা স্তর।</p>
+      <p class="sub">Owner প্যানেল খুলতে তোমার লগইনের PIN দাও।</p>
+      <div class="formGroup"><label for="cloudStaffPin">লগইনের PIN</label><input id="cloudStaffPin" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" /></div>
+      <button id="cloudStaffUnlock" class="action" type="button">প্যানেল খুলুন</button>
     </div>
     <div id="cloudOwnerContent" class="hidden">
       <div class="cloudStaffTabs">
@@ -1065,7 +1073,7 @@ body.p8-auth-locked .app{max-width:560px}
         <button class="cloudStaffTab" type="button" data-staff-tab="bots">🤖 Computer Players</button>
         <button class="cloudStaffTab" type="button" data-staff-tab="tournaments">🏆 Tournament Scheduler</button>
       </div>
-      <div id="cloudStaffTab-wallet" class="cloudStaffPane"><div class="sectionTitle"><h2>Pending Coin Requests</h2><span id="cloudOwnerCount">0</span></div><button class="action secondary" type="button" id="cloudOwnerRefresh">REFRESH LIVE REQUESTS</button><div id="cloudOwnerRequests" class="cloudList"></div></div>
+      <div id="cloudStaffTab-wallet" class="cloudStaffPane"><div class="sectionTitle"><h2>Pending Coin Requests</h2><span id="cloudOwnerCount">0</span></div><button class="action secondary" type="button" id="cloudOwnerRefresh">REFRESH LIVE REQUESTS</button><p id="play80WalletSummary" role="status"></p><div id="cloudOwnerRequests" class="cloudList"></div></div>
       <div id="cloudStaffTab-users" class="cloudStaffPane hidden"><div class="sectionTitle"><h2>All Users & Balances</h2></div><div class="formGroup"><label for="cloudStaffSearch">Search by User ID / email / username</label><input id="cloudStaffSearch" maxlength="80" placeholder="Search account" /></div><button type="button" class="action secondary" id="cloudStaffSearchButton">SEARCH USERS</button><div id="cloudStaffUsers" class="cloudList"></div></div>
       <div id="cloudStaffTab-admins" class="cloudStaffPane hidden"><div class="sectionTitle"><h2>Staff accounts</h2></div><p class="tiny">শুধু মূল Owner নতুন Admin দিতে বা Admin ক্ষমতা সরাতে পারবে। User account মুছে দেওয়া হবে না।</p><div id="cloudStaffAdmins" class="cloudList"></div></div>
       <div id="cloudStaffTab-activity" class="cloudStaffPane hidden"><div class="sectionTitle"><h2>Who is Playing</h2></div><p class="tiny">সাইন-ইন করা ব্যবহারকারীদের অ্যাপ থেকে পাঠানো সাম্প্রতিক গেম স্ট্যাটাস (সর্বশেষ ২ মিনিট)।</p><button class="action secondary" type="button" id="cloudStaffActivityRefresh">REFRESH LIVE GAMES</button><div id="cloudStaffActivity" class="cloudList"></div></div>
