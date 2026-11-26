@@ -147,6 +147,8 @@ try:
   page.reload()
   assert page.locator('.play80TopTabs').is_hidden(),'Logout lock must persist after reload'
   current_role[0]='player'
+  turnover={'withdrawal_guard_enabled':False,'items':[]}
+  page.route('**/rest/v1/rpc/play80_my_turnover',lambda route:route.fulfill(json=turnover))
   approved_credits=[]
   page.route('**/rest/v1/demo_wallet_requests?*status=eq.approved*',
              lambda route:route.fulfill(json=approved_credits))
@@ -224,6 +226,21 @@ try:
   assert page.locator('#play80ActionPin').is_visible()
   page.locator('#play80ActionPin button[value="cancel"]').click()
   assert page.locator('#play80ActionPin').is_hidden()
+  turnover.update(withdrawal_guard_enabled=True,items=[{
+    'source':'deposit','coins':500,'required':500,'completed':50,'created_at':'2026-11-26T12:00:00Z'
+  }])
+  page.get_by_role('button',name='অনুরোধ পাঠাও').click()
+  page.get_by_text('আপনার টার্নওভার বাকি। শেষ হলে উইথড্র করতে পারবেন।',exact=True).wait_for()
+  assert page.locator('#play80ActionPin').is_hidden()
+  page.locator('#p8MenuButton').click()
+  page.get_by_role('button',name='টার্নওভার',exact=True).click()
+  progress=page.get_by_role('progressbar',name='টার্নওভার অগ্রগতি')
+  progress.wait_for()
+  assert progress.get_attribute('value')=='50'
+  assert progress.get_attribute('max')=='500'
+  turnover['items']=[]
+  page.get_by_text('বাকি টার্নওভার নেই।',exact=True).wait_for(timeout=8000)
+  assert progress.count()==0
   page.locator('.footerNav [data-open="account"]').first.click()
   page.locator('#cloudSignOut').click()
   assert page.locator('.play80TopTabs').is_hidden(),'Player logout must lock gameplay'
