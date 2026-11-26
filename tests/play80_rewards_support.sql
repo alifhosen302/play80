@@ -94,3 +94,78 @@ begin
   perform public.play80_owner_delete_thread(player,(current_thread->>'latest_id')::uuid,4,'123456');
   if exists(select 1 from public.play80_support_messages where user_id=player) then raise exception 'Confirmed thread not removed'; end if;
 end $$;
+
+-- Navigation and replies use the verified session. Reviewing a request still uses the action PIN.
+create schema extensions;
+create extension pgcrypto with schema extensions;
+alter table auth.users add column email text;
+alter table public.demo_wallets add column held_balance bigint not null default 0;
+alter table public.demo_wallet_requests
+  add column id uuid primary key default gen_random_uuid(), add column user_id uuid,
+  add column user_note text, add column review_note text,
+  add column created_at timestamptz default now(), add column reviewed_at timestamptz;
+alter table public.play80_support_messages add column sender_id uuid;
+create table public.owner_audit_log(actor_id uuid, action text, object_type text, object_id uuid, details jsonb);
+create table private.staff_pin_sessions(token_hash text, user_id uuid, expires_at timestamptz, login_scope text);
+create function private.check_staff_pin_token(p_token text) returns void language plpgsql as $$
+begin
+  if not exists(select 1 from private.staff_pin_sessions
+    where token_hash=encode(extensions.digest(p_token,'sha256'),'hex')
+      and user_id=auth.uid() and expires_at>now()) then raise exception 'PIN token required'; end if;
+end $$;
+create function public.staff_review_demo_request(p_token text,p_id uuid,p_decision text,p_note text)
+returns jsonb language plpgsql as $$
+begin
+  perform private.check_staff_pin_token(p_token);
+  update public.demo_wallet_requests set status=p_decision,review_note=p_note where id=p_id and status='pending';
+  if not found then raise exception 'No pending request'; end if;
+  return jsonb_build_object('ok',true);
+end $$;
+\i /tmp/play80-navigation-migration.sql
+do $$
+declare player uuid:='00000000-0000-4000-8000-000000000002';
+declare admin_id uuid:='00000000-0000-4000-8000-000000000003';
+declare owner_id uuid:='00000000-0000-4000-8000-000000000004';
+declare request_id uuid;
+declare review jsonb;
+begin
+  insert into public.demo_wallet_requests(user_id,request_kind,amount,status)
+    values(player,'demo_credit',100,'pending') returning id into request_id;
+  insert into public.play80_support_messages(user_id,sender_id,sender_role,body)
+    values(player,player,'player','New question');
+  review:=jsonb_build_object('p_request_id',request_id,'p_decision','approved');
+
+  perform set_config('test.user_id',player::text,true);
+  begin
+    perform public.play80_owner_wallet_page(null,'all','pending');
+    raise exception using errcode='assert_failure',message='Player could read wallet requests';
+  exception when raise_exception then
+    if sqlerrm <> 'Staff required' then raise; end if;
+  end;
+  perform set_config('test.user_id',admin_id::text,true);
+  if (public.play80_owner_wallet_page(null,'demo_credit','pending')->'rows'->0->>'id') is distinct from request_id::text
+    then raise exception 'Admin could not open wallet requests'; end if;
+  begin
+    perform public.play80_owner_reply_support(player,'Admin reply');
+    raise exception using errcode='assert_failure',message='Admin sent an Owner reply';
+  exception when insufficient_privilege then null;
+  end;
+  perform set_config('test.user_id',owner_id::text,true);
+  if (public.play80_owner_wallet_page(null,'all','pending')->'rows'->0->>'id') is distinct from request_id::text
+    then raise exception 'Owner could not open wallet requests'; end if;
+  if public.play80_confirm_staff_action(null,'000000','staff_review_demo_request',review)->>'ok' <> 'false'
+    then raise exception 'Wrong PIN accepted for review'; end if;
+  if public.play80_confirm_staff_action(null,'123456','staff_review_demo_request',review)->>'ok' <> 'true'
+    then raise exception 'Review with action PIN failed'; end if;
+  if (select status from public.demo_wallet_requests where id=request_id) <> 'approved'
+    or exists(select 1 from private.staff_pin_sessions where user_id=owner_id)
+    then raise exception 'Request review or action token cleanup failed'; end if;
+
+  perform public.play80_owner_open_thread(player);
+  perform public.play80_owner_reply_support(player,' Owner reply ');
+  if not exists (select 1 from public.play80_support_messages
+      where user_id=player and sender_id=owner_id and sender_role='owner' and body='Owner reply')
+    or public.play80_menu_counts()->>'support' <> '0'
+    or not exists(select 1 from public.owner_audit_log where actor_id=owner_id and object_id=player)
+    then raise exception 'Owner reply, notification or audit failed'; end if;
+end $$;
