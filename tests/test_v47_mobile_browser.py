@@ -40,9 +40,13 @@ try:
    expires_at:Math.floor(Date.now()/1000)+999999,
    user:{id:'00000000-0000-4000-8000-000000000001',email:'mock@example.test',app_metadata:{role:'player'}}
   }))''')
+  startup_errors=[]
+  page.on('pageerror',lambda error:startup_errors.append(str(error)))
   page.reload(wait_until='load')
-  page.wait_for_timeout(400)
-  assert page.locator('.play80TopTabs').is_visible(),'Game tabs available after mocked session'
+  try:
+   page.locator('.play80TopTabs').wait_for(state='visible',timeout=5000)
+  except Exception as error:
+   raise AssertionError('Game tabs unavailable after session restore: '+str(startup_errors)) from error
   page.locator('[data-main-tab="tournament"]').click()
   assert page.locator('#p8TournamentCatalog').is_visible(),'Tournament selector visible'
   assert page.locator('.p8TourCard').count()==4

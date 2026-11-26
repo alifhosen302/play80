@@ -1013,12 +1013,12 @@ body.p8-auth-locked .app{max-width:560px}
       <div class="formGroup"><label for="cloudUsername">Unique Username</label><input id="cloudUsername" type="text" maxlength="24" placeholder="3–24 English letters, numbers or _" autocapitalize="off" /><button id="cloudSaveUsername" type="button" class="action secondary" style="margin-top:8px">SAVE USERNAME</button></div>
       <div class="hubStat"><div><b>PLAY80 Coins</b><small>Reserved pending removal: <span id="cloudHeld">0</span></small></div><strong id="cloudBalance">—</strong></div>
       <div class="play80Surface" style="margin:8px 0">
-  <strong>🎁 একবারের ভার্চুয়াল কয়েন বোনাস</strong><p style="font-size:12px">প্রথম অনুমোদিত ১,০০০ ভার্চুয়াল কয়েনের অনুরোধে একবার অতিরিক্ত ৫,০০০ কয়েন বোনাস পাবে। এই কয়েন নগদে রূপান্তরযোগ্য নয়।</p>
+  <strong>🎁 একবারের ভার্চুয়াল কয়েন বোনাস</strong><p style="font-size:12px">প্রথম অনুমোদিত ডিপোজিট ঠিক ১,০০০ ভার্চুয়াল কয়েন হলে একবার ৫,০০০ বোনাস পাবে। এই কয়েন নগদে রূপান্তরযোগ্য নয়।</p>
   <small>Bonus credited: <b id="cloudBonusEarned">—</b> · Required gameplay: <b id="cloudTurnoverRequired">—</b> · Completed: <b id="cloudTurnoverCompleted">—</b> · Remaining: <b id="cloudTurnoverRemaining">—</b></small>
  </div><div class="sectionTitle"><h2>কয়েনের অনুরোধ</h2></div>
       <div class="formGroup"><label for="cloudRequestKind">Request type</label><select id="cloudRequestKind" class="cloudSelect"><option value="demo_credit">➕ Add virtual coins (100–20,000)</option><option value="demo_debit">➖ Remove virtual coins (min 200)</option></select></div>
       <div class="formGroup"><label for="cloudAmount">কয়েনের পরিমাণ</label><input id="cloudAmount" type="number" min="100" step="1" value="100" /></div>
-      <div class="formGroup"><label for="cloudNote">নোট (ঐচ্ছিক)</label><textarea id="cloudNote" maxlength="300" rows="2" placeholder="Owner-এর জন্য ছোট নোট"></textarea></div>
+      <div class="formGroup" id="play80DemoReferenceField"><label for="cloudNote">ট্রান্সেকশন নম্বর</label><input id="cloudNote" maxlength="32" autocomplete="off" autocapitalize="characters" placeholder="যেমন DEMO-1001" /><small>শুধু ডেমো ট্রান্সেকশন নম্বর দিন।</small></div>
       <button type="button" id="cloudSubmit" class="action">অনুরোধ পাঠাও</button>
       <div class="sectionTitle"><h2>আমার রিকোয়েস্টের ইতিহাস</h2></div><div id="cloudRequests" class="cloudList" tabindex="-1"></div>
       <button type="button" class="action secondary" id="cloudRefresh">ব্যালেন্স ও ইতিহাস রিফ্রেশ</button>
@@ -1057,6 +1057,14 @@ body.p8-auth-locked .app{max-width:560px}
 #p8MenuQuick .p8-menu-icon{width:29px;height:29px;border-radius:9px;background:#ffffff20}
 .p8-menu-caption{font-size:15px;color:#e2d8f4;margin:0 0 9px}
 @media(max-width:355px){#p8MenuItems{grid-template-columns:repeat(3,minmax(0,1fr))}.p8-account-summary{gap:7px}.p8-avatar{width:39px;height:39px}}
+.p8-demo-method{display:grid;gap:9px;padding:11px;border:1px solid #66405e;background:#2b1c36;border-radius:14px}
+.p8-demo-method .p8-demo-method-label,.p8-demo-method .p8-demo-number-row{display:flex;align-items:center;gap:8px}
+.p8-demo-method .p8-demo-method-label{width:100%;padding:7px;border:1px solid #795069;background:#44283f;border-radius:10px;color:#fff;font:inherit;text-align:left;min-height:42px;cursor:default}
+.p8-demo-wallet-icon{width:50px;height:30px;object-fit:contain;padding:2px;background:#fff;border-radius:8px;flex:none}
+.p8-demo-label{border-radius:12px;background:#eecfe9;color:#391633;font-size:11px;padding:3px 7px;margin-left:auto}
+.p8-demo-method .p8-demo-number-row input{min-width:0;flex:1;padding:6px 8px}
+.p8-demo-method [hidden],#p8FirstCreditOffer[hidden]{display:none}
+#p8FirstCreditOffer{padding:10px 12px;border-radius:11px;border:1px solid #6a5950;background:#3d312e;color:#ffe0a7;font-size:13px;margin:0}
 .p8-wallet-form .hubStat{border:1px solid #4c4063;border-radius:13px;background:#25213b;margin:0;padding:10px}
 .p8-wallet-form .sectionTitle{margin:12px 0 0}
 .p8-request-toolbar,.p8-amount-grid{display:grid;gap:7px}

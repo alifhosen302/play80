@@ -147,6 +147,9 @@ try:
   page.reload()
   assert page.locator('.play80TopTabs').is_hidden(),'Logout lock must persist after reload'
   current_role[0]='player'
+  approved_credits=[]
+  page.route('**/rest/v1/demo_wallet_requests?*status=eq.approved*',
+             lambda route:route.fulfill(json=approved_credits))
   page.route('**/rest/v1/demo_wallets?*',lambda route:route.fulfill(json=[{'balance':0,'held_balance':0}]))
   page.route('**/rest/v1/profiles?*',lambda route:route.fulfill(json=[{'username':'example_player','display_name':'Player'}]))
   page.locator('#cloudLoginEmail').fill('testplayer@example.com')
@@ -167,7 +170,24 @@ try:
   assert tiles.nth(3).bounding_box()['y']==tiles.nth(0).bounding_box()['y']
   assert tiles.nth(4).bounding_box()['y']>tiles.nth(0).bounding_box()['y']
   assert page.get_by_role('button',name='রেফার বোনাস').is_visible()
-  page.get_by_role('button',name='উইথড্র',exact=True).click()
+  page.locator('#p8MenuQuick').get_by_role('button',name='ডিপোজিট',exact=True).click()
+  page.locator('#p8FirstCreditOffer').wait_for(state='visible')
+  assert 'প্রথম অনুমোদিত ডিপোজিট ঠিক ১,০০০' in page.locator('#p8FirstCreditOffer').inner_text()
+  assert page.get_by_label('ডেমো সেন্ড মানি নম্বর').input_value()=='00000000000'
+  assert not page.get_by_label('ডেমো সেন্ড মানি নম্বর').is_editable()
+  page.get_by_role('button',name='অনুরোধ পাঠাও').click()
+  page.get_by_text('ডেমো ট্রান্সেকশন নম্বর লিখুন।',exact=True).wait_for()
+  page.get_by_label('ট্রান্সেকশন নম্বর',exact=True).fill('DEMO-1001')
+  page.get_by_role('button',name='অনুরোধ পাঠাও').click()
+  page.locator('#play80ActionPin').wait_for(state='visible')
+  page.locator('#play80ActionPin button[value="cancel"]').click()
+  approved_credits.append({'id':'already-approved'})
+  page.locator('#cloudRefresh').click()
+  page.locator('#p8FirstCreditOffer').wait_for(state='hidden')
+  page.locator('.p8-request-toolbar').get_by_role('button',name='উইথড্র',exact=True).click()
+  assert page.get_by_label('ট্রান্সেকশন নম্বর',exact=True).is_hidden()
+  assert page.get_by_label('ডেমো সেন্ড মানি নম্বর').is_hidden()
+  assert page.get_by_role('button',name='বিকাশ ডেমো',exact=True).is_visible()
   assert page.locator('#cloudRequestKind').input_value()=='demo_debit'
   assert page.locator('.p8-request-toolbar [data-kind="demo_debit"]').get_attribute('aria-pressed')=='true'
   page.locator('.p8-amount-grid [data-amount="500"]').click()
