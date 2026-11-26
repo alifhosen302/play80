@@ -90,7 +90,7 @@ try:
   assert page.get_by_role('button',name='রেফার বোনাস').is_visible()
   page.get_by_role('button',name='উইথড্র',exact=True).click()
   assert page.locator('#cloudRequestKind').input_value()=='demo_debit'
-  page.locator('[data-open="account"]').first.click()
+  page.locator('.footerNav [data-open="account"]').first.click()
   page.locator('#cloudSignOut').click()
   assert page.locator('.play80TopTabs').is_hidden(),'Player logout must lock gameplay'
   current_role[0]='dsr'
@@ -99,7 +99,7 @@ try:
   page.locator('#cloudLogin').click()
   page.locator('#screen-home').wait_for(state='visible')
   assert page.locator('#cloudOwnerEntry').is_hidden()
-  page.locator('[data-open="account"]').first.click()
+  page.locator('.footerNav [data-open="account"]').first.click()
   assert page.locator('#cloudRole').inner_text()=='DSR'
   assert not errors,'Unexpected JavaScript exceptions: '+str(errors)
   print('PASS: unified Sign In/Sign Up, small Owner creation, server-role Owner/Player routing, PIN gate and logout')
