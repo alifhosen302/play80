@@ -833,7 +833,7 @@
     const coins=account&&balance?walletMoney(balance.balance):'—';
     $('p8MenuAvatar').textContent='';
     $('p8MenuName').textContent=name;
-    $('p8MenuUserId').textContent=account?'আইডি '+account.id:'—';
+    $('p8MenuUserId').textContent=account&&profile?.username?'@'+profile.username:'—';
     $('p8MenuBalance').textContent=coins;
     $('headerCoins').textContent=coins;
     profileField.hidden=!account||!!profile?.username;

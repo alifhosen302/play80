@@ -82,7 +82,7 @@ try:
   assert page.locator('#p8MenuItems .p8-menu-icon').count()>=5
   assert page.locator('#p8MenuItems').evaluate("(grid) => getComputedStyle(grid).gridTemplateColumns.split(' ').length")==4
   assert page.locator('#p8MenuAvatar').is_visible()
-  assert page.locator('#p8MenuUserId').inner_text().startswith('আইডি ')
+  assert page.locator('#p8MenuUserId').inner_text()=='@play80'
   assert page.locator('#headerPoints').count()==0
   assert page.locator('#p8MenuBalance').inner_text()==page.locator('#headerCoins').inner_text()=='৫০,০০০'
   page.get_by_role('button',name='প্রোফাইল',exact=True).click()
