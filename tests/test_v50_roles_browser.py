@@ -60,7 +60,7 @@ try:
   page.locator('#cloudLoginPassword').fill('123456')
   page.locator('#cloudLogin').click()
   page.wait_for_timeout(450)
-  assert page.locator('.play80TopTabs').is_visible(),'Verified Owner login failed'
+  assert page.locator('.play80TopTabs').is_hidden(),'Game tabs must stay off the Owner page'
   assert page.locator('#screen-remote-owner').is_visible(),'Owner dashboard not opened'
   assert page.locator('#cloudStaffPinGate').is_visible(),'Owner action PIN gate missing'
   page.route('**/rest/v1/rpc/play80_menu_counts',lambda route:route.fulfill(json={'requests':1,'support':1}))
@@ -73,9 +73,16 @@ try:
   page.route('**/rest/v1/rpc/play80_open_owner_panel',lambda route:route.fulfill(json={
    'ok':True,'token':'mock-staff-session','expires_in':180
   }))
-  page.route('**/rest/v1/rpc/staff_list_demo_requests',lambda route:route.fulfill(json=[{
-   'id':'mock-wallet-request','request_kind':'demo_credit','amount':100,'username':'example_player','created_at':'2026-11-26T00:00:00Z'
-  }]))
+  def wallet_page(route):
+   request=route.request.post_data_json
+   done=request['p_view']=='history'
+   route.fulfill(json={
+    'rows':[{'id':'mock-wallet-request','request_kind':'demo_credit','status':'approved' if done else 'pending',
+             'amount':100,'username':'example_player','created_at':'2026-11-26T00:00:00Z'}],
+    'summary':{'deposit_amount':100,'deposit_count':1,'withdraw_amount':0,'withdraw_count':0},
+    'owner_available':50000,
+   })
+  page.route('**/rest/v1/rpc/play80_owner_wallet_page',wallet_page)
   staff_calls=[]
   def mock_review(route):
    staff_calls.append(route.request.post_data_json)
@@ -83,6 +90,9 @@ try:
   page.route('**/rest/v1/rpc/play80_confirm_staff_action',mock_review)
   page.locator('#p8MenuButton').click()
   page.locator('#p8MenuItems [data-panel="wallet"]').click()
+  assert page.locator('#screen-owner-wallet').is_visible()
+  assert page.locator('.cloudStaffTabs').is_hidden()
+  assert page.locator('.play80TopTabs').is_hidden()
   page.locator('#cloudStaffPin').fill('123456')
   page.locator('#cloudStaffUnlock').click()
   page.get_by_role('button',name='✓ অনুমোদন').click()
@@ -90,9 +100,15 @@ try:
   page.locator('#play80ActionPinValue').fill('123456')
   page.locator('#play80ActionPin button[value="confirm"]').click()
   page.wait_for_function("() => !document.querySelector('#play80ActionPin').open")
-  page.get_by_text('Demo coin request approved.').wait_for()
+  page.get_by_text('রিকোয়েস্ট অনুমোদিত হয়েছে।').wait_for()
   assert staff_calls[0]['p_action']=='staff_review_demo_request'
   assert staff_calls[0]['p_payload']['p_decision']=='approved'
+  assert page.locator('#play80OwnerAvailable').inner_text()=='৫০,০০০'
+  page.locator('#play80WalletView').select_option('history')
+  page.locator('.wallet-state[data-status="approved"]').wait_for()
+  assert page.get_by_role('button',name='✓ অনুমোদন').count()==0
+  page.locator('#p8MenuButton').click()
+  page.get_by_role('button',name='ড্যাশবোর্ড',exact=True).click()
   assert page.locator('#p8OwnerLogout').is_visible()
   page.locator('#p8OwnerLogout').click()
   assert page.locator('#screen-account').is_visible(),'Owner logout not returned to Sign In'

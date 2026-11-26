@@ -1053,19 +1053,64 @@ body.p8-auth-locked .app{max-width:560px}
     <div class="cloudActions"><button class="action" type="submit" value="confirm">নিশ্চিত করুন</button><button class="action secondary" type="submit" value="cancel" formnovalidate>ফিরে যান</button></div>
   </form>
 </dialog>
+<style>
+body:not(.play80-game-section) .play80TopTabs{display:none}
+body[data-play80-screen="owner-wallet"] .top{display:none}
+#screen-owner-wallet{--wallet-panel:#17192c;--wallet-line:#34334f;--wallet-text:#c4c2d8;padding:16px 14px 104px}
+.p8-wallet-head{display:flex;align-items:flex-start;gap:12px;margin:4px 0 18px}
+.p8-wallet-head .back{width:42px;min-height:42px;margin:0;padding:0;border:1px solid var(--wallet-line);border-radius:12px;background:var(--wallet-panel);color:#eee}
+.p8-wallet-head h1{font-size:clamp(21px,6vw,30px);line-height:1.25;margin:0 0 4px;color:#f6f3ff}
+.p8-wallet-head p,.p8-wallet-card small,.p8-wallet-entry small,#play80WalletNotice{color:var(--wallet-text)}
+.p8-wallet-head p{font-size:13px;margin:0}
+.p8-wallet-owner,.p8-wallet-card,.p8-wallet-entry,.p8-wallet-empty,#walletGateSlot:not(:empty){border:1px solid var(--wallet-line);border-radius:15px;background:var(--wallet-panel);padding:13px}
+.p8-wallet-owner{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.p8-wallet-owner strong{color:#f5d487;font-size:21px}
+.p8-wallet-totals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.p8-wallet-card{display:grid;gap:6px;min-width:0}
+.p8-wallet-card strong{font-size:21px;overflow-wrap:anywhere;color:#a1ebc7}
+.p8-wallet-card.withdraw strong{color:#f1b1c8}
+.p8-wallet-controls{display:flex;align-items:end;gap:8px;flex-wrap:wrap;margin:16px 0 10px}
+.p8-wallet-controls label{display:grid;gap:5px;flex:1 1 115px;font-size:13px}
+.p8-wallet-controls select,.p8-wallet-controls button,.p8-wallet-entry input{box-sizing:border-box;min-height:44px;background:#25243d;color:#f2eafe;border:1px solid var(--wallet-line);border-radius:10px;padding:8px}
+.p8-wallet-entry{display:grid;gap:8px;margin-top:8px;overflow-wrap:anywhere}
+.p8-wallet-entry h3{font-size:17px;margin:0}
+.p8-wallet-entry header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.p8-wallet-entry .wallet-state{font-size:12px;border:1px solid var(--wallet-line);border-radius:20px;padding:4px 8px}
+.wallet-state[data-status="approved"]{color:#a1ebc7}.wallet-state[data-status="rejected"]{color:#f1b1c8}
+#play80WalletNotice{margin:12px 0;min-height:18px;font-size:14px}
+</style>
+<section id="screen-owner-wallet" class="screen hidden" aria-labelledby="play80WalletTitle">
+  <header class="p8-wallet-head"><button class="back" data-open="menu" type="button" aria-label="মেনুতে ফিরুন">‹</button><div><h1 id="play80WalletTitle">ডিপোজিট ও উইথড্র</h1><p>ভার্চুয়াল কয়েনের রিকোয়েস্ট ও ইতিহাস</p></div></header>
+  <div id="walletGateSlot"></div>
+  <div id="play80WalletNotice" role="status"></div>
+  <div id="play80OwnerWalletContent" class="hidden">
+    <div id="play80OwnerReserve" class="p8-wallet-owner hidden"><span>Owner-এর ব্যবহারযোগ্য কয়েন</span><strong id="play80OwnerAvailable">—</strong></div>
+    <div class="p8-wallet-totals" aria-label="অপেক্ষমাণ রিকোয়েস্টের মোট">
+      <div class="p8-wallet-card"><span>অপেক্ষমাণ ডিপোজিট</span><strong id="play80DepositTotal">—</strong><small id="play80DepositCount"></small></div>
+      <div class="p8-wallet-card withdraw"><span>অপেক্ষমাণ উইথড্র</span><strong id="play80WithdrawTotal">—</strong><small id="play80WithdrawCount"></small></div>
+    </div>
+    <div class="p8-wallet-controls">
+      <label>অবস্থা<select id="play80WalletView"><option value="pending">অপেক্ষমাণ</option><option value="history">ইতিহাস</option></select></label>
+      <label>ধরন<select id="play80WalletKind"><option value="all">সব</option><option value="demo_credit">ডিপোজিট</option><option value="demo_debit">উইথড্র</option></select></label>
+      <button type="button" id="cloudOwnerRefresh">রিফ্রেশ</button>
+    </div>
+    <div id="cloudOwnerRequests"></div>
+    <div id="play80WalletPager" class="cloudActions"></div>
+  </div>
+</section>
 <section id="screen-remote-owner" class="screen hidden">
   <button class="back" data-open="account">❮ Online Account</button>
-  <div class="center"><h1 class="bigTitle">🛡️ PLAY80 Owner Dashboard</h1><p class="sub">শুধুমাত্র Verified Owner • পরিচালনার জন্য আলাদা PIN সুরক্ষা</p></div>
+  <div class="center"><h1 class="bigTitle">🛡️ PLAY80 Owner Dashboard</h1><p class="sub">Owner অ্যাকাউন্ট পরিচালনা</p></div>
   <div class="panel cloudPanel"><div class="p8CoinDisclaimer">PLAY80 Coin-এর নগদ মূল্য নেই। এখানে সব অনুমোদন সার্ভারে যাচাই করা হয়।</div><button type="button" id="p8OwnerLogout" class="smallAction" style="width:100%;min-height:43px;margin:8px 0 12px">↪ Owner Logout</button>
     <div id="cloudOwnerAuthBlocked">Sign in with the verified Play80 Owner email to access online requests.</div>
-    <div id="cloudStaffPinGate" class="hidden">
+    <div id="cloudStaffGateSlot"><div id="cloudStaffPinGate" class="hidden">
       <p class="sub">Owner প্যানেল খুলতে তোমার লগইনের PIN দাও।</p>
       <div class="formGroup"><label for="cloudStaffPin">লগইনের PIN</label><input id="cloudStaffPin" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" /></div>
       <button id="cloudStaffUnlock" class="action" type="button">প্যানেল খুলুন</button>
     </div>
+    </div>
     <div id="cloudOwnerContent" class="hidden">
       <div class="cloudStaffTabs">
-        <button class="cloudStaffTab selected" type="button" data-staff-tab="wallet">🪙 Coin Requests</button>
         <button class="cloudStaffTab" type="button" data-staff-tab="users">👥 Users</button>
         <button class="cloudStaffTab" type="button" data-staff-tab="admins">🛡 Admins</button>
         <button class="cloudStaffTab" type="button" data-staff-tab="activity">🎮 Live Games</button>
@@ -1073,7 +1118,6 @@ body.p8-auth-locked .app{max-width:560px}
         <button class="cloudStaffTab" type="button" data-staff-tab="bots">🤖 Computer Players</button>
         <button class="cloudStaffTab" type="button" data-staff-tab="tournaments">🏆 Tournament Scheduler</button>
       </div>
-      <div id="cloudStaffTab-wallet" class="cloudStaffPane"><div class="sectionTitle"><h2>Pending Coin Requests</h2><span id="cloudOwnerCount">0</span></div><button class="action secondary" type="button" id="cloudOwnerRefresh">REFRESH LIVE REQUESTS</button><p id="play80WalletSummary" role="status"></p><div id="cloudOwnerRequests" class="cloudList"></div></div>
       <div id="cloudStaffTab-users" class="cloudStaffPane hidden"><div class="sectionTitle"><h2>All Users & Balances</h2></div><div class="formGroup"><label for="cloudStaffSearch">Search by User ID / email / username</label><input id="cloudStaffSearch" maxlength="80" placeholder="Search account" /></div><button type="button" class="action secondary" id="cloudStaffSearchButton">SEARCH USERS</button><div id="cloudStaffUsers" class="cloudList"></div></div>
       <div id="cloudStaffTab-admins" class="cloudStaffPane hidden"><div class="sectionTitle"><h2>Staff accounts</h2></div><p class="tiny">শুধু মূল Owner নতুন Admin দিতে বা Admin ক্ষমতা সরাতে পারবে। User account মুছে দেওয়া হবে না।</p><div id="cloudStaffAdmins" class="cloudList"></div></div>
       <div id="cloudStaffTab-activity" class="cloudStaffPane hidden"><div class="sectionTitle"><h2>Who is Playing</h2></div><p class="tiny">সাইন-ইন করা ব্যবহারকারীদের অ্যাপ থেকে পাঠানো সাম্প্রতিক গেম স্ট্যাটাস (সর্বশেষ ২ মিনিট)।</p><button class="action secondary" type="button" id="cloudStaffActivityRefresh">REFRESH LIVE GAMES</button><div id="cloudStaffActivity" class="cloudList"></div></div>
@@ -1121,8 +1165,8 @@ function save(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){} r
 function award(points,title){state.points+=points;state.earned+=points;state.games++;state.entries.unshift({points,title,date:new Date().toISOString()});state.entries=state.entries.slice(0,100);save()}
 function gift(points){state.points+=points;state.entries.unshift({points,title:'Demo Free Points',date:new Date().toISOString()});state.entries=state.entries.slice(0,100);save();toast(points+' free demo points added')}
 function render(){const fmt=n=>Number(n).toLocaleString('en-US');$('headerPoints').textContent=fmt(state.points);$('walletPoints').textContent=fmt(state.points);$('totalGames').textContent=fmt(state.games);$('earnedPoints').textContent=fmt(state.earned);$('ledger').innerHTML='';if(!state.entries.length){$('ledger').innerHTML='<div class="empty">No game history yet</div>'}else{state.entries.forEach(row=>{const el=document.createElement('div');el.className='entry';const left=document.createElement('div');const strong=document.createElement('strong');strong.textContent=row.title;const when=document.createElement('div');when.className='when';try{when.textContent=new Date(row.date).toLocaleString('en-US')}catch(e){when.textContent=''}left.append(strong,when);const val=document.createElement('div');val.className='plus';val.textContent=(row.points>=0?'+':'')+fmt(row.points);if(row.points<0)val.style.color='#ffb6b6';el.append(left,val);$('ledger').appendChild(el)})}renderRequests()}
-function go(name){if(['owner','profile','deposit','withdraw','admin'].includes(name))name='account';if(document.body.classList.contains('p8-auth-locked'))name='account';if(name!=='ludo')document.body.classList.remove('ludo-playing');screen=name;document.querySelectorAll('.screen').forEach(el=>el.classList.toggle('hidden',el.id!=='screen-'+name));document.querySelectorAll('.navBtn').forEach(el=>el.classList.toggle('active',el.dataset.open===name));window.scrollTo(0,0)}
-document.addEventListener('play80:menu-navigate',e=>{if(['account','remote-owner'].includes(e.detail))go(e.detail);});
+function go(name){if(['owner','profile','deposit','withdraw','admin'].includes(name))name='account';if(document.body.classList.contains('p8-auth-locked'))name='account';if(name!=='ludo')document.body.classList.remove('ludo-playing');screen=name;document.body.dataset.play80Screen=name;document.body.classList.toggle('play80-game-section',['home','crazyshow','arcade','wheel','dice','flight','ludo','bet','tournament','2048','memory'].includes(name));document.querySelectorAll('.screen').forEach(el=>el.classList.toggle('hidden',el.id!=='screen-'+name));document.querySelectorAll('.navBtn').forEach(el=>el.classList.toggle('active',el.dataset.open===name));window.scrollTo(0,0);document.dispatchEvent(new CustomEvent('play80:screen-changed',{detail:name}));}
+document.addEventListener('play80:menu-navigate',e=>{if(['account','remote-owner','owner-wallet'].includes(e.detail))go(e.detail);});
 function toast(message){const el=document.createElement('div');el.className='notice';el.textContent=message;document.body.appendChild(el);setTimeout(()=>el.remove(),2000)}
 function addGameEntry(points,title){state.entries.unshift({points,title,date:new Date().toISOString()});state.entries=state.entries.slice(0,100);save()}
 function debitCoins(amount,title){if(!Number.isSafeInteger(amount)||amount<1||available()<amount)return false;state.points-=amount;addGameEntry(-amount,title);return true}
