@@ -11,7 +11,7 @@
 ## ইমেইল যাচাইয়ের গন্তব্য
 
 - রিপোর্ট করা Customer অ্যাকাউন্ট Supabase-এ তৈরি ও ইমেইল-যাচাইকৃত ছিল। PLAY80 Auth-এর Site URL `http://localhost:3000` এবং redirect allowlist খালি দেখা গেছে। তাই email signup সফল হলেও ফোনে পরের পেজ খুলছিল না।
-- [PLAY80 HTTPS ফেরত যাওয়ার পেজ](https://suhpmjqrcqkzaslptpca.supabase.co/functions/v1/play80-auth-confirmed) আপডেট ও ব্রাউজারে যাচাই করা হয়েছে। Supabase Dashboard-এ স্থায়ী Site URL সেভ করার অ্যাকশন স্বয়ংক্রিয় অনুমোদন পর্যালোচনায় স্পষ্ট ব্যবহারকারীর সম্মতির অপেক্ষায় আছে। সেটিংস বদল সম্পন্ন হয়নি।
+- [PLAY80 HTTPS ফেরত যাওয়ার পেজ](https://suhpmjqrcqkzaslptpca.supabase.co/functions/v1/play80-auth-confirmed) আপডেট ও ব্রাউজারে যাচাই করা হয়েছে। মালিকের অনুমোদনে Supabase Auth Site URL এই HTTPS পেজে সেভ করা হয়েছে। Dashboard পুনরায় খুলে মানটি সংরক্ষিত দেখা গেছে। নতুন ইমেইল পাঠিয়ে সম্পূর্ণ প্রবাহ পরীক্ষা করা হয়নি।
 - Auth Emails পেজে ডিফল্ট Supabase email service সক্রিয়। PLAY80 প্রেরকের জন্য নিজের অনুমোদিত SMTP সেটআপ প্রয়োজন। লগ বা রেকর্ডে Auth token, পরীক্ষা ব্যবহারকারীর তথ্য ও SMTP credentials রাখা যাবে না।
 
 ## Owner ড্যাশবোর্ড, প্রোফাইল ও এক ব্যালেন্স প্রদর্শন
