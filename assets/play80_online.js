@@ -24,10 +24,11 @@
     }
   };
   const ownerStatus = (message, error=false) => {
-    const e = $('cloudOwnerNotice');
+    const e = $(walletOpen()?'play80WalletNotice':'cloudOwnerNotice');
     if(e){e.textContent=String(message);e.style.color=error?'#ffb8b8':'#c5eeff';}
   };
   const show = (id,on) => { const e=$(id);if(e)e.classList.toggle('hidden',!on); };
+  const walletOpen=()=>$('screen-owner-wallet')&&!$('screen-owner-wallet').classList.contains('hidden');
   const stamp = () => Math.floor(Date.now()/1000);
   const persist = () => { try{if(session)localStorage.setItem(STORAGE,JSON.stringify(session));else localStorage.removeItem(STORAGE);}catch(_){} };
   try { const data=JSON.parse(localStorage.getItem(STORAGE)||'null');if(data&&data.access_token&&data.refresh_token)session=data; }catch(_){}
@@ -77,7 +78,7 @@
     document.getElementById('screen-account')?.classList.toggle('hidden',!on?false:document.getElementById('screen-account')?.classList.contains('hidden'));
     if(!on)window.scrollTo(0,0);
     show('cloudSignedOut',!on);show('cloudSignedIn',on);
-    show('cloudOwnerEntry',on&&isStaff());show('cloudOwnerAuthBlocked',!on||!isStaff());show('cloudStaffPinGate',on&&isStaff()&&!staffPinToken);show('cloudOwnerContent',on&&isStaff()&&!!staffPinToken);
+    show('cloudOwnerEntry',on&&isStaff());show('cloudOwnerAuthBlocked',!on||!isStaff());show('cloudStaffPinGate',on&&isStaff()&&!staffPinToken);show('cloudOwnerContent',on&&isStaff()&&!!staffPinToken);show('play80OwnerWalletContent',on&&isStaff()&&!!staffPinToken);
     if(menuReady && on) renderMenu();
     if(menuReady && !on) setMenuCounts(0,0);
     if(on){$('cloudEmail').textContent=session.user?.email||'Signed in';$('cloudRole').textContent=isOwner()?'Owner':(isStaff()?'Admin':isDsr()?'DSR':'Player');}
@@ -274,7 +275,7 @@
   async function staffRpc(name, data={}) {
     if(!isStaff()) throw Error('Verified Owner / Admin login required');
     if(!staffPinToken || Date.now()>=staffPinExpires) {
-      staffPinToken=null;show('cloudOwnerContent',false);show('cloudStaffPinGate',true);
+      staffOpenGate();
       throw Error('Staff PIN expired. Enter PIN to unlock again.');
     }
     return db('rpc/'+name,'POST',{p_pin_token:staffPinToken,...data});
@@ -313,7 +314,7 @@
   }
   function staffOpenGate(){
     staffPinToken=null;staffPinExpires=0;
-    show('cloudOwnerContent',false);show('cloudStaffPinGate',isStaff());
+    show('cloudOwnerContent',false);show('play80OwnerWalletContent',false);show('cloudStaffPinGate',isStaff());
     $('cloudStaffPin').value='';
     ownerStatus(isStaff()?'এখানে লগইনের PIN দাও।':'যাচাইকৃত Owner বা Admin অ্যাকাউন্টে লগইন করো।',!isStaff());
   }
@@ -324,37 +325,78 @@
     const data=requirePinSuccess(await db('rpc/play80_open_owner_panel','POST',{p_pin:pin}));
     if(!data.token)throw Error('প্যানেল খোলার অনুমতি পাওয়া যায়নি।');
     staffPinToken=data.token;staffPinExpires=Date.now()+Math.max(0,Number(data.expires_in||180)-8)*1000;
-    show('cloudStaffPinGate',false);show('cloudOwnerContent',true);
-    ownerStatus('Owner প্যানেল খুলেছে।');
-    await switchStaffTab(requestedStaffTab);await refreshMenuCounts();
+    show('cloudStaffPinGate',false);show('cloudOwnerContent',true);show('play80OwnerWalletContent',true);
+    ownerStatus(walletOpen()?'':'Owner প্যানেল খুলেছে।');
+    if(walletOpen())await loadOwnerRequests();else await switchStaffTab(requestedStaffTab);
+    await refreshMenuCounts();
   },ownerStatus));
+  let walletPage=0, walletLoadVersion=0;
+  const walletMoney=value=>Number(value||0).toLocaleString('bn-BD');
   function makeOwnerItem(r){
-    const el=document.createElement('div');el.className='cloudRequestItem';
-    el.append(createText('strong',(r.request_kind==='demo_credit'?'➕ ডিপোজিট':'➖ উইথড্র')+' • '+r.amount+' demo coins'));
-    el.append(createText('small',(r.username||r.email||r.user_id)+' • '+escDate(r.created_at)+(r.user_note?' • '+r.user_note:'')));
-    const note=document.createElement('input');note.placeholder='Rejection reason (required)';note.maxLength=500;
+    const el=createText('article','','p8-wallet-entry');
+    const kind=r.request_kind==='demo_credit'?'ডিপোজিট':'উইথড্র';
+    const badge=createText('span',({pending:'অপেক্ষমাণ',approved:'অনুমোদিত',rejected:'বাতিল'})[r.status]||r.status,'wallet-state');
+    badge.dataset.status=r.status;
+    const header=document.createElement('header');
+    header.append(createText('h3',kind+' · '+walletMoney(r.amount)+' কয়েন'),badge);
+    const player=r.username||r.email||r.user_id;
+    el.append(header,createText('strong',player),createText('small',escDate(r.created_at)));
+    if(r.user_note)el.append(createText('p',r.user_note));
+    if(r.status!=='pending'){
+      if(r.reviewed_at)el.append(createText('small','সিদ্ধান্ত: '+escDate(r.reviewed_at)));
+      if(r.review_note)el.append(createText('p',r.review_note));
+      return el;
+    }
+    const note=document.createElement('input');
+    note.placeholder='বাতিলের কারণ (বাতিল করলে লিখুন)';note.maxLength=500;
+    note.setAttribute('aria-label','বাতিলের কারণ');
     const actions=document.createElement('div');actions.className='cloudActions';
     for(const decision of ['approved','rejected']){
-      actions.append(makeButton(decision==='approved'?'✓ অনুমোদন':'✕ বাতিল',async()=>{
-        if(decision==='rejected'&&!note.value.trim())throw Error('Rejection reason required');
-
-        if(await confirmStaffAction('staff_review_demo_request',{p_request_id:r.id,p_decision:decision,p_review_note:note.value.trim()||null},(decision==='approved'?'অনুমোদন':'বাতিল')+' · '+r.amount+' কয়েন · '+(r.username||r.email||r.user_id))===null)return;
-        ownerStatus('Demo coin request '+decision+'.');await loadOwnerRequests();await loadAccount();
-      },decision==='rejected'));
+      const approved=decision==='approved';
+      actions.append(makeButton(approved?'✓ অনুমোদন':'✕ বাতিল',async()=>{
+        if(!approved&&!note.value.trim())throw Error('বাতিলের কারণ লিখুন।');
+        const result=await confirmStaffAction('staff_review_demo_request',{
+          p_request_id:r.id,p_decision:decision,p_review_note:note.value.trim()||null
+        },(approved?'অনুমোদন':'বাতিল')+' · '+kind+' · '+walletMoney(r.amount)+' কয়েন · '+player);
+        if(result===null)return;
+        ownerStatus(approved?'রিকোয়েস্ট অনুমোদিত হয়েছে।':'রিকোয়েস্ট বাতিল হয়েছে।');
+        await loadOwnerRequests();
+        await refreshMenuCounts();
+      },!approved));
     }
-    el.append(note,actions);return el;
+    el.append(note,actions);
+    return el;
   }
   async function loadOwnerRequests(){
-    const requests=await staffRpc('staff_list_demo_requests',{p_status:'pending'});
-    const list=$('cloudOwnerRequests');list.replaceChildren();
-    const counts=await db('rpc/play80_menu_counts','POST',{});
-    const amount=kind=>Number(counts?.[kind]||0).toLocaleString('bn-BD');
-    $('play80WalletSummary').textContent='অপেক্ষমাণ ডিপোজিট '+amount('deposit_count')+'টি · '+amount('deposit_amount')+' কয়েন | উইথড্র '+amount('withdraw_count')+'টি · '+amount('withdraw_amount')+' কয়েন';
-    if(!requests.length)list.textContent='No pending online DEMO coin requests.';
-    requests.forEach(r=>list.append(makeOwnerItem(r)));
-    $('cloudOwnerCount').textContent=String(requests.length);
-    await refreshMenuCounts();
+    const version=++walletLoadVersion;
+    const view=$('play80WalletView').value, kind=$('play80WalletKind').value;
+    const result=await staffRpc('play80_owner_wallet_page',{p_view:view,p_kind:kind,p_offset:walletPage*30});
+    if(version!==walletLoadVersion||!walletOpen())return;
+    const {rows,summary,owner_available:available}=result;
+    if(walletPage&&!rows.length){walletPage--;return loadOwnerRequests();}
+    show('play80OwnerReserve',available!=null);
+    $('play80OwnerAvailable').textContent=walletMoney(available);
+    for(const [id,key] of [['Deposit','deposit'],['Withdraw','withdraw']]){
+      $('play80'+id+'Total').textContent=walletMoney(summary[key+'_amount'])+' কয়েন';
+      $('play80'+id+'Count').textContent=walletMoney(summary[key+'_count'])+'টি রিকোয়েস্ট';
+    }
+    const list=$('cloudOwnerRequests');
+    list.replaceChildren(...rows.slice(0,30).map(makeOwnerItem));
+    if(!rows.length)list.append(createText('p',view==='pending'?'এই ফিল্টারে অপেক্ষমাণ রিকোয়েস্ট নেই।':'এই ফিল্টারে কোনো রিকোয়েস্টের ইতিহাস নেই।','p8-wallet-empty'));
+    const pager=$('play80WalletPager');pager.replaceChildren();
+    if(walletPage)pager.append(makeButton('আগের পাতা',async()=>{walletPage--;await loadOwnerRequests();},true));
+    if(rows.length>30)pager.append(makeButton('পরের পাতা',async()=>{walletPage++;await loadOwnerRequests();},true));
   }
+  document.addEventListener('play80:screen-changed',event=>{
+    const gate=$('cloudStaffPinGate');
+    const target=$(event.detail==='owner-wallet'?'walletGateSlot':'cloudStaffGateSlot');
+    if(gate.parentElement!==target)target.append(gate);
+    if(event.detail==='owner-wallet'&&isStaff()&&Date.now()>=staffPinExpires)staffOpenGate();
+  });
+  for(const id of ['play80WalletKind','play80WalletView'])$(id).addEventListener('change',async()=>{
+    walletPage=0;
+    try{await loadOwnerRequests();}catch(e){ownerStatus(e.message,true);}
+  });
   let userPage=0, selectedUser=null;
   async function loadStaffUsers(){
     const search=$('cloudStaffSearch').value.trim();
@@ -493,10 +535,9 @@
   $('cloudTournamentRefresh').addEventListener('click',e=>busy(e.currentTarget,loadTournamentOwner,ownerStatus));
   async function switchStaffTab(tab){
     if(tab==='inbox'){inboxTab.click();return;}
-    if(!['wallet','users','admins','activity','stats','bots','tournaments'].includes(tab))return;
+    if(!['users','admins','activity','stats','bots','tournaments'].includes(tab))return;
     document.querySelectorAll('[data-staff-tab]').forEach(b=>b.classList.toggle('selected',b.dataset.staffTab===tab));
     document.querySelectorAll('.cloudStaffPane').forEach(el=>el.classList.toggle('hidden',el.id!=='cloudStaffTab-'+tab));
-    if(tab==='wallet')await loadOwnerRequests();
     if(tab==='users'){selectedUser=null;await loadStaffUsers();}
     if(tab==='admins')await loadAdmins();
     if(tab==='activity')await loadActivity();
@@ -821,10 +862,16 @@
       else if(section!=='referral')await loadAccount();
     };
     const staff=tab=>async()=>{
+      if(tab==='wallet'){
+        document.dispatchEvent(new CustomEvent('play80:menu-navigate',{detail:'owner-wallet'}));
+        walletPage=0;$('play80WalletView').value='pending';$('play80WalletKind').value='all';
+        staffOpenGate();
+        return;
+      }
       requestedStaffTab=tab;
       document.dispatchEvent(new CustomEvent('play80:menu-navigate',{detail:'remote-owner'}));
       if(staffPinToken&&Date.now()<staffPinExpires)await switchStaffTab(tab);
-      else if(staffPinToken){staffPinToken=null;renderAuth();}
+      else if(staffPinToken)staffOpenGate();
     };
     add('প্রোফাইল',account('profile'));
     if(isStaff()){
@@ -862,6 +909,7 @@
       session.user=u;verifiedAuth=true;persist();renderAuth();
       await loadAccount();await loadMyMessages().catch(()=>{});
       if(isStaff())$('cloudOwnerEntry')?.click();
+      else document.querySelector('.footerNav [data-open="home"]')?.click();
     }catch(e){
       if(session && e.status!==401 && e.status!==403){
         verifiedAuth=false;renderAuth();status('সংযোগ যাচাই করা যায়নি। ইন্টারনেট ফিরলে আবার চেষ্টা করো।',true);return;
