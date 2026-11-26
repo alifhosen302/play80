@@ -122,7 +122,7 @@ begin
   new.created_at := clock_timestamp();
   return new;
 end;
-$;
+$$;
 revoke all on function private.play80_lock_support_insert() from public, anon, authenticated;
 create trigger play80_support_lock_insert before insert on public.play80_support_messages
 for each row execute function private.play80_lock_support_insert();
