@@ -265,7 +265,7 @@
     const pin=await askLoginPin((type==='demo_credit'?'ডিপোজিট':'উইথড্র')+' রিকোয়েস্ট · '+amount+' ভার্চুয়াল কয়েন');
     if(pin===null)return;
     requirePinSuccess(await db('rpc/play80_confirm_wallet_request','POST',{p_pin:pin,p_kind:type,p_amount:amount,p_note:note||null}));
-    $('cloudNote').value='';await loadAccount();status('Demo coin request was sent to the secure Owner account.');
+    $('cloudNote').value='';await loadAccount();status('রিকোয়েস্ট পাঠানো হয়েছে। সিদ্ধান্ত রিকোয়েস্টের ইতিহাসে দেখাবে।');
   }));
   $('cloudRefresh').addEventListener('click',e=>busy(e.currentTarget,loadAccount));
   $('cloudSignOut').addEventListener('click',e=>busy(e.currentTarget,async()=>{
@@ -846,7 +846,57 @@
     ]));
   }
 
-  ownWallet.append($('cloudBalance').closest('.hubStat'),...requestFields,$('cloudRefresh'));
+  const walletHeading=createText('h2','কয়েন ডিপোজিট');
+  const requestToolbar=createText('div','','p8-request-toolbar');
+  const amountGrid=createText('div','','p8-amount-grid');
+  const amountInput=$('cloudAmount');
+  const kindField=$('cloudRequestKind');
+  const requestModes=[['demo_credit','ডিপোজিট'],['demo_debit','উইথড্র']];
+  for(const [kind,label] of requestModes){
+    const button=createText('button',label);
+    button.type='button';button.dataset.kind=kind;
+    button.addEventListener('click',()=>selectWalletKind(kind));
+    requestToolbar.append(button);
+  }
+  const walletControls=makeButton('রিকোয়েস্টের ইতিহাস',async()=>{
+    $('cloudRequests').focus();
+    $('cloudRequests').scrollIntoView({block:'start'});
+  },true);
+  ownWallet.classList.add('p8-wallet-form');
+  ownWallet.append(walletHeading,$('cloudBalance').closest('.hubStat'),requestToolbar,walletControls,...requestFields,$('cloudRefresh'));
+  requestTitle.hidden=true;
+  kindField.closest('.formGroup').hidden=true;
+  amountInput.closest('.formGroup').before(amountGrid);
+  const amountHint=createText('small','');
+  amountInput.closest('.formGroup').append(amountHint);
+  function updatePresetSelection(){
+    for(const button of amountGrid.children)button.setAttribute('aria-pressed',String(amountInput.value===button.dataset.amount));
+  }
+  function renderWalletKind(){
+    const debit=kindField.value==='demo_debit';
+    const label=debit?'উইথড্র':'ডিপোজিট';
+    amountInput.min=debit?'200':'100';
+    amountInput.max=debit?'1000000':'20000';
+    walletHeading.textContent='কয়েন '+label;
+    amountHint.textContent=walletMoney(amountInput.min)+' থেকে '+walletMoney(amountInput.max)+' ভার্চুয়াল কয়েন';
+    for(const button of requestToolbar.children)button.setAttribute('aria-pressed',String(button.dataset.kind===kindField.value));
+    amountGrid.replaceChildren();
+    const presets=debit?[200,500,1000,3000,5000,10000]:[100,200,500,1000,3000,5000];
+    for(const value of presets){
+      const button=createText('button',walletMoney(value));
+      button.type='button';button.dataset.amount=String(value);
+      button.addEventListener('click',()=>{amountInput.value=String(value);updatePresetSelection();});
+      amountGrid.append(button);
+    }
+    updatePresetSelection();
+  }
+  function selectWalletKind(kind){
+    kindField.value=kind;
+    amountInput.value=kind==='demo_debit'?'200':'100';
+    renderWalletKind();
+  }
+  amountInput.addEventListener('input',updatePresetSelection);
+  renderWalletKind();
   ownBonus.append(bonusCard);
   referral.append(createText('h2','রেফার বোনাস'),createText('p','বন্ধুকে PLAY80-এর আমন্ত্রণ লিংক পাঠাও। রেফার বোনাসের নিয়ম এখনো চালু হয়নি।'));
   referral.append(makeButton('আমন্ত্রণ লিংক দেখুন',async()=>{
@@ -867,11 +917,7 @@
   const accountLinks=[...document.querySelectorAll('.footerNav [data-open="account"]')];
   accountLinks[0]?.addEventListener('click',()=>selectAccountSection('wallet'));
   accountLinks[1]?.addEventListener('click',()=>selectAccountSection('support'));
-  $('cloudRequestKind').addEventListener('change',()=>{
-    const debit=$('cloudRequestKind').value==='demo_debit';
-    $('cloudAmount').min=debit?'200':'100';
-    $('cloudAmount').max=debit?'1000000':'20000';
-  });
+  kindField.addEventListener('change',renderWalletKind);
   const dot=(element,on)=>element?.toggleAttribute('data-alert',on);
   let pendingRequests=0, unreadSupport=0;
   function setMenuCounts(requests,support){
@@ -879,7 +925,7 @@
     dot($('p8MenuButton'),requests>0||support>0);
     for(const key of ['wallet','inbox']){
       const active=(key==='wallet'?requests:support)>0;
-      dot($('p8MenuItems').querySelector('[data-panel="'+key+'"]'),active);
+      dot($('screen-menu').querySelector('[data-panel="'+key+'"]'),active);
       dot(document.querySelector('[data-staff-tab="'+key+'"]'),active);
     }
   }
@@ -902,21 +948,18 @@
   };
   function renderMenu(){
     const root=$('p8MenuItems');
-    root.replaceChildren();
-    const add=(label,action,panel)=>{
+    const quick=$('p8MenuQuick');
+    root.replaceChildren();quick.replaceChildren();
+    const add=(label,action,panel,area=root)=>{
       const button=makeButton(label,action,true);
       const icon=createText('span',menuIcons[label],'p8-menu-icon');icon.setAttribute('aria-hidden','true');
       button.replaceChildren(icon,createText('span',label,'p8-menu-label'));
       if(panel){button.dataset.panel=panel;button.classList.add('p8-menu-item');}
-      root.append(button);
+      area.append(button);
     };
     const account=(section,kind)=>async()=>{
       document.dispatchEvent(new CustomEvent('play80:menu-navigate',{detail:'account'}));selectAccountSection(section);
-      if(kind){
-        $('cloudRequestKind').value=kind;
-        $('cloudRequestKind').dispatchEvent(new Event('change'));
-        $('cloudAmount').value=$('cloudAmount').min;
-      }
+      if(kind)selectWalletKind(kind);
       if(section==='support')await loadMyMessages();
       else if(section!=='referral')await loadAccount();
     };
@@ -932,9 +975,9 @@
     };
     if(isStaff()){
       add('প্রোফাইল',account('profile'));
-      add('ড্যাশবোর্ড',staff('stats'));
+      add('ডিপোজিট ও উইথড্র রিকোয়েস্ট',staff('wallet'),'wallet',quick);
+      add('ড্যাশবোর্ড',staff('stats'),null,quick);
       add('ইউজার দেখুন',staff('users'));
-      add('ডিপোজিট ও উইথড্র রিকোয়েস্ট',staff('wallet'),'wallet');
       add('বোনাস',account('bonus'));
       if(isOwner())add('সাপোর্ট',staff('inbox'),'inbox');
       add('স্টাফ অ্যাকাউন্ট',staff('admins'));
@@ -942,8 +985,8 @@
       add('টুর্নামেন্ট',staff('tournaments'));
       add('কম্পিউটার প্লেয়ার',staff('bots'));
     }else{
-      add('ডিপোজিট',account('wallet','demo_credit'));
-      add('উইথড্র',account('wallet','demo_debit'));
+      add('ডিপোজিট',account('wallet','demo_credit'),null,quick);
+      add('উইথড্র',account('wallet','demo_debit'),null,quick);
       add('বোনাস',account('bonus'));
       add('রেফার বোনাস',account('referral'));
       add('সাপোর্ট',account('support'));

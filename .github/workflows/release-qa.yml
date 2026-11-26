@@ -123,6 +123,7 @@ jobs:
           unzip -p ../PLAY80_V4_1_Practice_QA.apk assets/index.html > "$RUNNER_TEMP/play80-opened-apk.html"
           grep -Fq "id=\"p8BuildLabel\">বিল্ড $PLAY80_VERSION_CODE<" "$RUNNER_TEMP/play80-opened-apk.html"
           grep -Fq 'id="p8MenuAvatar"' "$RUNNER_TEMP/play80-opened-apk.html"
+          grep -Fq 'id="p8MenuQuick"' "$RUNNER_TEMP/play80-opened-apk.html"
           grep -Fq 'id="headerCoins"' "$RUNNER_TEMP/play80-opened-apk.html"
           if grep -Fq 'id="headerPoints"' "$RUNNER_TEMP/play80-opened-apk.html"; then exit 1; fi
           echo "Verified menu and server coin header inside APK build $PLAY80_VERSION_CODE"
