@@ -85,6 +85,30 @@ try:
   page.get_by_text('কোনো কথোপকথন নেই।',exact=True).wait_for()
   assert page.locator('.footerNav [aria-current="page"]').get_attribute('data-p8-footer')=='support'
   assert page.locator('.footerNav .active').count()==1
+  thread_user='00000000-0000-4000-8000-000000000024'
+  thread_id='00000000-0000-4000-8000-000000000025'
+  thread={'user_id':thread_user,'username':'example_player','latest_id':thread_id,'needs_attention':True}
+  reply_calls=[]
+  page.route('**/rest/v1/rpc/play80_owner_threads',lambda route:route.fulfill(json=[thread]))
+  def thread_messages(route):
+   rows=[{'id':thread_id,'sender_role':'player','body':'Demo question','created_at':'2026-11-26T00:00:00Z'}]
+   if reply_calls:
+    rows.append({'id':'reply-id','sender_role':'owner','body':'Demo reply','created_at':'2026-11-26T00:01:00Z'})
+   route.fulfill(json=rows)
+  page.route('**/rest/v1/rpc/play80_owner_open_thread',thread_messages)
+  def owner_reply(route):
+   reply_calls.append(route.request.post_data_json)
+   route.fulfill(json={'ok':True})
+  page.route('**/rest/v1/rpc/play80_owner_reply_support',owner_reply)
+  page.locator('#p8InboxSearch').fill('000024')
+  page.get_by_role('group',name='ইউজার আইডি সাজেশন').get_by_role('button',name='@example_player · '+thread_user).click()
+  page.get_by_text('Demo question',exact=True).wait_for()
+  assert page.locator('#play80ActionPin').is_hidden()
+  page.get_by_label('প্লেয়ারকে উত্তর লিখুন').fill('Demo reply')
+  page.get_by_role('button',name='উত্তর পাঠান').click()
+  page.get_by_text('Demo reply',exact=True).wait_for()
+  assert reply_calls==[{'p_user':thread_user,'p_note':'Demo reply'}]
+  assert page.locator('#play80ActionPin').is_hidden()
   page.locator('#globalBack').click()
   assert page.locator('#screen-menu').is_visible()
   assert page.locator('#p8MenuItems .p8-menu-icon').count()>=5
@@ -99,19 +123,20 @@ try:
   page.locator('#p8MenuButton').click()
   page.get_by_role('button',name='ইউজার দেখুন').click()
   assert page.locator('#cloudStaffPinGate').is_hidden()
-  page.get_by_role('button',name='প্রোফাইল দেখুন').click()
+  page.locator('#cloudStaffSearch').fill('mock-player')
+  page.get_by_role('group',name='ইউজার আইডি সাজেশন').get_by_role('button',name='@example_player · mock-player-uuid').click()
   page.get_by_text('player@example.invalid',exact=True).wait_for()
+  assert page.locator('#cloudStaffSearch').input_value()=='mock-player-uuid'
   assert page.get_by_role('button',name='কয়েন পাঠান').is_visible()
   page.locator('#cloudStaffUsers').get_by_label('কয়েনের পরিমাণ',exact=True).fill('25')
   page.get_by_role('button',name='কয়েন নিন').click()
   assert page.locator('#play80ActionPin').is_visible()
   page.locator('#play80ActionPin button[value="cancel"]').click()
 
-  page.route('**/rest/v1/rpc/play80_open_owner_panel',lambda route:route.fulfill(json={
-   'ok':True,'token':'mock-staff-session','expires_in':180
-  }))
+  wallet_calls=[]
   def wallet_page(route):
    request=route.request.post_data_json
+   wallet_calls.append(request)
    done=request['p_view']=='history'
    route.fulfill(json={
     'rows':[{'id':'mock-wallet-request','request_kind':'demo_credit','status':'approved' if done else 'pending',
@@ -130,9 +155,9 @@ try:
   assert page.locator('#screen-owner-wallet').is_visible()
   assert page.locator('.cloudStaffTabs').is_hidden()
   assert page.locator('.play80TopTabs').is_hidden()
-  page.locator('#cloudStaffPin').fill('123456')
-  page.locator('#cloudStaffUnlock').click()
   page.get_by_role('button',name='✓ অনুমোদন').wait_for()
+  assert wallet_calls[0]['p_pin_token'] is None
+  assert page.locator('#play80ActionPin').is_hidden()
   page.locator('.footerNav [data-p8-footer="wallet"]').click()
   assert page.locator('#cloudStaffPinGate').is_hidden()
   page.get_by_role('button',name='✓ অনুমোদন').click()
@@ -141,6 +166,7 @@ try:
   page.locator('#play80ActionPin button[value="confirm"]').click()
   page.wait_for_function("() => !document.querySelector('#play80ActionPin').open")
   page.get_by_text('রিকোয়েস্ট অনুমোদিত হয়েছে।').wait_for()
+  assert staff_calls[0]['p_panel_token'] is None
   assert staff_calls[0]['p_action']=='staff_review_demo_request'
   assert staff_calls[0]['p_payload']['p_decision']=='approved'
   assert page.locator('#play80OwnerAvailable').inner_text()=='৫০,০০০'
@@ -210,6 +236,7 @@ try:
   page.locator('#p8MenuButton').click()
   page.locator('#p8MenuQuick').get_by_role('button',name='ডিপোজিট',exact=True).click()
   page.locator('#p8FirstCreditOffer').wait_for(state='visible')
+  assert page.locator('#play80ActionPin').is_hidden()
   assert 'প্রথম অনুমোদিত ডিপোজিট ঠিক ১,০০০' in page.locator('#p8FirstCreditOffer').inner_text()
   assert page.get_by_label('ডেমো সেন্ড মানি নম্বর').input_value()=='00000000000'
   assert not page.get_by_label('ডেমো সেন্ড মানি নম্বর').is_editable()
@@ -235,6 +262,7 @@ try:
   assert page.get_by_label('ডেমো সেন্ড মানি নম্বর').is_hidden()
   assert page.get_by_role('button',name='বিকাশ ডেমো',exact=True).is_visible()
   assert page.locator('#cloudRequestKind').input_value()=='demo_debit'
+  assert page.locator('#play80ActionPin').is_hidden()
   assert page.locator('.p8-request-toolbar [data-kind="demo_debit"]').get_attribute('aria-pressed')=='true'
   page.locator('.p8-amount-grid [data-amount="500"]').click()
   assert page.locator('#cloudAmount').input_value()=='500'

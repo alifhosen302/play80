@@ -1033,6 +1033,8 @@ body.p8-auth-locked .app{max-width:560px}
 .p8-menu-item,.p8-menu-grid .action{position:relative}
 .p8-menu-grid .action{text-align:left;padding-inline:16px;min-height:48px}
 #p8SupportText,#p8OwnerInboxList textarea,#p8InboxSearch,[aria-label="PLAY80 আমন্ত্রণ লিংক"]{box-sizing:border-box;width:100%;padding:12px;margin:8px 0;border:1px solid #48516b;border-radius:12px;background:#101528;color:#eef1ff;font:inherit}
+.p8-user-suggestions:not(:empty){display:grid;gap:6px;margin:6px 0 10px}
+.p8-user-suggestions .action{margin:0;text-align:start;overflow-wrap:anywhere}
 .p8-support-topics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .p8-support-topics .action[aria-pressed="true"]{background:#343060;outline:1px solid #a18df0}
 .p8-support-body{white-space:pre-wrap;overflow-wrap:anywhere;margin-bottom:0}
@@ -1129,7 +1131,7 @@ body[data-play80-screen="owner-wallet"] .top{display:none}
 .p8-wallet-head h1{font-size:clamp(21px,6vw,30px);line-height:1.25;margin:0 0 4px;color:#f6f3ff}
 .p8-wallet-head p,.p8-wallet-card small,.p8-wallet-entry small,#play80WalletNotice{color:var(--wallet-text)}
 .p8-wallet-head p{font-size:13px;margin:0}
-.p8-wallet-owner,.p8-wallet-card,.p8-wallet-entry,.p8-wallet-empty,#walletGateSlot:not(:empty){border:1px solid var(--wallet-line);border-radius:15px;background:var(--wallet-panel);padding:13px}
+.p8-wallet-owner,.p8-wallet-card,.p8-wallet-entry,.p8-wallet-empty{border:1px solid var(--wallet-line);border-radius:15px;background:var(--wallet-panel);padding:13px}
 .p8-wallet-owner{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
 .p8-wallet-owner strong{color:#f5d487;font-size:21px}
 .p8-wallet-totals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
@@ -1148,7 +1150,6 @@ body[data-play80-screen="owner-wallet"] .top{display:none}
 </style>
 <section id="screen-owner-wallet" class="screen hidden" aria-labelledby="play80WalletTitle">
   <header class="p8-wallet-head"><button class="back" data-open="menu" type="button" aria-label="মেনুতে ফিরুন">‹</button><div><h1 id="play80WalletTitle">ডিপোজিট ও উইথড্র</h1><p>ভার্চুয়াল কয়েনের রিকোয়েস্ট ও ইতিহাস</p></div></header>
-  <div id="walletGateSlot"></div>
   <div id="play80WalletNotice" role="status"></div>
   <div id="play80OwnerWalletContent" class="hidden">
     <div id="play80OwnerReserve" class="p8-wallet-owner hidden"><span>Owner-এর ব্যবহারযোগ্য কয়েন</span><strong id="play80OwnerAvailable">—</strong></div>
@@ -1170,12 +1171,6 @@ body[data-play80-screen="owner-wallet"] .top{display:none}
   <h1 class="p8-staff-heading" id="p8StaffHeading">ড্যাশবোর্ড</h1>
   <div class="panel cloudPanel">
     <div id="cloudOwnerAuthBlocked" class="hidden">Owner বা Admin অ্যাকাউন্টে লগইন করো।</div>
-    <div id="cloudStaffGateSlot"><div id="cloudStaffPinGate" class="hidden">
-      <p class="sub">Owner প্যানেল খুলতে তোমার লগইনের PIN দাও।</p>
-      <div class="formGroup"><label for="cloudStaffPin">লগইনের PIN</label><input id="cloudStaffPin" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" /></div>
-      <button id="cloudStaffUnlock" class="action" type="button">প্যানেল খুলুন</button>
-    </div>
-    </div>
     <div id="cloudOwnerContent" class="hidden">
       <div id="cloudStaffTab-users" class="cloudStaffPane hidden"><div class="sectionTitle"><h2>সব ইউজার</h2><small id="p8UserCount"></small></div><div class="formGroup"><label for="cloudStaffSearch">ইউজার আইডি, ইমেইল বা নাম</label><input id="cloudStaffSearch" maxlength="80" placeholder="ইউজার আইডি লিখে খুঁজুন" /></div><button type="button" class="action secondary" id="cloudStaffSearchButton">খুঁজুন</button><div id="cloudStaffUsers" class="cloudList"></div></div>
       <div id="cloudStaffTab-admins" class="cloudStaffPane hidden"><div class="sectionTitle"><h2>Staff accounts</h2></div><p class="tiny">শুধু মূল Owner নতুন Admin দিতে বা Admin ক্ষমতা সরাতে পারবে। User account মুছে দেওয়া হবে না।</p><div id="cloudStaffAdmins" class="cloudList"></div></div>

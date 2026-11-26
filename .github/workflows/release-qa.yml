@@ -76,6 +76,7 @@ jobs:
             sleep 1
           done
           docker cp supabase/migrations/20261126193000_rewards_referrals_owner_support.sql play80-db-test:/tmp/play80-reward-migration.sql
+          docker cp supabase/migrations/20261127000000_wallet_and_support_navigation.sql play80-db-test:/tmp/play80-navigation-migration.sql
           docker exec -i play80-db-test psql -h 127.0.0.1 -U postgres -v ON_ERROR_STOP=1 < tests/play80_rewards_support.sql
       - name: Run account and signup browser tests
         run: |
