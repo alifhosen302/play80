@@ -214,7 +214,7 @@ try:
   assert page.get_by_label('ডেমো সেন্ড মানি নম্বর').input_value()=='00000000000'
   assert not page.get_by_label('ডেমো সেন্ড মানি নম্বর').is_editable()
   page.get_by_role('button',name='রিকোয়েস্টের ইতিহাস',exact=True).click()
-  assert page.locator('#cloudRequests').is_visible()
+  page.locator('#cloudRequests').wait_for(state='visible')
   assert page.locator('#cloudSubmit').is_hidden()
   assert page.locator('.footerNav [aria-current="page"]').get_attribute('data-p8-footer')=='wallet'
   page.locator('#globalBack').click()
