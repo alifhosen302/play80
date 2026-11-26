@@ -101,6 +101,7 @@ try:
   page.reload()
   assert page.locator('.play80TopTabs').is_hidden(),'Logout lock must persist after reload'
   current_role[0]='player'
+  page.route('**/rest/v1/profiles?*',lambda route:route.fulfill(json=[{'username':'example_player','display_name':'Player'}]))
   page.locator('#cloudLoginEmail').fill('testplayer@example.com')
   page.locator('#cloudLoginPassword').fill('123456')
   page.locator('#cloudLogin').click()
