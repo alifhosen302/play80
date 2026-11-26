@@ -741,7 +741,7 @@ body.p8-auth-locked .app{max-width:560px}
 </head>
 <body class="p8-auth-locked">
 <div class="app">
- <header class="top"><button id="globalBack" class="globalBack hidden" type="button" aria-label="Go back one step">❮</button><div class="logo"><span class="mark logoImageMark"><img src="play80_brand_premium.webp" alt="PLAY80 official premium logo" width="45" height="45"></span><div><div class="brand">play<span style="color:#c9a1ff">80</span></div><div class="small">Dice • Flight • Ludo • Spin</div></div></div><div class="walletBadge">✦ <span id="headerPoints">0</span> PTS</div></header>
+ <header class="top"><button id="globalBack" class="globalBack hidden" type="button" aria-label="Go back one step">❮</button><div class="logo"><span class="mark logoImageMark"><img src="play80_brand_premium.webp" alt="PLAY80 official premium logo" width="45" height="45"></span><div><div class="brand">play<span style="color:#c9a1ff">80</span></div><div class="small">Dice • Flight • Ludo • Spin</div></div></div><span id="headerPoints" hidden></span><div class="walletBadge"><span id="headerCoins">—</span> কয়েন</div></header>
  <nav class="play80TopTabs" aria-label="PLAY80 primary tabs">
  <button type="button" data-open="home" data-main-tab="home" class="active">🎰 Casino</button>
  <button type="button" data-open="bet" data-main-tab="bet">♟️ Bet</button>
@@ -1036,8 +1036,35 @@ body.p8-auth-locked .app{max-width:560px}
 .p8-menu-section,.p8-user-profile{display:grid;gap:8px}
 .p8-menu-section[hidden]{display:none}
 </style>
+<style>
+.p8-account-summary{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;margin:14px 0 18px;padding:12px;border:1px solid #42365a;border-radius:16px;background:linear-gradient(115deg,#26223c,#1a2037)}
+.p8-avatar{display:grid;place-items:center;background:#5a4193;color:#fff;border-radius:50%;width:44px;height:44px;font-weight:800}
+.p8-account-id,.p8-account-balance{display:grid;gap:3px;min-width:0}
+.p8-account-id small{overflow-wrap:anywhere}
+.p8-account-summary small,.p8-identity-details dt,.p8-metric small{color:#c8c1df;font-size:12px}
+.p8-account-balance{text-align:right}
+.p8-account-balance strong,.p8-metric strong{color:#f5d68f;overflow-wrap:anywhere}
+.p8-menu-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.p8-menu-grid .action{display:grid;align-content:center;gap:7px;min-height:78px;padding:10px 12px;border:1px solid #4c4268;border-radius:15px;background:#22253e;font-size:14px;line-height:1.35}
+.p8-menu-icon{display:grid;place-items:center;background:#342951;border-radius:10px;width:34px;height:34px;font-size:18px}
+.p8-identity-details{margin:0;padding:4px 12px;border:1px solid #403754;border-radius:15px;background:#191d34}
+.p8-identity-details div{display:grid;grid-template-columns:minmax(75px,1fr) minmax(0,2fr);gap:8px;padding:10px 0;border-bottom:1px solid #403754}
+.p8-identity-details div:last-child{border-bottom:0}
+.p8-identity-details dt,.p8-identity-details dd{margin:0;overflow-wrap:anywhere}
+.p8-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.p8-metric{display:grid;gap:6px;padding:10px;background:#22243d;border:1px solid #403754;border-radius:12px}
+.p8-metric strong{font-size:19px}
+.p8-staff-heading{margin:8px 0 14px;font-size:25px}
+#cloudOwnerNotice:empty,#cloudSignedIn .formGroup[hidden]{display:none}
+#cloudSignedIn[data-section="profile"] > :is(.sectionTitle,#cloudOwnerEntry,#cloudSignOut),body:not(.p8-auth-locked) #screen-account:has(#cloudSignedIn[data-section="profile"]) :is(.p8AuthHero,.p8CoinDisclaimer){display:none}
+</style>
 <section id="screen-menu" class="screen hidden">
-  <div class="panel cloudPanel"><h1 class="bigTitle">মেনু</h1><div id="p8MenuItems" class="p8-menu-grid"></div></div>
+  <div class="panel cloudPanel"><h1 class="bigTitle">মেনু</h1>
+    <div class="p8-account-summary">
+      <span class="p8-avatar" id="p8MenuAvatar" aria-hidden="true">P</span>
+      <div class="p8-account-id"><strong id="p8MenuName">—</strong><small id="p8MenuUserId">—</small></div>
+      <div class="p8-account-balance"><small>মোট ব্যালেন্স</small><strong id="p8MenuBalance">—</strong></div>
+    </div><div id="p8MenuItems" class="p8-menu-grid"></div></div>
 </section>
 <style>
 #play80ActionPin{width:min(90vw,420px);box-sizing:border-box;border:1px solid #796d94;border-radius:16px;background:#191630;color:#fff;padding:20px}
@@ -1099,10 +1126,10 @@ body[data-play80-screen="owner-wallet"] .top{display:none}
   </div>
 </section>
 <section id="screen-remote-owner" class="screen hidden">
-  <button class="back" data-open="account">❮ Online Account</button>
-  <div class="center"><h1 class="bigTitle">🛡️ PLAY80 Owner Dashboard</h1><p class="sub">Owner অ্যাকাউন্ট পরিচালনা</p></div>
-  <div class="panel cloudPanel"><div class="p8CoinDisclaimer">PLAY80 Coin-এর নগদ মূল্য নেই। এখানে সব অনুমোদন সার্ভারে যাচাই করা হয়।</div><button type="button" id="p8OwnerLogout" class="smallAction" style="width:100%;min-height:43px;margin:8px 0 12px">↪ Owner Logout</button>
-    <div id="cloudOwnerAuthBlocked">Sign in with the verified Play80 Owner email to access online requests.</div>
+  <button class="back" data-open="menu">‹ মেনু</button>
+  <h1 class="p8-staff-heading" id="p8StaffHeading">ড্যাশবোর্ড</h1>
+  <div class="panel cloudPanel">
+    <div id="cloudOwnerAuthBlocked" class="hidden">Owner বা Admin অ্যাকাউন্টে লগইন করো।</div>
     <div id="cloudStaffGateSlot"><div id="cloudStaffPinGate" class="hidden">
       <p class="sub">Owner প্যানেল খুলতে তোমার লগইনের PIN দাও।</p>
       <div class="formGroup"><label for="cloudStaffPin">লগইনের PIN</label><input id="cloudStaffPin" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" /></div>
@@ -1110,18 +1137,10 @@ body[data-play80-screen="owner-wallet"] .top{display:none}
     </div>
     </div>
     <div id="cloudOwnerContent" class="hidden">
-      <div class="cloudStaffTabs">
-        <button class="cloudStaffTab" type="button" data-staff-tab="users">👥 Users</button>
-        <button class="cloudStaffTab" type="button" data-staff-tab="admins">🛡 Admins</button>
-        <button class="cloudStaffTab" type="button" data-staff-tab="activity">🎮 Live Games</button>
-        <button class="cloudStaffTab" type="button" data-staff-tab="stats">📊 Statistics</button>
-        <button class="cloudStaffTab" type="button" data-staff-tab="bots">🤖 Computer Players</button>
-        <button class="cloudStaffTab" type="button" data-staff-tab="tournaments">🏆 Tournament Scheduler</button>
-      </div>
-      <div id="cloudStaffTab-users" class="cloudStaffPane hidden"><div class="sectionTitle"><h2>All Users & Balances</h2></div><div class="formGroup"><label for="cloudStaffSearch">Search by User ID / email / username</label><input id="cloudStaffSearch" maxlength="80" placeholder="Search account" /></div><button type="button" class="action secondary" id="cloudStaffSearchButton">SEARCH USERS</button><div id="cloudStaffUsers" class="cloudList"></div></div>
+      <div id="cloudStaffTab-users" class="cloudStaffPane hidden"><div class="sectionTitle"><h2>সব ইউজার</h2><small id="p8UserCount"></small></div><div class="formGroup"><label for="cloudStaffSearch">ইউজার আইডি, ইমেইল বা নাম</label><input id="cloudStaffSearch" maxlength="80" placeholder="ইউজার আইডি লিখে খুঁজুন" /></div><button type="button" class="action secondary" id="cloudStaffSearchButton">খুঁজুন</button><div id="cloudStaffUsers" class="cloudList"></div></div>
       <div id="cloudStaffTab-admins" class="cloudStaffPane hidden"><div class="sectionTitle"><h2>Staff accounts</h2></div><p class="tiny">শুধু মূল Owner নতুন Admin দিতে বা Admin ক্ষমতা সরাতে পারবে। User account মুছে দেওয়া হবে না।</p><div id="cloudStaffAdmins" class="cloudList"></div></div>
       <div id="cloudStaffTab-activity" class="cloudStaffPane hidden"><div class="sectionTitle"><h2>Who is Playing</h2></div><p class="tiny">সাইন-ইন করা ব্যবহারকারীদের অ্যাপ থেকে পাঠানো সাম্প্রতিক গেম স্ট্যাটাস (সর্বশেষ ২ মিনিট)।</p><button class="action secondary" type="button" id="cloudStaffActivityRefresh">REFRESH LIVE GAMES</button><div id="cloudStaffActivity" class="cloudList"></div></div>
-      <div id="cloudStaffTab-stats" class="cloudStaffPane hidden"><div class="sectionTitle"><h2>Users & Popular Games</h2></div><button class="action secondary" type="button" id="cloudStaffStatsRefresh">REFRESH STATISTICS</button><div id="cloudStaffStats" class="cloudList"></div></div>
+      <div id="cloudStaffTab-stats" class="cloudStaffPane hidden"><div class="sectionTitle"><h2>ভার্চুয়াল কয়েনের হিসাব</h2></div><button class="action secondary" type="button" id="cloudStaffStatsRefresh">রিফ্রেশ</button><div id="cloudStaffStats" class="cloudList"></div></div>
       <div id="cloudStaffTab-bots" class="cloudStaffPane hidden">
        <h2>🤖 AI Player Management</h2><p class="tiny">AI players are clearly labelled. Existing tournament scores and profile snapshots are locked; edits apply to future tournaments only.</p>
        <div id="cloudBotsSummary" class="tiny">Load AI profiles from the secure owner service.</div>
