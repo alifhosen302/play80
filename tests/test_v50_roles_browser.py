@@ -223,7 +223,7 @@ try:
   assert page.locator('#cloudAmount').input_value()=='500'
   assert page.locator('.p8-amount-grid [data-amount="500"]').get_attribute('aria-pressed')=='true'
   page.get_by_role('button',name='অনুরোধ পাঠাও').click()
-  assert page.locator('#play80ActionPin').is_visible()
+  page.locator('#play80ActionPin').wait_for(state='visible')
   page.locator('#play80ActionPin button[value="cancel"]').click()
   assert page.locator('#play80ActionPin').is_hidden()
   turnover.update(withdrawal_guard_enabled=True,items=[{
