@@ -145,6 +145,8 @@ jobs:
       - name: Test the signed APK on Android 14
         uses: reactivecircus/android-emulator-runner@v2
         with:
+          disk-size: 2048M
+          profile: pixel_5
           api-level: 34
           arch: x86_64
           target: google_apis
