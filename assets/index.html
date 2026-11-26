@@ -1014,7 +1014,7 @@ body.p8-auth-locked .app{max-width:560px}
       <div class="hubStat"><div><b>PLAY80 Coins</b><small>Reserved pending removal: <span id="cloudHeld">0</span></small></div><strong id="cloudBalance">—</strong></div>
       <div class="play80Surface" style="margin:8px 0">
   <strong>🎁 একবারের ভার্চুয়াল কয়েন বোনাস</strong><p style="font-size:12px">প্রথম অনুমোদিত ডিপোজিট ঠিক ১,০০০ ভার্চুয়াল কয়েন হলে একবার ৫,০০০ বোনাস পাবে। এই কয়েন নগদে রূপান্তরযোগ্য নয়।</p>
-  <small>Bonus credited: <b id="cloudBonusEarned">—</b> · Required gameplay: <b id="cloudTurnoverRequired">—</b> · Completed: <b id="cloudTurnoverCompleted">—</b> · Remaining: <b id="cloudTurnoverRemaining">—</b></small>
+  <small>Bonus credited: <b id="cloudBonusEarned">—</b></small>
  </div><div class="sectionTitle"><h2>কয়েনের অনুরোধ</h2></div>
       <div class="formGroup"><label for="cloudRequestKind">Request type</label><select id="cloudRequestKind" class="cloudSelect"><option value="demo_credit">➕ Add virtual coins (100–20,000)</option><option value="demo_debit">➖ Remove virtual coins (min 200)</option></select></div>
       <div class="formGroup"><label for="cloudAmount">কয়েনের পরিমাণ</label><input id="cloudAmount" type="number" min="100" step="1" value="100" /></div>
@@ -1038,6 +1038,11 @@ body.p8-auth-locked .app{max-width:560px}
 .p8-support-body{white-space:pre-wrap;overflow-wrap:anywhere;margin-bottom:0}
 button.p8-thread-preview{text-align:left;position:relative;display:grid;gap:5px;width:100%;padding-right:25px;overflow-wrap:anywhere}
 .p8-thread-preview span{font-weight:400}
+.p8-turnover-item{display:grid;gap:6px}
+.p8-turnover-item progress{appearance:none;width:100%;height:10px;border:0;border-radius:10px;overflow:hidden;background:#29354e;accent-color:#44c982}
+.p8-turnover-item progress::-webkit-progress-bar{background:#29354e}
+.p8-turnover-item progress::-webkit-progress-value{background:#44c982}
+.p8-turnover-item progress::-moz-progress-bar{background:#44c982}
 .p8-daily-reward{margin-bottom:12px}
 .p8-countdown{display:block;font-size:2rem;font-variant-numeric:tabular-nums;color:#ffe29c;margin:8px 0}
 .p8-claim{font-weight:700;margin-bottom:0}

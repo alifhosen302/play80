@@ -1,0 +1,31 @@
+name: PLAY80 turnover checks
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/turnover-checks.yml'
+      - 'supabase/migrations/20261126222000_stage_coin_turnover.sql'
+      - 'tests/play80_turnover.sql'
+
+permissions:
+  contents: read
+
+jobs:
+  turnover:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test the turnover migration on an isolated database
+        env:
+          PGPASSWORD: postgres
+        run: |
+          cp supabase/migrations/20261126222000_stage_coin_turnover.sql /tmp/play80-turnover.sql
+          psql -h localhost -U postgres -v ON_ERROR_STOP=1 -f tests/play80_turnover.sql
