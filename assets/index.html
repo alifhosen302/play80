@@ -1046,8 +1046,13 @@ body.p8-auth-locked .app{max-width:560px}
     <div id="cloudOwnerAuthBlocked">Sign in with the verified Play80 Owner email to access online requests.</div>
     <div id="cloudStaffPinGate" class="hidden">
       <p class="sub">Owner ও Admin-এর সব পরিচালনামূলক কাজের আগে ৬ সংখ্যার PIN প্রয়োজন। PIN সার্ভারে যাচাই করা হয় এবং ৩ মিনিট পর পুনরায় দিতে হবে।</p>
-      <div class="formGroup"><label for="cloudStaffPin">6-digit staff PIN</label><input id="cloudStaffPin" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" placeholder="••••••" /></div>
-      <div class="cloudActions"><button id="cloudStaffUnlock" class="action" type="button">🔓 UNLOCK PANEL</button><button id="cloudStaffCreatePin" class="action secondary" type="button">FIRST TIME: SET PIN</button></div>
+      <div id="cloudStaffUnlockField" class="formGroup"><label for="cloudStaffPin">6-digit staff PIN</label><input id="cloudStaffPin" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" placeholder="••••••" /></div>
+      <div id="cloudStaffUnlockActions" class="cloudActions"><button id="cloudStaffUnlock" class="action" type="button">🔓 UNLOCK PANEL</button><button id="cloudStaffCreatePin" class="action secondary" type="button">প্রথমবার PIN সেট করুন</button></div>
+      <div id="cloudStaffPinSetup" class="hidden">
+        <div class="formGroup"><label for="cloudStaffNewPin">নতুন Staff PIN</label><input id="cloudStaffNewPin" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password" /></div>
+        <div class="formGroup"><label for="cloudStaffConfirmPin">নতুন PIN আবার লিখুন</label><input id="cloudStaffConfirmPin" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password" /></div>
+        <div class="cloudActions"><button id="cloudStaffSavePin" class="action" type="button">PIN সেভ করে প্যানেল খুলুন</button><button id="cloudStaffCancelPin" class="action secondary" type="button">ফিরে যান</button></div>
+      </div>
       <p class="tiny">PIN কাউকে দেবে না। Owner Login-এর PIN এবং প্রশাসনিক অনুমোদনের Staff PIN আলাদা নিরাপত্তা স্তর।</p>
     </div>
     <div id="cloudOwnerContent" class="hidden">

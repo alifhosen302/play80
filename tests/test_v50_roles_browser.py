@@ -70,6 +70,34 @@ try:
   assert page.locator('#p8MenuItems [data-panel="inbox"][data-alert]').is_visible()
   page.get_by_role('button',name='ইউজার দেখুন').click()
   assert page.locator('#cloudStaffPinGate').is_visible()
+  pin_calls=[]
+  def mock_staff_set(route):
+   pin_calls.append('set')
+   route.fulfill(json=True)
+  def mock_staff_unlock(route):
+   pin_calls.append('unlock')
+   if 'set' not in pin_calls:
+    route.fulfill(status=400,json={'message':'PIN not set yet'})
+   else:
+    route.fulfill(json={'ok':True,'token':'mock-staff-session','expires_in':180})
+  page.route('**/rest/v1/rpc/staff_set_pin',mock_staff_set)
+  page.route('**/rest/v1/rpc/staff_unlock_pin',mock_staff_unlock)
+  page.evaluate("window.confirm = () => false")
+  page.locator('#cloudStaffCreatePin').click()
+  assert page.locator('#cloudStaffNewPin').evaluate('(el) => el === document.activeElement')
+  page.locator('#cloudStaffCancelPin').click()
+  page.locator('#cloudStaffPin').fill('204680')
+  page.locator('#cloudStaffUnlock').click()
+  page.locator('#cloudStaffNewPin').wait_for(state='visible')
+  page.locator('#cloudStaffNewPin').fill('204680')
+  page.locator('#cloudStaffConfirmPin').fill('204681')
+  page.locator('#cloudStaffSavePin').click()
+  page.get_by_text('দুই ঘরের PIN মিলছে না।').wait_for()
+  assert pin_calls==['unlock']
+  page.locator('#cloudStaffConfirmPin').fill('204680')
+  page.locator('#cloudStaffSavePin').click()
+  page.locator('#cloudOwnerContent').wait_for(state='visible')
+  assert pin_calls==['unlock','set','unlock']
   assert page.locator('#p8OwnerLogout').is_visible()
   page.locator('#p8OwnerLogout').click()
   assert page.locator('#screen-account').is_visible(),'Owner logout not returned to Sign In'

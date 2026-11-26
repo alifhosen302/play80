@@ -254,6 +254,7 @@
   $('cloudRefresh').addEventListener('click',e=>busy(e.currentTarget,loadAccount));
   $('cloudSignOut').addEventListener('click',e=>busy(e.currentTarget,async()=>{
     dsrForm.reset();
+    showStaffPinSetup(false);
     const oldAccessToken=session?.access_token;
     session=null;profile=null;balance=null;staffPinToken=null;staffPinExpires=0;verifiedAuth=false;
     persist();renderAuth();
@@ -280,29 +281,62 @@
     const b=document.createElement('button');b.type='button';b.className='action'+(secondary?' secondary':'');
     b.textContent=title;b.addEventListener('click',()=>busy(b,fn,ownerStatus));return b;
   };
-  function staffOpenGate() {
-    staffPinToken=null; staffPinExpires=0;
-    show('cloudOwnerContent',false);show('cloudStaffPinGate',isStaff());
-    $('cloudStaffPin').value='';
-    ownerStatus(isStaff()?'Enter your secure 6-digit PIN to enter the panel.':'Please sign in as verified staff.',!isStaff());
+  function showStaffPinSetup(setup) {
+    show('cloudStaffPinSetup',setup);
+    show('cloudStaffUnlockField',!setup);
+    show('cloudStaffUnlockActions',!setup);
+    for(const id of ['cloudStaffPin','cloudStaffNewPin','cloudStaffConfirmPin'])$(id).value='';
+    if(setup)$('cloudStaffNewPin').focus();
   }
-  $('cloudStaffCreatePin').addEventListener('click',e=>busy(e.currentTarget,async()=>{
-    const pin=$('cloudStaffPin').value;
-    if(!/^[0-9]{6}$/.test(pin))throw Error('Set a six-digit numeric PIN');
-    if(!confirm('Set this 6-digit Owner/Admin PIN? You must remember it.'))return;
-    await db('rpc/staff_set_pin','POST',{p_pin:pin});
-    $('cloudStaffPin').value='';ownerStatus('PIN created securely. Enter it again and choose Unlock.');
+  function staffOpenGate() {
+    staffPinToken=null;staffPinExpires=0;
+    show('cloudOwnerContent',false);show('cloudStaffPinGate',isStaff());
+    showStaffPinSetup(false);
+    ownerStatus(isStaff()?'Staff PIN লিখুন। প্রথমবার হলে PIN সেট করুন।':'যাচাইকৃত Owner বা Admin অ্যাকাউন্টে লগইন করুন।',!isStaff());
+  }
+  $('cloudStaffCreatePin').addEventListener('click',()=>{
+    showStaffPinSetup(true);
+    ownerStatus('নতুন Staff PIN লিখুন এবং একই PIN আবার দিন।');
+  });
+  $('cloudStaffCancelPin').addEventListener('click',staffOpenGate);
+  async function unlockStaffPanel(pin) {
+    let data;
+    try{data=await db('rpc/staff_unlock_pin','POST',{p_pin:pin});}
+    catch(e){
+      if(e.message==='PIN not set yet'){
+        showStaffPinSetup(true);
+        ownerStatus('Staff PIN এখনও সেট হয়নি। নিচের দুই ঘরে নতুন PIN লিখুন।');
+        return;
+      }
+      throw e;
+    }
+    if(!data?.ok||!data.token)throw Error(data?.message||'Staff PIN যাচাই করা যায়নি।');
+    staffPinToken=data.token;staffPinExpires=Date.now()+Math.max(0,Number(data.expires_in||180)-8)*1000;
+    showStaffPinSetup(false);
+    show('cloudStaffPinGate',false);show('cloudOwnerContent',true);
+    ownerStatus('Owner প্যানেল খুলেছে।');
+    await switchStaffTab(requestedStaffTab);await refreshMenuCounts();
+  }
+  $('cloudStaffSavePin').addEventListener('click',e=>busy(e.currentTarget,async()=>{
+    const pin=$('cloudStaffNewPin').value;
+    if(!/^[0-9]{6}$/.test(pin))throw Error('নতুন Staff PIN-এ ইংরেজি ৬টি সংখ্যা দিন।');
+    if(pin!==$('cloudStaffConfirmPin').value)throw Error('দুই ঘরের PIN মিলছে না।');
+    try{await db('rpc/staff_set_pin','POST',{p_pin:pin});}
+    catch(e){
+      if(!e.message.startsWith('PIN already configured'))throw e;
+      showStaffPinSetup(false);
+      ownerStatus('Staff PIN আগে থেকেই সেট আছে। সেই PIN দিয়ে প্যানেল খুলুন।',true);
+      return;
+    }
+    showStaffPinSetup(false);
+    ownerStatus('Staff PIN সেভ হয়েছে। প্যানেল খুলছে…');
+    await unlockStaffPanel(pin);
   },ownerStatus));
   $('cloudStaffUnlock').addEventListener('click',e=>busy(e.currentTarget,async()=>{
     const pin=$('cloudStaffPin').value;
-    if(!/^[0-9]{6}$/.test(pin))throw Error('Please enter a 6-digit PIN');
+    if(!/^[0-9]{6}$/.test(pin))throw Error('Staff PIN-এ ইংরেজি ৬টি সংখ্যা দিন।');
     $('cloudStaffPin').value='';
-    const data=await db('rpc/staff_unlock_pin','POST',{p_pin:pin});
-    if(!data?.ok)throw Error(data?.message||'Incorrect PIN');
-    staffPinToken=data.token;staffPinExpires=Date.now()+Math.max(0,Number(data.expires_in||180)-8)*1000;
-    show('cloudStaffPinGate',false);show('cloudOwnerContent',true);
-    ownerStatus('Panel unlocked for about 3 minutes. Virtual coins only.');
-    await switchStaffTab(requestedStaffTab);await refreshMenuCounts();
+    await unlockStaffPanel(pin);
   },ownerStatus));
   function makeOwnerItem(r){
     const el=document.createElement('div');el.className='cloudRequestItem';
