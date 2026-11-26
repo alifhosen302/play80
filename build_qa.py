@@ -271,7 +271,14 @@ def main():
         z.writestr('AndroidManifest.xml',manifest,compress_type=zipfile.ZIP_DEFLATED)
         z.writestr('classes.dex',classes,compress_type=zipfile.ZIP_DEFLATED)
         for f in sorted((ROOT/'assets').iterdir()):
-            if f.is_file():z.write(f,'assets/'+f.name,compress_type=zipfile.ZIP_DEFLATED)
+            if not f.is_file():
+                continue
+            if f.name == 'index.html':
+                code = str(int(os.environ.get('PLAY80_VERSION_CODE', '44')))
+                page = f.read_text(encoding='utf-8').replace('__PLAY80_BUILD_CODE__', code)
+                z.writestr('assets/index.html', page, compress_type=zipfile.ZIP_DEFLATED)
+            else:
+                z.write(f,'assets/'+f.name,compress_type=zipfile.ZIP_DEFLATED)
         z.writestr('resources.arsc',launcher_resource_table(),compress_type=zipfile.ZIP_STORED)
         z.write(ROOT/'assets'/'play80_app_icon.png','res/drawable/play80_app_icon.png',compress_type=zipfile.ZIP_DEFLATED)
     key=Path(os.environ['PLAY80_SIGNING_KEYSTORE'])

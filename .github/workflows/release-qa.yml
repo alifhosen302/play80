@@ -120,6 +120,12 @@ jobs:
           TOOLS="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
           "$TOOLS/aapt" dump badging ../PLAY80_V4_1_Practice_QA.apk
           "$TOOLS/zipalign" -c 4 ../PLAY80_V4_1_Practice_QA.apk
+          unzip -p ../PLAY80_V4_1_Practice_QA.apk assets/index.html > "$RUNNER_TEMP/play80-opened-apk.html"
+          grep -Fq "id=\"p8BuildLabel\">বিল্ড $PLAY80_VERSION_CODE<" "$RUNNER_TEMP/play80-opened-apk.html"
+          grep -Fq 'id="p8MenuAvatar"' "$RUNNER_TEMP/play80-opened-apk.html"
+          grep -Fq 'id="headerCoins"' "$RUNNER_TEMP/play80-opened-apk.html"
+          if grep -Fq 'id="headerPoints"' "$RUNNER_TEMP/play80-opened-apk.html"; then exit 1; fi
+          echo "Verified menu and server coin header inside APK build $PLAY80_VERSION_CODE"
           "$TOOLS/apksigner" verify --verbose --min-sdk-version 28 ../PLAY80_V4_1_Practice_QA.apk
           mkdir -p dist
           cp ../PLAY80_V4_1_Practice_QA.apk dist/PLAY80_V5_2_GitHub_QA.apk

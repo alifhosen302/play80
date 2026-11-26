@@ -88,35 +88,45 @@
     if(ownerBadge)ownerBadge.textContent=on?(isOwner()?'🛡️ Owner account':isStaff()?'🛡️ Staff account':isDsr()?'DSR account':'🎮 Player account'):'🔐 PLAY80 · Secure sign in';
     document.querySelectorAll('[data-p8-owner-only]').forEach(el=>el.classList.toggle('hidden',!on||!isOwner()));
   }
+  let accountLoadVersion=0;
   async function loadAccount(){
     if(!session||!verifiedAuth)return;
+    const version=++accountLoadVersion;
+    const id=session.user?.id;
+    const stillCurrent=()=>version===accountLoadVersion&&verifiedAuth&&session?.user?.id===id;
     void refreshMenuCounts();
     try{
-      const id=session.user?.id;
       if(!id)throw Error('User account is missing from the session');
-      const profiles=await db('profiles?select=username,display_name,full_name,phone_number,address_text,created_at&id=eq.'+encodeURIComponent(id)+'&limit=1');
+      const key=encodeURIComponent(id);
+      const [profiles,wallets]=await Promise.all([
+        db('profiles?select=username,display_name,full_name,phone_number,address_text,created_at&id=eq.'+key+'&limit=1'),
+        db('demo_wallets?select=balance,held_balance&user_id=eq.'+key+'&limit=1')
+      ]);
+      if(!stillCurrent())return;
       profile=profiles?.[0]||{};
       $('cloudUsername').value=profile.username||'';
       $('cloudUsername').readOnly=!!profile.username;
       $('cloudSaveUsername').disabled=!!profile.username;
       $('cloudSaveUsername').textContent=profile.username?'USERNAME LOCKED':'SAVE USERNAME';
-      const wallets=await db('demo_wallets?select=balance,held_balance&user_id=eq.'+encodeURIComponent(id)+'&limit=1');
       balance=wallets?.[0]||{balance:0,held_balance:0};
       $('cloudBalance').textContent=String(Number(balance.balance)-Number(balance.held_balance));
       renderIdentity();
       try{
         const bonusRows=await db('bonus_transactions?select=amount&user_id=eq.'+encodeURIComponent(id)+'&limit=2');
         const turnover=await db('turnover_records?select=required,completed&user_id=eq.'+encodeURIComponent(id)+'&limit=1');
+        if(!stillCurrent())return;
         const earned=(bonusRows||[]).reduce((s,b)=>s+Number(b.amount||0),0);
         $('cloudBonusEarned').textContent=earned.toLocaleString();
         const required=Number(turnover?.[0]?.required||0),completed=Number(turnover?.[0]?.completed||0);
         $('cloudTurnoverRequired').textContent=required.toLocaleString();
         $('cloudTurnoverCompleted').textContent=completed.toLocaleString();
         $('cloudTurnoverRemaining').textContent=Math.max(0,required-completed).toLocaleString();
-      }catch(e){$('cloudTurnoverRemaining').textContent='Server unavailable';}
+      }catch(e){if(stillCurrent())$('cloudTurnoverRemaining').textContent='Server unavailable';}
 
+      if(!stillCurrent())return;
       $('cloudHeld').textContent=String(balance.held_balance||0);
       const requests=await db('demo_wallet_requests?select=id,request_kind,amount,status,created_at,review_note&user_id=eq.'+encodeURIComponent(id)+'&order=created_at.desc&limit=25');
+      if(!stillCurrent())return;
       const list=$('cloudRequests');list.replaceChildren();
       if(!requests?.length)list.textContent='No online requests yet.';
       (requests||[]).forEach(r=>{
@@ -125,8 +135,7 @@
         const sub=document.createElement('small');const states={pending:'অপেক্ষমাণ',approved:'সফল',rejected:'প্রত্যাখ্যাত'};sub.textContent=(states[r.status]||r.status)+' • '+escDate(r.created_at)+(r.review_note?' • '+r.review_note:'');
         item.append(title,sub);list.append(item);
       });
-      status('PLAY80 অ্যাকাউন্ট সিঙ্ক হয়েছে। ভার্চুয়াল কয়েনের নগদ মূল্য নেই।');
-    }catch(e){status(e.message,true);}
+    }catch(e){if(stillCurrent())status(e.message,true);}
   }
   const busy = async (button,fn,writeStatus=status) => {
     if(button.disabled)return;
@@ -263,6 +272,7 @@
     dsrForm.reset();
     if(pinDialog.open)pinDialog.close('cancel');
     const oldAccessToken=session?.access_token;
+    ++accountLoadVersion;
     session=null;profile=null;balance=null;staffPinToken=null;staffPinExpires=0;verifiedAuth=false;
     persist();renderAuth();
     document.querySelectorAll('.screen').forEach(el=>el.classList.toggle('hidden',el.id!=='screen-account'));
@@ -821,7 +831,7 @@
     const account=verifiedAuth?session?.user:null;
     const name=account?(profile?.full_name||profile?.display_name||profile?.username||account.email||'PLAY80'):'—';
     const coins=account&&balance?walletMoney(balance.balance):'—';
-    $('p8MenuAvatar').textContent=Array.from(name)[0]?.toUpperCase()||'P';
+    $('p8MenuAvatar').textContent='';
     $('p8MenuName').textContent=name;
     $('p8MenuUserId').textContent=account?'আইডি '+account.id:'—';
     $('p8MenuBalance').textContent=coins;
@@ -920,8 +930,8 @@
       document.dispatchEvent(new CustomEvent('play80:menu-navigate',{detail:'remote-owner'}));
       await switchStaffTab(tab);
     };
-    add('প্রোফাইল',account('profile'));
     if(isStaff()){
+      add('প্রোফাইল',account('profile'));
       add('ড্যাশবোর্ড',staff('stats'));
       add('ইউজার দেখুন',staff('users'));
       add('ডিপোজিট ও উইথড্র রিকোয়েস্ট',staff('wallet'),'wallet');
@@ -934,10 +944,11 @@
     }else{
       add('ডিপোজিট',account('wallet','demo_credit'));
       add('উইথড্র',account('wallet','demo_debit'));
-      add('কয়েনের হিসাব ও রিকোয়েস্ট',account('wallet'));
       add('বোনাস',account('bonus'));
       add('রেফার বোনাস',account('referral'));
       add('সাপোর্ট',account('support'));
+      add('প্রোফাইল',account('profile'));
+      add('কয়েনের হিসাব ও রিকোয়েস্ট',account('wallet'));
     }
     add('লগআউট',async()=>$('cloudSignOut').click());
     setMenuCounts(pendingRequests,unreadSupport);
