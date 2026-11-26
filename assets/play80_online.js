@@ -859,6 +859,8 @@
   const requestToolbar=createText('div','','p8-request-toolbar');
   const amountGrid=createText('div','','p8-amount-grid');
   const amountInput=$('cloudAmount');
+  const referenceField=$('play80DemoReferenceField');
+  const referenceInput=$('cloudNote');
   const kindField=$('cloudRequestKind');
   const requestModes=[['demo_credit','ডিপোজিট'],['demo_debit','উইথড্র']];
   for(const [kind,label] of requestModes){
@@ -921,8 +923,8 @@
     methodName.textContent=debit?'বিকাশ':'বিকাশ সেন্ড মানি';
     demoNumberRow.hidden=debit;
     copyMessage.textContent='';
-    $('play80DemoReferenceField').hidden=debit;
-    $('cloudNote').required=!debit;
+    referenceField.hidden=debit;
+    referenceInput.required=!debit;
     showFirstCreditOffer();
     amountHint.textContent=walletMoney(amountInput.min)+' থেকে '+walletMoney(amountInput.max)+' ভার্চুয়াল কয়েন';
     for(const button of requestToolbar.children)button.setAttribute('aria-pressed',String(button.dataset.kind===kindField.value));
@@ -1054,9 +1056,9 @@
       const u=await raw('/auth/v1/user','GET',null,await token());
       if(!id||!u?.id||u.id!==id||!u.email_confirmed_at)throw Object.assign(Error('Email verification or login expired'),{status:401});
       session.user=u;verifiedAuth=true;persist();renderAuth();
+      await loadAccount();await loadMyMessages().catch(()=>{});
       if(isStaff())$('cloudOwnerEntry')?.click();
       else document.querySelector('.footerNav [data-open="home"]')?.click();
-      await loadAccount();await loadMyMessages().catch(()=>{});
     }catch(e){
       if(session && e.status!==401 && e.status!==403){
         verifiedAuth=false;renderAuth();status('সংযোগ যাচাই করা যায়নি। ইন্টারনেট ফিরলে আবার চেষ্টা করো।',true);return;
