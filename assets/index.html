@@ -1075,7 +1075,7 @@ body.p8-auth-locked .app{max-width:560px}
 .p8-metric strong{font-size:19px}
 .p8-staff-heading{margin:8px 0 14px;font-size:25px}
 #cloudOwnerNotice:empty,#cloudSignedIn .formGroup[hidden]{display:none}
-#cloudSignedIn[data-section="profile"] > :is(.sectionTitle,#cloudOwnerEntry,#cloudSignOut),body:not(.p8-auth-locked) #screen-account:has(#cloudSignedIn[data-section="profile"]) :is(.p8AuthHero,.p8CoinDisclaimer){display:none}
+#cloudSignedIn[data-section="profile"] > :is(.sectionTitle,#cloudOwnerEntry,#cloudSignOut),body:not(.p8-auth-locked) #screen-account:has(#cloudSignedIn:is([data-section="profile"],[data-section="wallet"])) :is(.p8AuthHero,.p8CoinDisclaimer){display:none}
 </style>
 <section id="screen-menu" class="screen hidden">
   <div class="panel cloudPanel"><div class="p8-menu-heading"><h1 class="bigTitle">মেনু</h1><small id="p8BuildLabel">বিল্ড __PLAY80_BUILD_CODE__</small></div>
