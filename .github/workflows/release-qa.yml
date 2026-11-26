@@ -3,6 +3,9 @@ name: Update the single PLAY80 APK (permanent signing required)
 # Publish PLAY80 to the existing release after installation and upgrade checks.
 # Abort without publishing when the permanent signing key is unavailable.
 on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/release-qa.yml']
   push:
     branches: [main]
     paths: ['.github/workflows/release-qa.yml']
@@ -29,7 +32,6 @@ env:
 
 jobs:
   qa-release:
-    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -70,6 +72,8 @@ jobs:
           python tests/test_v50_roles_browser.py
           python tests/test_v51_signup_feedback.py
           python tests/test_account_recovery.py
+      - name: Ensure the Android platform for the native share sheet is installed
+        run: sdkmanager 'platforms;android-34'
       - name: Fetch the currently distributed APK and derive the next version code
         env:
           GH_TOKEN: ${{ github.token }}

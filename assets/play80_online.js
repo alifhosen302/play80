@@ -81,7 +81,13 @@
     show('cloudOwnerEntry',on&&isStaff());show('cloudOwnerAuthBlocked',!on||!isStaff());show('cloudStaffPinGate',on&&isStaff()&&walletOpen()&&!staffPinToken);show('cloudOwnerContent',on&&isStaff());show('play80OwnerWalletContent',on&&isStaff()&&!!staffPinToken);
     if(menuReady && on) renderMenu();
     if(menuReady)renderIdentity();
-    if(menuReady && !on) setMenuCounts(0,0);
+    if(menuReady && !on){
+      setMenuCounts(0,0);rewardData=null;referralLink.value='';referralTotal.textContent='';
+      copyNote.textContent='';countdown.textContent='—';claim.textContent='৫,০০০ কয়েন · ক্লেম —';
+      $('p8MyMessages').replaceChildren();$('p8OwnerInboxList').replaceChildren();
+      $('p8SupportText').value='';supportReceipt.hidden=true;
+      if(supportTopic)chooseSupportTopic(supportTopic);
+    }
     if(on){$('cloudEmail').textContent=session.user?.email||'Signed in';$('cloudRole').textContent=isOwner()?'Owner':(isStaff()?'Admin':isDsr()?'DSR':'Player');}
     else {$('cloudBalance').textContent='—';$('cloudRequests').replaceChildren();}
     const ownerBadge=$('p8AccountIdentity');
@@ -160,6 +166,12 @@
     if(!email||!/^[0-9]{6}$/.test(password))throw Error('Enter your email and a six-digit PIN');
     const username=$('cloudRegistrationUsername')?.value.trim().toLowerCase();
     if(!/^[a-z0-9_]{3,24}$/.test(username||''))throw Error('Choose a unique username of 3–24 English letters, digits or _');
+    const referralInput=signupRoleIntent==='player'?$('p8SignupReferral').value.trim():'';
+    let referralCode=referralInput.toLowerCase();
+    if(referralInput.startsWith('https://')){
+      try{referralCode=new URL(referralInput).searchParams.get('ref')?.toLowerCase()||'';}catch(_){referralCode='';}
+    }
+    if(referralInput&&!/^[a-z0-9_]{3,24}$/.test(referralCode))throw Error('সঠিক রেফার কোড বা আমন্ত্রণ লিংক লিখুন।');
     const phone=$('p8SignupPhone').value.trim().replace(/[\s-]/g,'');
     const fullName=$('p8SignupFullName').value.trim();
     const address=$('p8SignupAddress').value.trim();
@@ -169,7 +181,7 @@
     if($('p8SignupConfirmPIN').value!==password)throw Error('PIN entries do not match');
     let data;
     try{
-      data=await auth('signup','POST',{email,password,data:{username,display_name:fullName,full_name:fullName,phone_number:phone,address}});
+      data=await auth('signup','POST',{email,password,data:{username,display_name:fullName,full_name:fullName,phone_number:phone,address,...(referralCode?{play80_referral:referralCode}:{})}});
     }catch(e){
       if(e.message?.includes('45 seconds')||e.message?.includes('rate limit')||e.code==='over_email_send_rate_limit'){
         throw Error('Verification Email ইতিমধ্যে অনুরোধ করা হয়েছে। কিছুক্ষণ পরে Inbox/Spam দেখো। বারবার CREATE ACCOUNT চাপবে না।');
@@ -641,6 +653,7 @@
     const emailGroup=$('cloudLoginEmail').closest('.formGroup'),pinGroup=$('cloudLoginPassword').closest('.formGroup');
     if(signup&&$('p8SignupConfirmPIN')){emailGroup.after(regName);$('p8SignupConfirmPIN').closest('.formGroup').before(pinGroup);}
     else emailGroup.after(pinGroup);
+    $('p8SignupReferral')?.closest('.formGroup').classList.toggle('hidden',!signup||owner);
     regName.classList.toggle('hidden',!signup);
     $('p8RegistrationFields')?.classList.toggle('hidden',!signup);
     $('cloudRegister').classList.toggle('hidden',!signup);
@@ -670,6 +683,7 @@
   regFields.innerHTML=`<div class="formGroup"><label for="p8SignupPhone">Mobile number</label><input id="p8SignupPhone" inputmode="tel" autocomplete="tel" maxlength="18" placeholder="01XXXXXXXXX" required></div>
     <div class="formGroup"><label for="p8SignupFullName">Full name</label><input id="p8SignupFullName" maxlength="100" autocomplete="name" placeholder="Full legal name" required></div>
     <div class="formGroup"><label for="p8SignupAddress">Address</label><textarea id="p8SignupAddress" maxlength="250" autocomplete="street-address" placeholder="Full address" rows="3" required></textarea></div>
+    <div class="formGroup"><label for="p8SignupReferral">রেফার কোড বা আমন্ত্রণ লিংক (ঐচ্ছিক)</label><input id="p8SignupReferral" maxlength="240" autocapitalize="none" autocomplete="off"></div>
     <div class="formGroup"><label for="p8SignupConfirmPIN">Confirm six-digit PIN</label><input id="p8SignupConfirmPIN" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="new-password" placeholder="●●●●●●" required></div>`;
   $('cloudLoginPassword').closest('.formGroup').after(regFields);
   regFields.classList.add('hidden');
@@ -686,65 +700,118 @@
   const accountSupport=document.createElement('div');
   accountSupport.className='play80Surface';
   accountSupport.style.marginTop='12px';
-  accountSupport.innerHTML='<h3>💬 My Support & Account Requests</h3><p>Send the Owner a message, or request account deletion. A request NEVER automatically deletes the account.</p><textarea id="p8SupportText" rows="3" maxlength="1000" placeholder="Message to Owner" style="width:100%;min-height:75px"></textarea><div class="cloudActions"><button class="action" type="button" id="p8SendMessage">SEND MESSAGE</button><button class="action secondary" type="button" id="p8RequestDeletion">REQUEST ACCOUNT DELETION</button><button class="action secondary" type="button" id="p8MyMessagesRefresh">REFRESH</button></div><div id="p8MyMessages" class="cloudList" style="margin-top:9px"></div>';
+  accountSupport.innerHTML=`<h3>💬 সাপোর্ট</h3><p>কী সমস্যা? আমাদেরকে বলতে পারেন।</p>
+    <div class="p8-support-topics"><button class="action secondary" id="p8DepositSupport" type="button" aria-pressed="false">ডিপোজিট সমস্যা</button>
+    <button class="action secondary" id="p8WithdrawSupport" type="button" aria-pressed="false">উইথড্র সমস্যা</button></div>
+    <p id="p8SupportPrompt" hidden></p>
+    <label for="p8SupportText">ওনারকে মেসেজ লিখুন</label>
+    <textarea id="p8SupportText" rows="4" maxlength="950" placeholder="সমস্যার বিস্তারিত"></textarea>
+    <div class="cloudActions"><button class="action" type="button" id="p8SendMessage">মেসেজ পাঠান</button>
+    <button class="action secondary" type="button" id="p8MyMessagesRefresh">কথোপকথন রিফ্রেশ</button></div>
+    <p id="p8SupportReceipt" role="status" hidden></p><div id="p8MyMessages" class="cloudList"></div>
+    <button class="action secondary" type="button" id="p8RequestDeletion">অ্যাকাউন্ট মুছতে অনুরোধ</button>`;
   $('cloudRequests').parentElement.append(accountSupport);
-  async function loadMyMessages(){
-    if(!session)return;
-    const rows=await db('rpc/play80_my_support_messages','POST',{});
-    const list=$('p8MyMessages');list.replaceChildren();
-    if(!rows?.length)list.textContent='No support messages.';
-    (rows||[]).forEach(r=>{
-      const card=document.createElement('div');card.className='cloudRequestItem';
-      card.append(createText('strong',(r.sender==='owner'?'🛡 Owner':'👤 You')+' • '+escDate(r.at)));
-      card.append(createText('small',r.category+' — '+r.body));
-      list.append(card);
-    });
+  let supportTopic='';
+  function chooseSupportTopic(topic){
+    supportTopic=supportTopic===topic?'':topic;
+    $('p8DepositSupport').setAttribute('aria-pressed',String(supportTopic==='ডিপোজিট'));
+    $('p8WithdrawSupport').setAttribute('aria-pressed',String(supportTopic==='উইথড্র'));
+    const prompt=$('p8SupportPrompt');
+    prompt.hidden=!supportTopic;
+    prompt.textContent=supportTopic?'ডেমো · কখন '+supportTopic+' করেছেন, কী মাধ্যমে করেছেন এবং ডেমো নম্বর বা রেফারেন্স নম্বরসহ সমস্যার বিস্তারিত লিখুন। PIN বা OTP পাঠাবেন না।':'';
   }
+  $('p8DepositSupport').addEventListener('click',()=>chooseSupportTopic('ডিপোজিট'));
+  $('p8WithdrawSupport').addEventListener('click',()=>chooseSupportTopic('উইথড্র'));
+  function supportMessage(sender,at,body){
+    const card=document.createElement('div');card.className='cloudRequestItem';
+    card.append(createText('strong',sender+' · '+escDate(at)),createText('p',body,'p8-support-body'));
+    return card;
+  }
+  async function loadMyMessages(){
+    if(!verifiedAuth||isStaff())return;
+    const viewer=session.user.id;
+    const rows=await db('rpc/play80_my_support_messages','POST',{});
+    if(!verifiedAuth||session?.user?.id!==viewer)return;
+    const list=$('p8MyMessages');list.replaceChildren();
+    if(!rows?.length)list.textContent='এখনও কোনো মেসেজ নেই।';
+    for(const r of [...(rows||[])].reverse()){
+      list.append(supportMessage(r.sender==='owner'?'ওনার':'আপনি',r.at,r.body));
+    }
+  }
+  const supportReceipt=$('p8SupportReceipt');
   $('p8SendMessage').addEventListener('click',e=>busy(e.currentTarget,async()=>{
-    const body=$('p8SupportText').value.trim();
-    if(body.length<1)throw Error('Write a message first');
-    await db('rpc/play80_send_support_message','POST',{p_body:body,p_category:'general'});
-    $('p8SupportText').value='';await loadMyMessages();status('Message delivered to Owner inbox.');
+    const field=$('p8SupportText');
+    const body=field.value.trim();
+    if(!body)throw Error('মেসেজ লিখুন।');
+    const topic=supportTopic;
+    supportReceipt.hidden=true;
+    await db('rpc/play80_send_support_message','POST',{p_body:topic?'[ডেমো '+topic+' সমস্যা]\n'+body:body,p_category:'general'});
+    if(field.value.trim()===body)field.value='';
+    supportReceipt.textContent='আপনার মেসেজ সংরক্ষণ করা হয়েছে। ওনার যাচাই করে আপনাকে জানাবেন।';
+    supportReceipt.hidden=false;
+    await loadMyMessages();
   }));
   $('p8RequestDeletion').addEventListener('click',e=>busy(e.currentTarget,async()=>{
-    const body=$('p8SupportText').value.trim()||'I request review and deletion of my PLAY80 account.';
+    const body=$('p8SupportText').value.trim()||'আমার PLAY80 অ্যাকাউন্ট মুছে দেওয়ার অনুরোধ করছি।';
     const pin=await askLoginPin('অ্যাকাউন্ট মুছতে সাপোর্ট রিকোয়েস্ট পাঠান');
     if(pin===null)return;
     requirePinSuccess(await db('rpc/play80_request_account_review','POST',{p_pin:pin,p_body:body}));
-    $('p8SupportText').value='';await loadMyMessages();status('Account deletion request recorded. Owner will review it.');
+    $('p8SupportText').value='';await loadMyMessages();status('ওনার আপনার অনুরোধটি যাচাই করবেন।');
   }));
   $('p8MyMessagesRefresh').addEventListener('click',e=>busy(e.currentTarget,loadMyMessages));
-  document.querySelectorAll('[data-open="account"]').forEach(b=>b.addEventListener('click',()=>loadMyMessages().catch(()=>{})));
   const inbox=document.createElement('div');
   inbox.className='cloudStaffPane hidden';
   inbox.id='cloudStaffTab-inbox';
-  inbox.innerHTML='<h3>💬 Secure Owner Inbox</h3><p class="tiny">Messages from registered players, including deletion requests. Customer passwords are never visible.</p><input id="p8InboxSearch" maxlength="80" placeholder="Search by user ID / username / email" class="cloudSelect" style="width:100%;margin-bottom:9px"><button class="action secondary" id="p8InboxRefresh" type="button">SEARCH MESSAGES</button><div id="p8OwnerInboxList" class="cloudList"></div>';
+  inbox.innerHTML=`<h3>💬 সাপোর্ট ইনবক্স</h3><input id="p8InboxSearch" maxlength="80" aria-label="ইউজার আইডি বা নাম" placeholder="ইউজার আইডি বা নাম দিয়ে খুঁজুন" class="cloudSelect">
+    <button class="action secondary" id="p8InboxRefresh" type="button">ইনবক্স দেখুন</button><div id="p8OwnerInboxList" class="cloudList"></div>`;
   $('cloudStaffTab-users').parentNode.append(inbox);
+  async function getOwnerThreads(search=''){
+    if(!isOwner())throw Error('শুধু ওনার এই ইনবক্স খুলতে পারবেন।');
+    return db('rpc/play80_owner_threads','POST',{p_search:search});
+  }
   async function loadOwnerInbox(){
-    if(!isOwner())throw Error('Owner only');
-    const rows=await staffRpc('play80_owner_support_messages',{p_search:$('p8InboxSearch').value.trim()});
+    const rows=await getOwnerThreads($('p8InboxSearch').value.trim());
     const list=$('p8OwnerInboxList');list.replaceChildren();
-    if(!rows.length)list.textContent='No incoming messages.';
-    rows.forEach(r=>{
-      const card=document.createElement('div');card.className='cloudRequestItem';
-      card.append(createText('strong',(r.username||r.email||r.user_id)+' • '+r.category));
-      card.append(createText('small','User ID: '+r.user_id+' | '+escDate(r.created_at)+' | '+r.sender_role));
-      card.append(createText('small',r.body));
-      if(r.sender_role==='player'&&!r.owner_read_at){
-        card.append(makeButton('পড়া হয়েছে চিহ্নিত করুন',async()=>{
-          await staffRpc('play80_mark_support_read',{p_message:r.id});
-          await loadOwnerInbox();await refreshMenuCounts();
-        }));
-      }
-      const reply=document.createElement('input');reply.maxLength=1000;reply.placeholder='Send Owner reply to this player';card.append(reply);
-      card.append(makeButton('SEND REPLY',async()=>{
-        if(!reply.value.trim())throw Error('Write a reply');
-
-        if(await confirmStaffAction('play80_owner_send_message',{p_user:r.user_id,p_note:reply.value.trim()},'সাপোর্ট মেসেজ পাঠান')===null)return;
-        reply.value='';await loadOwnerInbox();
-      }));
+    if(!rows.length)list.textContent='কোনো কথোপকথন নেই।';
+    for(const r of rows){
+      const card=makeButton('',()=>openOwnerThread(r),true);
+      card.classList.add('p8-menu-item','p8-thread-preview');
+      dot(card,r.needs_attention);
+      card.append(createText('strong',r.username?'@'+r.username:'ইউজার'),
+        createText('small','আইডি '+r.user_id),createText('span',r.preview));
+      if(r.needs_attention)card.append(createText('small','ওনারের মনোযোগ প্রয়োজন'));
       list.append(card);
-    });
+    }
+  }
+  async function openOwnerThread(thread){
+    const {user_id,username}=thread;
+    const messages=await db('rpc/play80_owner_open_thread','POST',{p_user:user_id});
+    const latest=messages.at(-1)?.id;
+    const fresh=(await getOwnerThreads(user_id))[0];
+    const list=$('p8OwnerInboxList');list.replaceChildren();
+    list.append(makeButton('← সব কথোপকথন',loadOwnerInbox,true),
+      createText('h4',username?'@'+username:'ইউজার'),createText('small','আইডি '+user_id));
+    for(const r of messages)list.append(supportMessage(r.sender_role==='owner'?'ওনার':'প্লেয়ার',r.created_at,r.body));
+    const reply=document.createElement('textarea');reply.maxLength=1000;reply.rows=3;
+    reply.placeholder='প্লেয়ারকে উত্তর লিখুন';reply.setAttribute('aria-label',reply.placeholder);
+    list.append(reply,makeButton('উত্তর পাঠান',async()=>{
+      if(!reply.value.trim())throw Error('উত্তর লিখুন।');
+      if(await confirmStaffAction('play80_owner_send_message',{p_user:user_id,p_note:reply.value.trim()},'সাপোর্ট উত্তর পাঠান')===null)return;
+      await openOwnerThread(thread);
+    }));
+    if(fresh&&!fresh.needs_attention&&fresh.latest_id===latest){
+      list.append(makeButton('কথোপকথন স্থায়ীভাবে মুছুন',async()=>{
+        const title='আইডি '+user_id+'-এর সব '+fresh.message_count+'টি সাপোর্ট মেসেজ স্থায়ীভাবে মুছতে PIN দিন।';
+        const pin=await askLoginPin(title);
+        if(pin===null)return;
+        requirePinSuccess(await db('rpc/play80_owner_delete_thread','POST',{
+          p_user:user_id,p_latest:latest,p_count:fresh.message_count,p_pin:pin
+        }));
+        await loadOwnerInbox();
+        await refreshMenuCounts();
+      },true));
+    }
+    await refreshMenuCounts();
   }
   $('p8InboxRefresh').addEventListener('click',e=>busy(e.currentTarget,loadOwnerInbox,ownerStatus));
   function newId(){return crypto.randomUUID?crypto.randomUUID():('xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx').replace(/[xy]/g,c=>{const n=crypto.getRandomValues(new Uint8Array(1))[0]&15;return(c==='x'?n:(n&3|8)).toString(16)});}
@@ -956,14 +1023,74 @@
   }
   amountInput.addEventListener('input',updatePresetSelection);
   renderWalletKind();
-  ownBonus.append(bonusCard);
-  referral.append(createText('h2','রেফার বোনাস'),createText('p','বন্ধুকে PLAY80-এর আমন্ত্রণ লিংক পাঠাও। রেফার বোনাসের নিয়ম এখনো চালু হয়নি।'));
-  referral.append(makeButton('আমন্ত্রণ লিংক দেখুন',async()=>{
-    if(referral.querySelector('input'))return;
-    const url=document.createElement('input');
-    url.readOnly=true;url.value='https://github.com/alifhosen302/play80/releases/download/qa-v5.2-unified-login-20261125/PLAY80_V5_2_GitHub_QA.apk';
-    url.setAttribute('aria-label','PLAY80 আমন্ত্রণ লিংক');referral.append(url);url.select();
-  }));
+  const daily=document.createElement('div');daily.className='play80Surface p8-daily-reward';
+  const countdown=createText('output','—','p8-countdown');
+  daily.append(createText('h3','প্রতি ২৪ ঘণ্টায় ৫০ ভার্চুয়াল কয়েন'),countdown,
+    createText('small','পরবর্তী বোনাস পর্যন্ত সময়'));
+  const claim=createText('p','৫,০০০ কয়েন · ক্লেম —','p8-claim');
+  bonusCard.append(claim);ownBonus.append(daily,bonusCard);
+  const referralLink=document.createElement('input');referralLink.readOnly=true;
+  referralLink.setAttribute('aria-label','PLAY80 আমন্ত্রণ লিংক');
+  const copyNote=createText('p','');copyNote.setAttribute('role','status');
+  const referralTotal=createText('p','');
+  const shareButton=makeButton('আমন্ত্রণ শেয়ার করুন',async()=>{
+    if(!referralLink.value)return;
+    const message='PLAY80 অ্যাকাউন্ট খুলতে সাইন আপে রেফার কোড '+rewardData.referral_code+' লিখুন।';
+    if(/\bwv\b/.test(navigator.userAgent)&&location.protocol==='file:'){
+      location.href='play80-share://invite?text='+encodeURIComponent(message+'\n'+referralLink.value);
+      return;
+    }
+    if(navigator.share){
+      try{await navigator.share({title:'PLAY80',text:message,url:referralLink.value});return;}
+      catch(error){if(error.name==='AbortError')return;}
+    }
+    await copyReferral(message+'\n'+referralLink.value);
+  });
+  async function copyReferral(value){
+    if(!value)return;
+    try{
+      if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(value);}
+      else throw Error('Clipboard unavailable');
+      copyNote.textContent='কপি হয়েছে।';
+    }catch(_){
+      referralLink.select();
+      copyNote.textContent='আমন্ত্রণ লিংকটি চেপে ধরে কপি করুন।';
+    }
+  }
+  const copyButton=makeButton('লিংক কপি করুন',()=>copyReferral(referralLink.value),true);
+  referral.append(createText('h2','রেফার বোনাস'),createText('p','আপনার লিংক বা কোড দিয়ে নতুন প্লেয়ার অ্যাকাউন্ট খুলে ইমেইল যাচাই করলে আপনি ৫০০ ভার্চুয়াল কয়েন পাবেন।'),
+    referralLink,shareButton,copyButton,copyNote,referralTotal);
+  let rewardData=null, rewardRefresh=false, nextRewardCheck=0, serverOffset=0;
+  async function loadRewards(){
+    if(!verifiedAuth||isStaff()||isDsr()||rewardRefresh)return;
+    const id=session.user.id;
+    rewardRefresh=true;
+    try{
+      const data=await db('rpc/play80_my_rewards','POST',{});
+      if(!verifiedAuth||session?.user?.id!==id)return;
+      rewardData=data;
+      if(!data)return;
+      const apk='https://github.com/alifhosen302/play80/releases/download/qa-v5.2-unified-login-20261125/PLAY80_V5_2_GitHub_QA.apk';
+      referralLink.value=data.referral_code?apk+'?ref='+encodeURIComponent(data.referral_code):'';
+      referralTotal.textContent='সফল রেফার '+Number(data.referral_count||0).toLocaleString('bn-BD')+'টি';
+      claim.textContent='৫,০০০ কয়েন · ক্লেম '+(data.first_claimed?'✓ পাওয়া হয়েছে':'✕ পাওয়া যায়নি');
+      serverOffset=Date.parse(data.server_at)-Date.now();
+      renderRewardClock();
+    }finally{rewardRefresh=false;}
+  }
+  function renderRewardClock(){
+    const end=Date.parse(rewardData?.next_at);
+    if(!Number.isFinite(end)){countdown.textContent='—';return;}
+    const seconds=Math.max(0,Math.ceil((end-Date.now()-serverOffset)/1000));
+    countdown.textContent=[Math.floor(seconds/3600),Math.floor(seconds/60)%60,seconds%60].map(n=>String(n).padStart(2,'0')).join(':');
+    if(!seconds&&Date.now()>=nextRewardCheck){
+      nextRewardCheck=Date.now()+15000;
+      void loadRewards().then(loadAccount).catch(()=>{});
+    }
+  }
+  setInterval(()=>{
+    if(verifiedAuth&&!document.hidden&&signedIn.dataset.section==='bonus'&&!ownBonus.hidden)renderRewardClock();
+  },1000);
   const accountSections={profile:ownProfile,wallet:ownWallet,bonus:ownBonus,referral,support:accountSupport};
   for(const section of Object.values(accountSections)){
     section.classList.add('p8-menu-section');signedIn.append(section);
@@ -975,7 +1102,21 @@
   selectAccountSection('profile');
   const accountLinks=[...document.querySelectorAll('.footerNav [data-open="account"]')];
   accountLinks[0]?.addEventListener('click',()=>selectAccountSection('wallet'));
-  accountLinks[1]?.addEventListener('click',()=>selectAccountSection('support'));
+  accountLinks[1]?.addEventListener('click',()=>{
+    if(verifiedAuth&&isOwner()){
+      document.dispatchEvent(new CustomEvent('play80:menu-navigate',{detail:'remote-owner'}));
+      void switchStaffTab('inbox').catch(err=>ownerStatus(err.message,true));
+    }else{
+      selectAccountSection('support');
+      void loadMyMessages().catch(err=>status(err.message,true));
+    }
+  });
+  document.querySelector('.footerNav [data-open="rewards"]')?.addEventListener('click',()=>{
+    if(!verifiedAuth||isStaff()||isDsr())return;
+    document.dispatchEvent(new CustomEvent('play80:menu-navigate',{detail:'account'}));
+    selectAccountSection('bonus');
+    void loadRewards().catch(err=>status(err.message,true));
+  });
   kindField.addEventListener('change',renderWalletKind);
   const dot=(element,on)=>element?.toggleAttribute('data-alert',on);
   let pendingRequests=0, unreadSupport=0;
@@ -1020,7 +1161,8 @@
       document.dispatchEvent(new CustomEvent('play80:menu-navigate',{detail:'account'}));selectAccountSection(section);
       if(kind)selectWalletKind(kind);
       if(section==='support')await loadMyMessages();
-      else if(section!=='referral')await loadAccount();
+      else if(section==='bonus'||section==='referral')await loadRewards();
+      else await loadAccount();
     };
     const staff=tab=>async()=>{
       if(tab==='wallet'){
