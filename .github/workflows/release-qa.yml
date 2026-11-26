@@ -1,6 +1,6 @@
 name: Update the single PLAY80 APK (permanent signing required)
 
-# Publish to the existing PLAY80 Release after Android upgrade verification.
+# Publish to the existing PLAY80 Release after Android installation and upgrade verification.
 # Abort without publishing when the permanent signing key is unavailable.
 on:
   push:
