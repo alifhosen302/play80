@@ -108,6 +108,28 @@ try:
   assert page.locator('#p8MenuUserId').inner_text()=='@play80'
   assert page.locator('#headerPoints').count()==0
   assert page.locator('#p8MenuBalance').inner_text()==page.locator('#headerCoins').inner_text()=='৫০,০০০'
+  tournament_test_calls=[]
+  page.on('request',lambda request:tournament_test_calls.append(request.url) if '/rpc/play80_memory_start' in request.url or '/rpc/play80_tournament_join' in request.url else None)
+  page.get_by_role('button',name='গেম পরীক্ষা',exact=True).click()
+  assert page.locator('#p8TournamentCatalog').is_visible()
+  for key in ['memory','block','bubble','2048']:
+   page.locator('[data-tour-choice="'+key+'"]').click()
+   assert page.locator('#p8TournamentDetail').is_hidden()
+   if key=='2048':
+    assert page.locator('#practice2048Grid').is_visible()
+    page.locator('#screen-2048 [data-open="tournament"]').first.click()
+   else:
+    assert page.locator('#screen-p8-practice').is_visible()
+    if key=='memory':
+     assert page.locator('#p8LocalMemoryGrid button').count()==16
+     page.locator('#p8LocalMemoryGrid button').first.click()
+     assert page.locator('#p8LocalMemoryGrid .show').count()==1
+    elif key=='block':assert page.locator('#p8PracticeGrid button').count()==64
+    else:assert page.locator('#p8BubbleCanvas').is_visible()
+    page.locator('#p8PracticeBack').click()
+   assert page.locator('#p8TournamentCatalog').is_visible()
+  assert tournament_test_calls==[],'Owner testing must never join or debit a tournament'
+  page.locator('#p8MenuButton').click()
   page.get_by_role('button',name='প্রোফাইল',exact=True).click()
   page.get_by_text('Owner QA address',exact=True).wait_for()
   assert page.locator('#cloudStaffPinGate').is_hidden()

@@ -7,7 +7,7 @@
  const $=id=>document.getElementById(id);
  const api=()=>window.Play80Cloud;
  const active=()=>api()?.user();
- const memorySelected=()=>$('p8TournamentDetail')?.dataset.game==='memory'&&!$('p8TournamentDetail').classList.contains('hidden');
+ const memorySelected=()=>!['owner','admin'].includes(active()?.app_metadata?.role)&&$('p8TournamentDetail')?.dataset.game==='memory'&&!$('p8TournamentDetail').classList.contains('hidden');
  const fmt=n=>Number(n||0).toLocaleString('en-US');
  let tournament=null,serverDelta=0,board=null,lastSync=0,refreshing=false;
  const setText=(id,text)=>{const el=$(id);if(el)el.textContent=String(text)};
@@ -134,6 +134,7 @@
  }
  async function beginRound(){
    try{
+     if(['owner','admin'].includes(active()?.app_metadata?.role))throw Error('Use the local game test menu.');
      if(!tournament||tournament.status!=='running'||!tournament.joined)throw Error('Join the active tournament first.');
      const perRound=tournament.fee_mode==='per_round';
      if(perRound&&!window.confirm('নতুন রাউন্ডে ৫০০ ডেমো কয়েন লাগবে। অসমাপ্ত রাউন্ড চালু থাকলে কোনো কয়েন কাটা হবে না। চালিয়ে যাবেন?'))return false;

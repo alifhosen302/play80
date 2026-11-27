@@ -14,6 +14,8 @@ card.append(list);detail.querySelector('.p8TourCompactHead').after(card);
 prizeButton.addEventListener('click',()=>{card.hidden=!card.hidden;prizeButton.setAttribute('aria-expanded',String(!card.hidden));});
 const games={bubble:'Bubble Shooter',block:'Block Puzzle',memory:'Memory Puzzle','2048':'2048 Puzzle'};
 const serverGames={bubble:'bubbles',block:'blockpuzzle',memory:'memory','2048':'game2048'};
+const ownerTest=()=>['owner','admin'].includes(window.Play80Cloud?.user()?.app_metadata?.role);
+const navigate=name=>document.dispatchEvent(new CustomEvent('play80:menu-navigate',{detail:name}));
 let current='memory',grid=[],score=0,selected=0,pieces=[],drag=null,blockOver=false;
 const past=document.createElement('section');past.className='play80Surface';past.id='p8TourPastWinners';
 const pastButton=document.createElement('button');pastButton.type='button';pastButton.className='play80SecondaryBtn';pastButton.textContent='🏅 আগের বিজয়ীদের তালিকা';
@@ -23,7 +25,9 @@ const blockRules=window.Play80BlockRules;
 const colors=['#ed527b','#42c6fd','#fac851','#8be88a','#af80ff'],rand=n=>Math.floor(Math.random()*n);
 function choose(key){
  if(!games[key])return;
- current=key;pastList.replaceChildren();home.classList.add('hidden');detail.classList.remove('hidden');
+ current=key;
+ if(ownerTest()){delete detail.dataset.game;detail.classList.add('hidden');home.classList.remove('hidden');practice();return;}
+ pastList.replaceChildren();home.classList.add('hidden');detail.classList.remove('hidden');
  $('p8TourChosenTitle').textContent=games[key];
  detail.dataset.game=key;
  card.hidden=true;prizeButton.setAttribute('aria-expanded','false');prizeButton.hidden=false;
@@ -46,11 +50,12 @@ function choose(key){
  window.scrollTo(0,0);
 }
 function back(){delete detail.dataset.game;detail.classList.add('hidden');home.classList.remove('hidden');window.scrollTo(0,0);}
+ document.addEventListener('play80:screen-changed',e=>{if(e.detail==='tournament'){home.classList.toggle('p8-owner-test',ownerTest());if(ownerTest())back();}});
 home.querySelectorAll('[data-tour-choice]').forEach(el=>el.addEventListener('click',()=>choose(el.dataset.tourChoice)));
 $('p8TourBack').addEventListener('click',back);
 document.querySelectorAll('[data-main-tab="tournament"]').forEach(el=>el.addEventListener('click',back));
 const screen=document.createElement('section');screen.id='screen-p8-practice';screen.className='screen hidden';
-screen.innerHTML='<div class="play80Surface"><button id="p8PracticeBack" class="play80SecondaryBtn" type="button">‹</button><h2 id="p8PracticeName">Practice</h2><p>Practice only. No server tournament fees, rankings or prizes for this game yet.</p><div id="p8PracticeScore">Score: 0</div><div id="p8PracticeGrid" role="grid" aria-label="Puzzle practice board"></div><div id="p8PracticeShapes"></div><p id="p8BlockNotice" role="status"></p><button id="p8PracticeReset" class="play80PrimaryBtn">NEW PRACTICE</button></div>';
+screen.innerHTML='<div class="play80Surface"><button id="p8PracticeBack" class="play80SecondaryBtn" type="button">‹</button><h2 id="p8PracticeName">Practice</h2><p id="p8PracticeDisclosure">Practice only. No server tournament fees, rankings or prizes for this game yet.</p><div id="p8PracticeScore">Score: 0</div><div id="p8PracticeGrid" role="grid" aria-label="Puzzle practice board"></div><div id="p8PracticeShapes"></div><div id="p8LocalMemoryGrid" class="memGrid hidden" aria-label="Memory test cards"></div><p id="p8BlockNotice" role="status"></p><button id="p8PracticeReset" class="play80PrimaryBtn">NEW PRACTICE</button></div>';
 document.querySelector('main')?.append(screen);
 const style=document.createElement('style');style.textContent=[
 '#p8PracticeGrid{width:100%;max-width:410px;aspect-ratio:1;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(8,minmax(0,1fr));gap:3px;background:#272440;padding:5px;border-radius:12px;margin:12px auto}',
@@ -183,15 +188,55 @@ function place(i,row=Math.floor(i/8),col=i%8){
   if(blockOver)drawShapes();
 }
 function reset(){if(drag){drag.ghost.remove();drag=null;}blockOver=false;$('p8BlockNotice').textContent=current==='block'?'ব্লক টেনে বোর্ডে বসান; পূর্ণ সারি বা কলাম পরিষ্কার হবে।':'';score=0;if(current==='bubble'){grid=Array.from({length:64},(_,i)=>i<24?rand(colors.length):-1);selected=rand(colors.length);}else{grid=Array(64).fill(null);newShapes();}drawBoard();render();if(current==='bubble')bubbleChoice();}
-function practice(){if(current==='2048'){$('screen-tournament').querySelector('[data-open="2048"]')?.click();return;}
- if(current!=='bubble'&&current!=='block')return;
- document.querySelectorAll('.screen').forEach(el=>el.classList.add('hidden'));screen.classList.remove('hidden');
+// Local owner QA uses no tournament RPC, wallet, or leaderboard.
+let memoryDeck=[],memoryMatched=new Set(),memoryShown=[],memoryAttempts=0,memoryEpoch=0,memoryBusy=false;
+function renderLocalMemory(){
+ const root=$('p8LocalMemoryGrid');root.replaceChildren();
+ const icons=['🍒','🍇','🌟','🍋','🔔','💎','🍓','🍀'];
+ memoryDeck.forEach((value,i)=>{
+  const b=document.createElement('button');b.type='button';b.className='memCard';
+  const done=memoryMatched.has(i),shown=memoryShown.includes(i);
+  b.classList.toggle('show',done||shown);b.classList.toggle('done',done);
+  b.textContent=done||shown?icons[value]:'✦';
+  b.disabled=done||shown||memoryBusy;b.setAttribute('aria-label','Memory card '+(i+1));
+  b.addEventListener('click',()=>flipLocalMemory(i));root.append(b);
+ });
+ $('p8PracticeScore').textContent='Score: '+score+' · Attempts: '+memoryAttempts;
+}
+function resetLocalMemory(){
+ memoryEpoch++;memoryDeck=Array.from({length:16},(_,i)=>i%8);
+ for(let i=15;i>0;i--){const j=rand(i+1);[memoryDeck[i],memoryDeck[j]]=[memoryDeck[j],memoryDeck[i]];}
+ memoryMatched=new Set();memoryShown=[];memoryAttempts=0;memoryBusy=false;score=0;renderLocalMemory();
+}
+function flipLocalMemory(i){
+ if(!ownerTest()||current!=='memory'||memoryBusy||memoryMatched.has(i)||memoryShown.includes(i))return;
+ memoryShown.push(i);
+ if(memoryShown.length===1){renderLocalMemory();return;}
+ memoryAttempts++;const [a,b]=memoryShown;
+ if(memoryDeck[a]===memoryDeck[b]){memoryMatched.add(a);memoryMatched.add(b);score+=100;memoryShown=[];renderLocalMemory();if(memoryMatched.size===16)$('p8PracticeScore').textContent+=' · Complete!';return;}
+ memoryBusy=true;renderLocalMemory();const epoch=memoryEpoch;
+ setTimeout(()=>{if(epoch!==memoryEpoch||!ownerTest()||current!=='memory')return;memoryShown=[];memoryBusy=false;renderLocalMemory();},800);
+}
+function practice(){
+ const qa=ownerTest();
+ if(current==='2048'){navigate('2048');return;}
+ if(current!=='bubble'&&current!=='block'&&!(current==='memory'&&qa))return;
+ navigate('p8-practice');
  screen.classList.toggle('p8-block-active',current==='block');
+ $('p8PracticeDisclosure').hidden=qa;
+ $('p8PracticeName').textContent=games[current]+(qa?'':' — PRACTICE');
+ $('p8PracticeReset').textContent=qa?'NEW GAME':'NEW PRACTICE';
  $('p8BlockNotice').hidden=current!=='block';
- $('p8PracticeName').textContent=games[current]+' — PRACTICE';reset();if(current==='bubble')window.Play80BubbleDeluxe?.launch();else window.Play80BubbleDeluxe?.hide();window.scrollTo(0,0);
+ const memory=current==='memory';
+ $('p8LocalMemoryGrid').classList.toggle('hidden',!memory);
+ $('p8PracticeGrid').classList.toggle('hidden',memory);
+ $('p8PracticeShapes').classList.toggle('hidden',memory);
+ if(memory){window.Play80BubbleDeluxe?.hide();resetLocalMemory();}
+ else{reset();if(current==='bubble')window.Play80BubbleDeluxe?.launch();else window.Play80BubbleDeluxe?.hide();}
+ window.scrollTo(0,0);
 }
 $('p8TourPractice').addEventListener('click',practice);
-$('p8PracticeReset').addEventListener('click',()=>{reset();if(current==='bubble')window.Play80BubbleDeluxe?.reset();});
-$('p8PracticeBack').addEventListener('click',()=>{if(drag){drag.ghost.remove();drag=null;}screen.classList.add('hidden');$('screen-tournament').classList.remove('hidden');choose(current);});
+$('p8PracticeReset').addEventListener('click',()=>{if(current==='memory'){if(ownerTest())resetLocalMemory();return;}reset();if(current==='bubble')window.Play80BubbleDeluxe?.reset();});
+$('p8PracticeBack').addEventListener('click',()=>{if(drag){drag.ghost.remove();drag=null;}memoryEpoch++;window.Play80BubbleDeluxe?.hide();navigate('tournament');if(ownerTest())back();else choose(current);});
 window.Play80TournamentMenu=Object.freeze({games:Object.keys(games),selected:()=>current});
 })();
