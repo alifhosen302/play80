@@ -1026,7 +1026,7 @@ body.p8-auth-locked .app{max-width:560px}
    <div class="tourFact"><small>🪙 CURRENT FUNDED PRIZE</small><strong id="tourPool">—</strong></div>
    <div class="tourFact"><small>🏅 MAXIMUM PRIZE</small><strong>7,500</strong></div>
    <div class="tourFact"><small>MY SCORE</small><strong id="tourMyScore">0</strong></div>
-   <div class="tourFact"><small>ONE-TIME ENTRY</small><strong>500</strong></div>
+   <div class="tourFact"><small id="tourFeeMode">ONE-TIME ENTRY</small><strong>500</strong></div>
   </div>
   <div class="tourBtnRow"><button id="tourJoin" class="play80PrimaryBtn" type="button">JOIN TOURNAMENT</button>
     <button id="tourPlay" class="play80PrimaryBtn" type="button" disabled>PLAY MEMORY PUZZLE</button>
@@ -1034,7 +1034,7 @@ body.p8-auth-locked .app{max-width:560px}
     <button class="play80SecondaryBtn" type="button" data-open="account">ONLINE ACCOUNT</button></div>
   <div class="tourNotice" id="tourNotice" role="status">Sign in to join the server tournament. No real money.</div>
   <details class="tourRules" open><summary>Rules &amp; Regulations — published before entry</summary>
-   <ul><li>Entry fee: 500 non-redeemable Demo Coins, paid once per tournament. Repeat games require no further fee.</li>
+   <ul id="tourRulesList"><li>Entry fee: 500 non-redeemable Demo Coins, paid once per tournament. Repeat games require no further fee.</li>
    <li>Registration lasts three hours; 15 human players start early. If one to 14 humans register, bots join at the deadline. With zero humans the countdown restarts.</li>
    <li>The tournament runs exactly 72 hours; late human entries are allowed until its end. AI identity is disclosed on the leaderboard.</li>
    <li>Human entry fees alone fund the prize. Current prize = min(7,500, 500 × humans); company contribution = zero.</li>

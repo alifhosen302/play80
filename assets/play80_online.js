@@ -525,12 +525,14 @@
 
   async function loadBotOwner(){
     const info=await staffRpc('play80_owner_bot_dashboard');
+    const activity=await db('rpc/play80_owner_ai_activity','POST',{}).catch(()=>[]);
     $('cloudBotsSummary').textContent='AI profiles: '+info.total+' · active: '+info.active+' · daily limit 8 hours · three-day limit 24 hours';
     const list=$('cloudBotsList');list.replaceChildren();
     for(const bot of (info.bots||[])){
       const card=document.createElement('div');card.className='cloudRequestItem';
       card.append(createText('strong',bot.avatar+' '+bot.username+' • AI Player • '+bot.skill));
       card.append(createText('small','Total: '+bot.total_score+' pts · Games: '+bot.games_played+' · Today: '+Math.floor(bot.today_seconds/60)+' min · Total: '+Math.floor(bot.all_seconds/60)+' min · Virtual prizes: '+bot.virtual_rewards));
+      for(const event of (Array.isArray(activity)?activity:[]).filter(a=>a.bot_id===bot.id))card.append(createText('small','গেম: '+event.game+' · '+event.event_status+' · স্কোর '+event.total_score+' · শেষ খেলা '+(event.last_play_at?escDate(event.last_play_at):'এখনো খেলেনি')+' · '+Math.floor(event.event_seconds/60)+' মিনিট'));
       card.append(makeButton('EDIT FOR FUTURE EVENTS',()=>{
         $('cloudBotId').value=bot.id;$('cloudBotUsername').value=bot.username;
         $('cloudBotAvatar').value=bot.avatar;$('cloudBotSkill').value=bot.skill;

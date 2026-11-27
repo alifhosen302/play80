@@ -51,8 +51,19 @@
      setText('tourState',({registration_open:'REGISTRATION',running:'ACTIVE',finished:'COMPLETED',idle:'WAITING'})[t.status]||t.status);
      setText('tourHumans',fmt(t.human_count));setText('tourBots',fmt(t.bot_count));
      setText('tourPool',fmt(t.funded_pool));setText('tourMyScore',fmt(t.my_score));
-     const join=$('tourJoin');join.disabled=!signed||t.joined||!['running','registration_open'].includes(t.status);
-     join.textContent=t.joined?'✓ REGISTERED':'JOIN · 500 DEMO COINS';
+     const roundMode=t.fee_mode==='per_round'||t.rules?.fee_mode==='per_round';
+     const join=$('tourJoin');join.disabled=!signed||t.joined||!(roundMode?t.status==='registration_open':['running','registration_open'].includes(t.status));
+     join.textContent=t.joined?'✓ REGISTERED':roundMode?'JOIN · FREE REGISTRATION':'JOIN · 500 DEMO COINS';
+     setText('tourFeeMode',roundMode?'PER NEW ROUND':'ONE-TIME ENTRY');
+     const rules=$('tourRulesList');
+     if(rules&&rules.dataset.mode!==(roundMode?'round':'once')){
+       if(!rules.dataset.original)rules.dataset.original=rules.innerHTML;
+       rules.dataset.mode=roundMode?'round':'once';
+       if(roundMode){
+         rules.replaceChildren();
+         for(const rule of ['৩ ঘণ্টা নিবন্ধন; তারপর ৭২ ঘণ্টা প্রতিযোগিতা।','নিবন্ধন ফ্রি; প্রতিটি নতুন রাউন্ডে ৫০০ ডেমো কয়েন। অসমাপ্ত রাউন্ড আবার চালাতে কোনো ফি নেই।','সার্ভারে যাচাই করা মোট স্কোরে র‍্যাঙ্কিং।','১৫ জন চিহ্নিত AI প্রতিযোগী, দিনে সর্বোচ্চ ৮ ঘণ্টা এবং ইভেন্টে ২৪ ঘণ্টা।','সর্বোচ্চ পুরস্কার তহবিল ৭,৫০০ ডেমো কয়েন; প্রকৃত ফান্ড অনুযায়ী ঘোষিত র‍্যাঙ্কে বণ্টন। AI পুরস্কার কোম্পানির ডেমো লেজারে।','কোনো বাস্তব টাকা বা নগদে রূপান্তর নেই।']){const li=document.createElement('li');li.textContent=rule;rules.append(li);}
+       }else rules.innerHTML=rules.dataset.original;
+     }
      const play=$('tourPlay');play.disabled=!signed||!(t.joined&&t.status==='running'&&t.game==='memory');
      notice(!signed?'Public tournament details and leaderboard shown. Sign in to join the match.':
         t.status==='registration_open'?'Registration open. Countdown shows when enrollment closes.':
@@ -99,7 +110,7 @@
    btn.disabled=true;
    try{
      const out=await call('play80_tournament_join',{p_tournament_id:tournament.id});
-     notice(out.already_joined?'Already registered. No second entry fee was charged.':'Joined successfully. 500 nonredeemable demo coins charged once.');
+     notice(out.already_joined?'Already registered. No second entry fee was charged.':out.fee_mode==='per_round'?'Registered for free. Each new round costs 500 demo coins.':'Joined successfully. 500 nonredeemable demo coins charged once.');
      await api().reloadAccount().catch(()=>{});await loadTournament();
    }catch(err){notice(err.message,true);btn.disabled=false;}
  });
@@ -119,6 +130,7 @@
    try{
      if(!tournament||tournament.status!=='running'||!tournament.joined)throw Error('Join the active tournament first.');
      const out=await call('play80_memory_start',{p_tournament_id:tournament.id});
+     if(out.charged)await api().reloadAccount().catch(()=>{});
      board={id:out.run_id,matched:new Map(),shown:new Map(),firstIndex:null,busy:false,finished:false};
      const state=await call('play80_memory_state',{p_run_id:board.id});
      for(const x of state.matched_cards||[])board.matched.set(Number(x.index),Number(x.value));

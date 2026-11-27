@@ -9,18 +9,23 @@ if(live){
   card.className='play80Surface';
   card.id='p8TourPrizeBreakdown';
   const rankRewards=[1800,1200,1000,900,800,700,600,500];
-  card.innerHTML='<h3>🏆 Tournament Prize Distribution</h3><p><b>Entry fee:</b> 500 non-redeemable Demo Coins once per person. <b>Maximum funded pool:</b> 7,500 Demo Coins. Actual awards scale with the funded prize pool; no company subsidy or cash redemption.</p>';
+  card.innerHTML='<h3>🏆 Tournament Prize Distribution</h3><p><b>Maximum funded pool:</b> 7,500 Demo Coins. Actual awards scale with the funded prize pool; no company subsidy or cash redemption. See the current entry terms above.</p>';
   const list=document.createElement('div');list.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px';
   rankRewards.forEach((amount,i)=>{const item=document.createElement('div');item.style.cssText='padding:10px;border:1px solid #a57ce2;border-radius:10px;background:#282041';item.textContent='#'+(i+1)+' · up to '+amount.toLocaleString('en-US')+' coins';list.append(item);});
   card.append(list);live.append(card);
 }
 const games={bubble:'Bubble Shooter',block:'Block Puzzle',memory:'Memory Puzzle','2048':'2048 Puzzle'};
+const serverGames={bubble:'bubbles',block:'blockpuzzle',memory:'memory','2048':'game2048'};
 let current='memory',grid=[],score=0,selected=0,pieces=[],drag=null,blockOver=false;
+const past=document.createElement('section');past.className='play80Surface';past.id='p8TourPastWinners';
+const pastButton=document.createElement('button');pastButton.type='button';pastButton.className='play80SecondaryBtn';pastButton.textContent='🏅 আগের বিজয়ীদের তালিকা';
+const pastList=document.createElement('div');pastList.setAttribute('aria-live','polite');past.append(pastButton,pastList);detail.append(past);
+pastButton.addEventListener('click',async()=>{const chosen=current;pastList.textContent='লোড হচ্ছে…';try{const result=await window.Play80Cloud.rpc('play80_tournament_winners',{p_game:serverGames[chosen]});if(current!==chosen)return;pastList.replaceChildren();if(!result?.winners?.length){pastList.textContent='এই গেমের কোনো প্রকাশিত ফল নেই।';return;}const date=document.createElement('p');date.textContent='সমাপ্ত: '+new Date(result.ends_at).toLocaleString('bn-BD');pastList.append(date);for(const r of result.winners){const row=document.createElement('div');row.className='tourLeader';row.textContent=(r.rank===1?'🥇':r.rank===2?'🥈':r.rank===3?'🥉':'#'+r.rank)+' · '+r.username+(r.type==='ai'?' · AI Player':'')+' · '+r.score+' স্কোর · '+r.reward+' ডেমো কয়েন';pastList.append(row);}}catch(_){if(current===chosen)pastList.textContent='বিজয়ীদের তথ্য এখন পাওয়া যাচ্ছে না।';}});
 const blockRules=window.Play80BlockRules;
 const colors=['#ed527b','#42c6fd','#fac851','#8be88a','#af80ff'],rand=n=>Math.floor(Math.random()*n);
 function choose(key){
  if(!games[key])return;
- current=key;home.classList.add('hidden');detail.classList.remove('hidden');
+ current=key;pastList.replaceChildren();home.classList.add('hidden');detail.classList.remove('hidden');
  $('p8TourChosenTitle').textContent=games[key];
  $('p8TourChosenMeta').textContent=key==='memory'?'Live server tournament: start time, players, fee, ranking and funded rewards.':'Server tournament NOT scheduled. Practice mode only. No registration fee or prize.';
  live.classList.toggle('hidden',key!=='memory');upcoming.classList.toggle('hidden',key==='memory');
