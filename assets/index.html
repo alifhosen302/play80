@@ -831,6 +831,7 @@ body.p8-auth-locked .app{max-width:560px}
 .p8-compact-turnover button{min-height:36px;padding:6px 10px}
 .p8-referral-list .smallAction{min-height:32px}
 </style>
+<link rel="stylesheet" href="ludo-reference.css">
 </head>
 <body class="p8-auth-locked">
 <div class="app">
@@ -1502,8 +1503,7 @@ try{const names=JSON.parse(localStorage.getItem(LUDO_NAME_KEY));if(Array.isArray
 function ludoLabel(p){
  if(ludo.mode==='bot'&&p===2)return 'AI Model';
  const name=(ludo.nicknames[p]||'').trim();if(name)return name;
- const human=ludo.players.filter(x=>!(ludo.mode==='bot'&&x===2));
- return 'Player '+(human.indexOf(p)+1);
+ return ['Alif302','Player 3','Player 2','Player 4'][p];
 }
 let skillPopupTimeout=null,skillPopupCountdown=null;
 const specialNotified=new Set();
@@ -2517,6 +2517,7 @@ cwBuildSpots();cwDraw();cwRenderAudio();cwRefresh();
 document.querySelectorAll('[data-open]').forEach(el=>el.addEventListener('click',()=>go(el.dataset.open)));document.querySelectorAll('[data-choice]').forEach(el=>el.addEventListener('click',()=>setChoice(Number(el.dataset.choice))));document.querySelectorAll('[data-stake]').forEach(b=>b.addEventListener('click',()=>setWheelStake(Number(b.dataset.stake))));$('spinBtn').addEventListener('click',spin);$('rollBtn').addEventListener('click',roll);$('gift100').addEventListener('click',()=>gift(100));$('gift500').addEventListener('click',()=>gift(500));window.addEventListener('popstate',play80Back);window.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();play80Back()}});drawWheel();render();go('home');
 })();
 </script>
+<script src="play80_ludo_reference.js"></script>
 <script src="play80_chess.js"></script>
 <script src="play80_online.js"></script>
 <script src="play80_tournament.js"></script>
