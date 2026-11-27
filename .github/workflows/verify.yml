@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - 'assets/**'
+      - 'supabase/migrations/**'
       - 'supabase/functions/play80-create-dsr/**'
       - 'tests/**'
       - 'build_qa.py'
@@ -13,6 +14,7 @@ on:
   pull_request:
     paths:
       - 'assets/**'
+      - 'supabase/migrations/**'
       - 'supabase/functions/play80-create-dsr/**'
       - 'tests/**'
       - 'build_qa.py'
@@ -62,6 +64,17 @@ jobs:
           node tests/test_v44_ui.js
           node tests/test_rules_gate.js
           node tests/test_v46_ui.js
+      - name: Verify daily claim queue on isolated PostgreSQL
+        shell: bash
+        run: |
+          set -euo pipefail
+          trap 'docker rm -f play80-daily-test >/dev/null 2>&1 || true' EXIT
+          docker run --detach --name play80-daily-test -e POSTGRES_HOST_AUTH_METHOD=trust -v "$PWD:/work:ro" postgres:16
+          for attempt in {1..30}; do
+            docker exec play80-daily-test pg_isready -h 127.0.0.1 -U postgres && break
+            sleep 1
+          done
+          docker exec -i play80-daily-test psql -h 127.0.0.1 -U postgres -v ON_ERROR_STOP=1 -f /work/tests/play80_daily_claim.sql
       - name: Scan committed files for signing secrets
         run: |
           python - <<'PY'

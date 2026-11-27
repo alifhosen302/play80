@@ -85,6 +85,7 @@
     if(menuReady && !on){
       setMenuCounts(0,0);turnoverList.replaceChildren();rewardData=null;referralLink.value='';referralTotal.textContent='';
       copyNote.textContent='';countdown.textContent='—';claim.textContent='৫,০০০ কয়েন · ক্লেম —';
+      dailyStatus.textContent='';nextRewardCheck=0;renderDailyClaim();
       $('p8MyMessages').replaceChildren();$('p8OwnerInboxList').replaceChildren();
       $('p8SupportText').value='';supportReceipt.hidden=true;
       if(supportTopic)chooseSupportTopic(supportTopic);
@@ -1086,11 +1087,20 @@
   amountInput.addEventListener('input',updatePresetSelection);
   renderWalletKind();
   const daily=document.createElement('div');daily.className='play80Surface p8-daily-reward';
+  daily.style.cssText='margin-top:16px;border:1px solid #cba65e;box-shadow:0 0 18px #d8ad5326;background:linear-gradient(155deg,#28203e,#171b35)';
   const countdown=createText('output','—','p8-countdown');
-  daily.append(createText('h3','প্রতি ২৪ ঘণ্টায় ৫০ ভার্চুয়াল কয়েন'),countdown,
-    createText('small','পরবর্তী বোনাস পর্যন্ত সময়'));
+  countdown.style.cssText='padding:12px;text-align:center;font-size:2.25rem;font-weight:800;border:1px solid #ad8d4e;border-radius:14px;background:#100e25;color:#ffe29c';
+  const dailyPending=createText('p','জমা বোনাস —','p8-claim');
+  const dailyClaim=createText('button','৫০ কয়েন ক্লেইম করুন','action');
+  dailyClaim.type='button';dailyClaim.hidden=true;dailyClaim.disabled=true;
+  dailyClaim.style.cssText='width:100%;margin-top:10px;background:linear-gradient(135deg,#ffe29c,#c99b42);color:#21182c;font-weight:800;border:1px solid #ffe29c';
+  const dailyStatus=createText('p','');dailyStatus.setAttribute('role','status');
+  dailyClaim.addEventListener('click',()=>{void claimDailyBonus();});
+  daily.append(createText('h3','প্রতি ২৪ ঘণ্টায় ৫০ ভার্চুয়াল কয়েন'),
+    createText('small','পরবর্তী বোনাস পর্যন্ত সময়'),countdown,
+    dailyPending,dailyClaim,dailyStatus);
   const claim=createText('p','৫,০০০ কয়েন · ক্লেম —','p8-claim');
-  bonusCard.append(claim);ownBonus.append(daily,bonusCard);
+  bonusCard.append(claim);ownBonus.append(bonusCard,daily);
   const referralLink=document.createElement('input');referralLink.readOnly=true;
   referralLink.setAttribute('aria-label','PLAY80 আমন্ত্রণ লিংক');
   const copyNote=createText('p','');copyNote.setAttribute('role','status');
@@ -1122,31 +1132,62 @@
   const copyButton=makeButton('লিংক কপি করুন',()=>copyReferral(referralLink.value),true);
   referral.append(createText('h2','রেফার বোনাস'),createText('p','আপনার লিংক বা কোড দিয়ে নতুন প্লেয়ার অ্যাকাউন্ট খুলে ইমেইল যাচাই করলে আপনি ৫০০ ভার্চুয়াল কয়েন পাবেন।'),
     referralLink,shareButton,copyButton,copyNote,referralTotal);
-  let rewardData=null, rewardRefresh=false, nextRewardCheck=0, serverOffset=0;
-  async function loadRewards(){
-    if(!verifiedAuth||isStaff()||isDsr()||rewardRefresh)return;
-    const id=session.user.id;
-    rewardRefresh=true;
-    try{
-      const data=await db('rpc/play80_my_rewards','POST',{});
-      if(!verifiedAuth||session?.user?.id!==id)return;
-      rewardData=data;
-      if(!data)return;
+  let rewardData=null, rewardRefresh=false, dailyClaimBusy=false, nextRewardCheck=0, serverOffset=0;
+  function renderDailyClaim(){
+    const pending=Number(rewardData?.pending_coins);
+    const ready=Number.isSafeInteger(pending)&&pending>=0;
+    dailyPending.textContent='জমা বোনাস: '+(ready?pending.toLocaleString('bn-BD')+' কয়েন':'—');
+    dailyClaim.hidden=!ready||pending<50;
+    dailyClaim.disabled=dailyClaimBusy||rewardRefresh||!verifiedAuth||!rewardData?.claim_due_at||pending<50;
+  }
+  function applyRewardData(data){
+    rewardData=data;
+    if(data){
       referralLink.value=data.referral_code?APK_DOWNLOAD+'?ref='+encodeURIComponent(data.referral_code):'';
       referralTotal.textContent='সফল রেফার '+Number(data.referral_count||0).toLocaleString('bn-BD')+'টি';
       claim.textContent='৫,০০০ কয়েন · ক্লেম '+(data.first_claimed?'✓ পাওয়া হয়েছে':'✕ পাওয়া যায়নি');
-      serverOffset=Date.parse(data.server_at)-Date.now();
-      renderRewardClock();
-    }finally{rewardRefresh=false;}
+      const serverTime=Date.parse(data.server_at);
+      serverOffset=Number.isFinite(serverTime)?serverTime-Date.now():0;
+    }
+    renderDailyClaim();renderRewardClock();
+  }
+  async function loadRewards(){
+    if(!verifiedAuth||isStaff()||isDsr()||rewardRefresh||dailyClaimBusy)return;
+    const id=session.user.id;
+    rewardRefresh=true;renderDailyClaim();
+    try{
+      const data=await db('rpc/play80_my_rewards','POST',{});
+      if(!verifiedAuth||session?.user?.id!==id)return;
+      applyRewardData(data);
+    }finally{rewardRefresh=false;renderDailyClaim();}
+  }
+  async function claimDailyBonus(){
+    if(!verifiedAuth||isStaff()||isDsr()||dailyClaimBusy||rewardRefresh||!rewardData?.claim_due_at)return;
+    const id=session.user.id, dueAt=rewardData.claim_due_at;
+    const stillCurrent=()=>verifiedAuth&&session?.user?.id===id;
+    dailyClaimBusy=true;renderDailyClaim();
+    dailyStatus.textContent='ক্লেইম যাচাই হচ্ছে…';
+    try{
+      const result=await db('rpc/play80_claim_daily_bonus','POST',{p_due_at:dueAt});
+      if(!stillCurrent())return;
+      applyRewardData(result.rewards);
+      dailyStatus.textContent=Number(result.claimed)===50?'৫০ কয়েন ব্যালান্সে যোগ হয়েছে।':'এই বোনাসটি ইতিমধ্যে ক্লেইম হয়েছে বা এখনো প্রস্তুত নয়।';
+      await loadAccount();
+    }catch(_){
+      if(stillCurrent())dailyStatus.textContent='ক্লেইম যাচাই করা যায়নি। আবার চেষ্টা করুন।';
+    }finally{
+      dailyClaimBusy=false;renderDailyClaim();
+      if(stillCurrent())void loadRewards().catch(()=>{});
+    }
   }
   function renderRewardClock(){
     const end=Date.parse(rewardData?.next_at);
     if(!Number.isFinite(end)){countdown.textContent='—';return;}
     const seconds=Math.max(0,Math.ceil((end-Date.now()-serverOffset)/1000));
     countdown.textContent=[Math.floor(seconds/3600),Math.floor(seconds/60)%60,seconds%60].map(n=>String(n).padStart(2,'0')).join(':');
-    if(!seconds&&Date.now()>=nextRewardCheck){
+    if(!seconds&&!dailyClaimBusy&&!rewardRefresh&&Date.now()>=nextRewardCheck){
       nextRewardCheck=Date.now()+15000;
-      void loadRewards().then(loadAccount).catch(()=>{});
+      void loadRewards().catch(()=>{});
     }
   }
   setInterval(()=>{
