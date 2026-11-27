@@ -61,6 +61,13 @@ const style=document.createElement('style');style.textContent=[
 .p8-block-ghost{position:fixed;z-index:9999;pointer-events:none;opacity:.88;filter:drop-shadow(0 4px 5px #0008)}
 .p8-block-ghost .p8-block-mini i{width:var(--ghost-cell);border-radius:5px}
 #p8BlockNotice{margin:4px 0 8px;color:#ffe3a4;font-size:.85rem;min-height:20px}
+#screen-p8-practice.p8-block-active>.play80Surface{padding:9px}
+#screen-p8-practice.p8-block-active h2{font-size:1.1rem;margin:5px 0}
+#screen-p8-practice.p8-block-active p{font-size:.8rem;margin:4px 0}
+#screen-p8-practice.p8-block-active #p8PracticeGrid{max-width:min(410px,calc(100dvh - 340px));margin:6px auto}
+#screen-p8-practice.p8-block-active #p8PracticeShapes{margin:6px 0;min-height:60px}
+#screen-p8-practice.p8-block-active #p8PracticeShapes button{min-height:60px}
+#screen-p8-practice.p8-block-active #p8PracticeScore{margin:5px 0}
 `
 ].join('\n');document.head.append(style);
 function render(){const cells=$('p8PracticeGrid').children;for(let i=0;i<64;i++){let b=cells[i];b.className='';b.style.background='';if(current==='bubble'&&grid[i]>=0){b.className='bubble';b.style.background=colors[grid[i]];}else if(current==='block'&&grid[i]){b.className='blockFilled';b.style.setProperty('--block-color',grid[i]);}}
@@ -163,6 +170,7 @@ function reset(){if(drag){drag.ghost.remove();drag=null;}blockOver=false;$('p8Bl
 function practice(){if(current==='2048'){$('screen-tournament').querySelector('[data-open="2048"]')?.click();return;}
  if(current!=='bubble'&&current!=='block')return;
  document.querySelectorAll('.screen').forEach(el=>el.classList.add('hidden'));screen.classList.remove('hidden');
+ screen.classList.toggle('p8-block-active',current==='block');
  $('p8BlockNotice').hidden=current!=='block';
  $('p8PracticeName').textContent=games[current]+' — PRACTICE';reset();if(current==='bubble')window.Play80BubbleDeluxe?.launch();else window.Play80BubbleDeluxe?.hide();window.scrollTo(0,0);
 }

@@ -84,12 +84,19 @@ try:
   page.locator('#p8RulesAccept').click()
   assert page.locator('#p8PracticeShapes .p8-block-mini').count()==3
   assert page.locator('#p8PracticeShapes .p8-block-mini i').count()>=3
-  page.locator('#p8PracticeShapes button').first.scroll_into_view_if_needed()
-  pbox=page.locator('#p8PracticeShapes button').first.bounding_box()
-  target=page.locator('#p8PracticeGrid button[data-cell="27"]').bounding_box()
-  page.mouse.move(pbox['x']+pbox['width']/2,pbox['y']+pbox['height']/2)
+  piece=page.locator('#p8PracticeShapes button').first
+  piece.evaluate("(el)=>el.scrollIntoView({block:'center',inline:'center'})")
+  page.wait_for_timeout(150)
+  pbox=piece.bounding_box()
+  target=page.locator('#p8PracticeGrid button[data-cell="36"]').bounding_box()
+  start={'x':pbox['x']+pbox['width']/2,'y':pbox['y']+pbox['height']/2}
+  end={'x':target['x']+target['width']/2,'y':target['y']+target['height']/2}
+  assert piece.evaluate("(el,p)=>el.contains(document.elementFromPoint(p.x,p.y))",start),'Piece must be visible above footer'
+  assert page.locator('#p8PracticeGrid').evaluate("(el,p)=>el.contains(document.elementFromPoint(p.x,p.y))",end),'Board must be visible'
+  page.mouse.move(start['x'],start['y'])
   page.mouse.down()
-  page.mouse.move(target['x']+target['width']/2,target['y']+target['height']/2,steps=12)
+  page.mouse.move(end['x'],end['y'],steps=12)
+  assert page.locator('#p8PracticeGrid .blockPreview').count()>0,'Valid drag preview'
   page.mouse.up()
   assert page.locator('#p8PracticeGrid .blockFilled').count()>0,'Dragging a shaped piece fills cells'
   assert page.locator('#p8PracticeScore').inner_text()!='Score: 0'
