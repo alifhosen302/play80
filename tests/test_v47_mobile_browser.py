@@ -59,16 +59,22 @@ try:
   assert page.locator('#p8BubbleSwap').count()==0,'No separate swap button'
   assert page.locator('#p8BubbleBomb').is_visible()
   canvas=page.locator('#p8BubbleCanvas')
-  cb=canvas.bounding_box()
-  page.mouse.click(cb['x']+cb['width']*341/400,cb['y']+cb['height']*545/590)
+  def tap_canvas(x,y):
+   canvas.evaluate("(el)=>el.scrollIntoView({block:'center',inline:'center'})")
+   page.wait_for_timeout(100)
+   point=canvas.evaluate("(el,p)=>{const r=el.getBoundingClientRect();return {x:r.left+r.width*p[0]/400,y:r.top+r.height*p[1]/590}}",[x,y])
+   page.evaluate("(p)=>{if(p.y>innerHeight-90)window.scrollBy(0,p.y-innerHeight+100)}",point)
+   point=canvas.evaluate("(el,p)=>{const r=el.getBoundingClientRect();return {x:r.left+r.width*p[0]/400,y:r.top+r.height*p[1]/590}}",[x,y])
+   assert canvas.evaluate("(el,p)=>document.elementFromPoint(p.x,p.y)===el",point),'Canvas target covered or outside viewport'
+   page.mouse.click(point['x'],point['y'])
+  tap_canvas(341,545)
   assert 'swapped' in page.locator('#p8BubbleMessage').inner_text()
-  page.mouse.click(cb['x']+cb['width']*200/400,cb['y']+cb['height']*548/590)
+  tap_canvas(200,548)
   assert 'Score: 0' in page.locator('#p8BubbleScore').inner_text(),'Cannon tap must not fire'
   page.locator('#p8BubbleBomb').click()
   assert 'CANCEL' in page.locator('#p8BubbleBomb').inner_text()
   # Pointer aim and fire into upper field
-  box=page.locator('#p8BubbleCanvas').bounding_box()
-  page.mouse.click(box['x']+box['width']*.5,box['y']+box['height']*.25)
+  tap_canvas(200,147)
   page.wait_for_timeout(1250)
   assert 'Score:' in page.locator('#p8BubbleScore').inner_text()
   page.locator('#p8PracticeBack').click()

@@ -137,9 +137,10 @@ function startDrag(e,index){
   const rows=Math.max(...piece.shape.map(([r])=>r))+1,cols=Math.max(...piece.shape.map(([,c])=>c))+1;
   drag={index,pointer:e.pointerId,ghost,startX:e.clientX,startY:e.clientY,moved:false,offsetX:cols*cell/2,offsetY:rows*cell/2+cell*.6};
   e.currentTarget.setPointerCapture(e.pointerId);
-  e.currentTarget.addEventListener('pointermove',moveDrag);
-  e.currentTarget.addEventListener('pointerup',ev=>endDrag(ev),{once:true});
-  e.currentTarget.addEventListener('pointercancel',ev=>endDrag(ev,true),{once:true});
+  const button=e.currentTarget;
+  const cleanup=()=>{button.removeEventListener('pointermove',moveDrag);button.removeEventListener('pointerup',up);button.removeEventListener('pointercancel',cancel);};
+  const up=ev=>{cleanup();endDrag(ev);},cancel=ev=>{cleanup();endDrag(ev,true);};
+  button.addEventListener('pointermove',moveDrag);button.addEventListener('pointerup',up);button.addEventListener('pointercancel',cancel);
 }
 function place(i,row=Math.floor(i/8),col=i%8){
   if(blockOver)return;
