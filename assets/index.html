@@ -431,7 +431,12 @@ body:has(#screen-arcade:not(.hidden)) .main{padding-bottom:24px!important}
 #arcadePlay.forestArena [data-apple]{background:linear-gradient(145deg,#ebf9ff44,#23433f55)!important;backdrop-filter:blur(7px);border:2px solid #e3e4b7a3!important;color:#f9ffeb;font-size:30px;text-shadow:0 2px 3px #103a25}
 #arcadePlay.forestArena [data-apple].revealed{background:linear-gradient(150deg,#f7efd5,#e2b96d)!important;color:#173b1d;animation:tileReveal .35s ease-out both}
 @keyframes tileReveal{from{transform:rotateY(85deg) scale(.8)}to{transform:rotateY(0) scale(1)}}
-.cupRow{perspective:800px}.cupRow [data-cup]{font-size:56px!important;filter:drop-shadow(0 7px 5px #0009);min-height:125px!important;background:linear-gradient(150deg,#b27b34,#ffe8a0 39%,#ae691e 76%)!important;border:2px solid #f6ce83!important;box-shadow:inset 4px 2px 6px #fff8,0 7px 0 #65320a!important;border-radius:22px 22px 37px 37px!important}
+#arcadePlay:has(.royalTable){min-height:0}
+.royalTable{position:relative;width:100%;max-width:680px;aspect-ratio:540/345;border:1px solid #ac834e;border-radius:14px;overflow:hidden;background:#241024}
+.royalTable canvas{display:block;width:100%;height:100%}
+.royalTable button[data-cup]{position:absolute;transform:translate(-50%,-50%);width:21%;height:29%;min-height:44px;background:transparent!important;border:0!important;box-shadow:none!important;border-radius:40%;touch-action:manipulation}
+.royalTable button:focus-visible{outline:3px solid #ffdc86;outline-offset:-3px}
+
 .arcadeMachine.slotCabinet{display:flex;gap:8px;justify-content:center;background:linear-gradient(145deg,#7d2d9e,#30215c);padding:22px 10px;border:4px ridge #ffd972!important;box-shadow:0 9px 24px #0008,inset 0 0 20px #eaa4ff5b}
 .slotReel{width:30%;height:90px;background:linear-gradient(#e7e1eb,#fff 35%,#f8eef7 70%,#d9cbdc);display:grid;place-items:center;border-radius:12px;border:3px solid #ebb961;color:#422050;font-size:52px;box-shadow:inset 0 3px 9px #0004;transition:filter .2s,transform .2s}
 .slotReel.spinning{animation:reelBlur .18s linear infinite}
@@ -2157,7 +2162,11 @@ function arBegin(){if(arc.live){toast('Finish the current round first');return f
 function arEnd(payout,explain){if(!arc.live||arc.complete)return;arc.complete=true;arc.live=false;arc.finished=true;if(payout>0){award(payout,ARCADE_GAMES[arc.game].name+' • '+explain)}else{state.games++;addGameEntry(0,ARCADE_GAMES[arc.game].name+' • '+explain)}arHelp(explain+' · '+(payout?'+'+arNum(payout):'0')+' coins returned.');arSetActions(arButton('PLAY AGAIN • '+(arc.game==='plinko'?(arc.stake||10):10)+' COINS','reset'));}
 function arOpen(game){if(!ARCADE_GAMES[game])return;arc={game,live:false,finished:false,id:++arcCounter,stake:10};$('arcadeStakeLabel').textContent=game==='plinko'?'10 / 20 / 50 COINS':'10 COINS / ROUND';$('arcadeHero').textContent=ARCADE_GAMES[game].symbol;$('arcadeTitle').textContent=ARCADE_GAMES[game].name;$('arcadeDescription').textContent=ARCADE_GAMES[game].desc;$('arcadeHelp').textContent=ARCADE_GAMES[game].help;go('arcade');arRender()}
 function arRender(){const g=arc.game;arPlay.classList.remove('forestArena');arActions.replaceChildren();if(g==='carnival'){arMarkup('<div class="arcadeWheel" id="arcWheel"><span>🎁</span></div>');arHelp('Spin the carnival wheel for a random virtual-coin prize.');arSetActions(arButton('SPIN • 10 COINS','spin'))}
-else if(g==='cups'){arMarkup('<div class="cupRow" id="cupRow"><button type="button" data-cup="0" disabled>🥤</button><button type="button" data-cup="1" disabled>🥤</button><button type="button" data-cup="2" disabled>🥤</button></div><div class="arcadeMoney" id="cupHint">The correct cup appears briefly before shuffling.</div>');arHelp('Memorize where the ball is before the cups shuffle.');arSetActions(arButton('START SHUFFLE • 10 COINS','start'))}
+else if(g==='cups'){
+  arc.table=createCupTable(arPlay);
+  arHelp('Watch the red ball, then follow its cup.');
+  arSetActions(arButton('START SHUFFLE • 10 COINS','start'));
+}
 else if(g==='apples'){arPlay.classList.add('forestArena');arMarkup('<div class="arcadeGrid" style="grid-template-columns:repeat(3,1fr)" id="appleGrid">'+Array.from({length:15},(_,i)=>'<button type="button" data-apple="'+i+'" disabled>✦</button>').join('')+'</div>');arHelp('Start and reveal apples row by row, or cash out to collect.');arSetActions(arButton('START APPLE TREE • 10','start'))}
 else if(g==='slots'){arMarkup('<div class="arcadeMachine slotCabinet" id="slotFaces"><span class="slotReel">🍒</span><span class="slotReel">🍋</span><span class="slotReel">🍓</span></div>');arHelp('Triple 🍓 is the jackpot! All three matching fruits win.');arSetActions(arButton('SPIN • 10 COINS','spin'))}
 else if(g==='roulette'){arc.bet='red';arMarkup('<div class="arcadeWheel" id="rouletteWheel"><span id="rouletteResult">🎯</span></div><div class="arcadeChoice" id="rouletteChoices"><button type="button" class="selected" data-ar-color="red">🔴 RED</button><button type="button" data-ar-color="black">⚫ BLACK</button><button type="button" data-ar-color="green">🟢 GREEN</button></div>');arHelp('Select red, black or green; then spin for a random number.');arSetActions(arButton('SPIN • 10 COINS','spin'))}
@@ -2168,27 +2177,16 @@ else if(g==='keno'){arc.selected=[];arMarkup('<div class="arcadePick" id="kenoGr
 else if(g==='scratch'){arMarkup('<div class="arcadeGrid" style="grid-template-columns:repeat(3,1fr)" id="scratchGrid">'+Array.from({length:9},(_,i)=>'<button type="button" data-scratch="'+i+'" disabled>❔</button>').join('')+'</div>');arHelp('Start and tap each covered card. Three or more of one fruit wins.');arSetActions(arButton('NEW CARD • 10 COINS','start'))}}
 function arAction(name){const g=arc.game;if(name==='reset'){arRender();return}
 if(g==='carnival'&&name==='spin'){if(!arBegin())return;const id=arc.id;arSetActions();const opts=[0,10,20,50,0,30,10,20];const ix=arPick(opts.length);const prize=opts[ix];$('arcWheel').style.transform='rotate('+(1440+360*ix/8)+'deg)';arHelp('Wheel spinning...');setTimeout(()=>{if(arc.id!==id)return;$('arcWheel').querySelector('span').textContent=prize===0?'💣':prize+' 🪙';arEnd(prize,prize?'Prize '+prize:'No prize this round')},1450)}
-else if(g==='cups'&&name==='start'){if(!arBegin())return;const id=arc.id;
-  arc.ball=arPick(3);arc.pickable=false;arc.positions=[0,1,2];
-  const cups=Array.from(document.querySelectorAll('[data-cup]'));
-  arHelp('Watch the blue ball! It starts under cup '+(arc.ball+1));
-  $('cupHint').textContent='🔵 Ball starts under cup '+(arc.ball+1);
-  arSetActions();let rounds=0;
-  const shuffleNext=()=>{if(arc.id!==id)return;
-    if(rounds++===6){arc.pickable=true;arHelp('Shuffle completed — pick a cup!');$('cupHint').textContent='Where is the ball?';cups.forEach(b=>b.disabled=false);return}
-    const a=arPick(3),b=(a+1+arPick(2))%3;
-    const ca=cups[arc.positions[a]],cb=cups[arc.positions[b]];
-    const delta=cb.getBoundingClientRect().left-ca.getBoundingClientRect().left;
-    ca.style.transition='transform 260ms ease-in-out';cb.style.transition='transform 260ms ease-in-out';
-    ca.style.transform='translateX('+delta+'px) rotate(-8deg)';
-    cb.style.transform='translateX('+(-delta)+'px) rotate(8deg)';
-    setTimeout(()=>{if(arc.id!==id)return;
-      [arc.positions[a],arc.positions[b]]=[arc.positions[b],arc.positions[a]];
-      cups.forEach((cup,physical)=>{cup.style.transition='none';cup.style.order=String(arc.positions.indexOf(physical));cup.style.transform='translateX(0) rotate(0)';});
-      setTimeout(shuffleNext,100);
-    },265)
-  };
-  setTimeout(shuffleNext,850)
+else if(g==='cups'&&name==='start'){
+  if(!arBegin())return;
+  const id=arc.id;
+  arc.ball=arPick(3);
+  arc.pickable=false;
+  arSetActions();
+  arHelp('Follow the cup covering the red ball.');
+  arc.table.shuffle(arc.ball,()=>arc.id===id,arPick).then(done=>{
+    if(done&&arc.id===id){arc.pickable=true;arHelp('Pick the cup hiding the ball.');}
+  });
 }
 else if(g==='apples'&&name==='start'){if(!arBegin())return;arc.row=0;arc.rotten=Array.from({length:5},()=>arPick(3));arHelp('Row 1: pick an apple');document.querySelectorAll('[data-apple]').forEach(b=>b.disabled=false);arSetActions(arButton('CASH OUT AFTER APPLES','cash',true,true))}
 else if(g==='apples'&&name==='cash'&&arc.live&&arc.row>0){arEnd([0,12,18,25,35,60][arc.row],'Collected '+arc.row+' safe apple'+(arc.row>1?'s':''));document.querySelectorAll('[data-apple]').forEach(b=>b.disabled=true)}
@@ -2218,7 +2216,13 @@ function arBjShow(open){$('bjDealer').innerHTML=arc.dealer.map((c,i)=>'<span cla
 function arPickInGame(e){let el=e.target.closest('[data-ar-color],[data-ar-stake],[data-cup],[data-apple],[data-mine],[data-keno],[data-scratch]');if(!el||!arc.game)return;
 if(el.hasAttribute('data-ar-stake')&&arc.game==='plinko'&&!arc.live){arc.stake=Number(el.dataset.arStake);$('arcadeStakeLabel').textContent=arc.stake+' COINS / BALL';document.querySelectorAll('[data-ar-stake]').forEach(b=>b.classList.toggle('selected',b===el));arSetActions(arButton('DROP • '+arc.stake+' COINS','start'));return}
 if(el.hasAttribute('data-ar-color')&&arc.game==='roulette'&&!arc.live){arc.bet=el.dataset.arColor;document.querySelectorAll('[data-ar-color]').forEach(b=>b.classList.toggle('selected',b===el));return}
-if(el.hasAttribute('data-cup')&&arc.game==='cups'&&arc.live&&arc.pickable){const guess=Number(el.dataset.cup);arc.pickable=false;document.querySelectorAll('[data-cup]').forEach(b=>{b.disabled=true;if(Number(b.dataset.cup)===arc.ball)b.textContent='🥤🔵'});arEnd(guess===arc.ball?30:0,guess===arc.ball?'Found the ball!':'Ball was under cup '+(arc.ball+1));return}
+if(el.hasAttribute('data-cup')&&arc.game==='cups'&&arc.live&&arc.pickable){
+  const guess=Number(el.dataset.cup),id=arc.id;
+  arc.pickable=false;
+  const slot=arc.table.reveal(guess,()=>arc.id===id);
+  arEnd(guess===arc.ball?30:0,guess===arc.ball?'Found the ball!':'Ball was under cup '+slot);
+  return;
+}
 if(el.hasAttribute('data-apple')&&arc.game==='apples'&&arc.live){const idx=Number(el.dataset.apple);if(Math.floor(idx/3)!==arc.row)return;const bad=idx%3===arc.rotten[arc.row];el.textContent=bad?'💥':'🍎';el.disabled=true;el.classList.add('revealed');if(bad){document.querySelectorAll('[data-apple]').forEach(b=>b.disabled=true);arEnd(0,'Rotten apple, round over');return}arc.row++;document.querySelectorAll('[data-apple]').forEach(b=>{b.disabled=Math.floor(Number(b.dataset.apple)/3)!==arc.row});if(arc.row===5){arEnd(60,'All five rows completed!')}else{arSetActions(arButton('CASH OUT • '+[0,12,18,25,35,60][arc.row]+' COINS','cash',true));arHelp('Safe apple! Next row '+(arc.row+1)+' or Cash Out.')};return}
 if(el.hasAttribute('data-mine')&&arc.game==='mines'&&arc.live&&!el.disabled){const idx=Number(el.dataset.mine),bad=arc.mines.has(idx);el.textContent=bad?'💥':'💎';el.disabled=true;el.classList.add('revealed');if(bad){document.querySelectorAll('[data-mine]').forEach(b=>b.disabled=true);arEnd(0,'Mine hit — try again');return}arc.safe++;if(arc.safe===7){arEnd(120,'All 7 gems revealed!');return}arSetActions(arButton('COLLECT • '+([0,12,18,30,45,65,90,120][arc.safe])+' COINS','cash',true));arHelp(arc.safe+' safe gems found. Reveal more or Collect.');return}
 if(el.hasAttribute('data-keno')&&arc.game==='keno'&&!arc.live){const n=Number(el.dataset.keno);if(arc.selected.includes(n))arc.selected=arc.selected.filter(x=>x!==n);else if(arc.selected.length<4)arc.selected.push(n);else{toast('Only 4 numbers');return}el.classList.toggle('selected',arc.selected.includes(n));$('kenoResult').textContent=arc.selected.length+'/4 selected';arSetActions(arButton('DRAW • 10 COINS','draw',false,arc.selected.length!==4));return}
@@ -2470,6 +2474,7 @@ document.querySelectorAll('[data-open]').forEach(el=>el.addEventListener('click'
 <script src="play80_online.js"></script>
 <script src="play80_tournament.js"></script>
 <script src="play80_tournament_menu.js"></script>
+<script src="play80_cup_table.js"></script>
 <script src="play80_bubble_deluxe.js"></script>
 <script src="play80_practice_2048.js"></script>
 <script src="play80_bet_arena.js"></script>
