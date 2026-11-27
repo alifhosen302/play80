@@ -1,0 +1,48 @@
+name: Verify PLAY80 wallet and staff release
+on:
+  pull_request:
+    paths: ['.github/workflows/verify-wallet-staff-release.yml']
+permissions:
+  actions: read
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_COMMIT: '76b1fdde6aeaacc0e36f167ad613e6a5389fdaca'
+    steps:
+      - name: Verify the published APK against the approved main run
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag=qa-v5.2-unified-login-20261125
+          asset=PLAY80_V5_2_GitHub_QA.apk
+          for poll in {1..80}; do
+            runs="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/release-qa.yml/runs?event=push&head_sha=$RELEASE_COMMIT")"
+            run="$(jq -r '.workflow_runs[0].id // empty' <<< "$runs")"
+            status="$(jq -r '.workflow_runs[0].status // "not created"' <<< "$runs")"
+            conclusion="$(jq -r '.workflow_runs[0].conclusion // empty' <<< "$runs")"
+            echo "Main release run ${run:-pending} is $status ${conclusion}"
+            if [[ "$status" == completed ]]; then
+              [[ "$conclusion" == success ]]
+              break
+            fi
+            sleep 12
+          done
+          [[ "$conclusion" == success ]]
+          path="repos/$GITHUB_REPOSITORY/releases/tags/$tag"
+          meta="$(gh api "$path" --jq ".assets[] | select(.name == \"$asset\")")"
+          jq '{browser_download_url,digest,updated_at}' <<< "$meta"
+          gh release download "$tag" --pattern "$asset" --dir "$RUNNER_TEMP/verified-release"
+          file="$RUNNER_TEMP/verified-release/$asset"
+          hash="$(sha256sum "$file" | cut -d' ' -f1)"
+          [[ "$(jq -r .digest <<< "$meta")" == "sha256:$hash" ]]
+          tools="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
+          "$tools/aapt" dump badging "$file" | sed -n '/^package: /p'
+          unzip -p "$file" assets/play80_online.js > "$RUNNER_TEMP/app.js"
+          unzip -p "$file" assets/index.html > "$RUNNER_TEMP/index.html"
+          grep -Fq 'p8CreateAdmin' "$RUNNER_TEMP/app.js"
+          grep -Fq 'p_panel_token:null' "$RUNNER_TEMP/app.js"
+          if grep -Fq 'id="cloudStaffPinGate"' "$RUNNER_TEMP/index.html"; then exit 1; fi
