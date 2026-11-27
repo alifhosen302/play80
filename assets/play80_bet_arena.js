@@ -92,8 +92,10 @@
    const orphan=localStorage.getItem(localKey);
    if(orphan){await window.Play80Cloud.botArena({action:'forfeit',id:orphan});localStorage.removeItem(localKey);}
    const terms=await window.Play80Cloud.botArena({action:'terms'});
-   if(terms.win_percent==null||terms.draw_refund==null)throw Error('সার্ভারে বেট চালু হয়নি।');
-   if(!confirm(stake+' ডেমো কয়েন দিয়ে শুরু করবে? জিতলে মোট '+(stake*terms.win_percent/100)+' কয়েন। '+(game==='chess'?'ড্র হলে '+(terms.draw_refund?stake:0)+' কয়েন। ':'')+'মাঝপথে বের হলে পুরো বেট হারাবে।'))return;
+   const draw=terms.draw_amounts?.[stake];
+   if(game==='chess'&&draw==null)throw Error('এই বেটের ড্রয়ের হিসাব এখনও নির্ধারিত হয়নি।');
+   if(terms.win_percent==null)throw Error('সার্ভারে বেট চালু হয়নি।');
+   if(!confirm(stake+' ডেমো কয়েন দিয়ে শুরু করবে? জিতলে মোট '+(stake*terms.win_percent/100)+' কয়েন। '+(game==='chess'?'ড্র হলে '+draw+' কয়েন। ':'')+'মাঝপথে বের হলে পুরো বেট হারাবে।'))return;
    const mid=id();localStorage.setItem(localKey,mid);
    match=await window.Play80Cloud.botArena({action:'start',id:mid,game,stake,terms});
    if(match.status!=='active'){renderMatch();return;}
