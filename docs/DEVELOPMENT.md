@@ -1,34 +1,41 @@
 # PLAY80 — development and release guide
 
-PLAY80 is one Android application for non-redeemable demo coins. There are no real-money deposits, withdrawals or cash conversion. Supabase project: `suhpmjqrcqkzaslptpca`. Hossain Group is a separate project and must not be changed.
+PLAY80 is one Android application using non-redeemable demo coins. There is no real-money payment, withdrawal or cash conversion. Supabase project: `suhpmjqrcqkzaslptpca`. Hossain Group is unrelated.
 
-## Source of truth
+## One source of truth
 
-`alifhosen302/play80`, branch `main`, is the authoritative integrated source. A temporary branch is a review/test candidate, not a second app. Merge verified changes into main; never build a separate product from a copy of this repository. Keep historical migrations and Git history intact.
+`alifhosen302/play80`, branch `main`, contains the integrated source. Temporary branches and historical pull requests are review history, not alternate apps. Make further changes against main, retain migration and commit history, and never build a separate product from a copy of the repository.
 
-| Area | Authoritative source |
+| Area | Source |
 | --- | --- |
 | Screen structure and styles | assets/index.html |
-| Account, auth, menu, demo wallet, daily rewards and turnover UI | assets/play80_online.js |
-| Tournament and individual games | assets/play80_tournament.js and each assets/play80_*.js game module |
-| Android shell and packaging | android/MainActivity.java, build_qa.py |
-| Server rules | supabase/migrations/ (ordered, immutable once applied), supabase/functions/ |
-| Regression tests | tests/ |
-| Release history and deployment evidence | docs/PLAY80_RELEASE_STATUS.md |
+| Accounts, menus, wallet, reward and turnover UI | assets/play80_online.js |
+| Games | assets/play80_*.js (individual modules) |
+| Android and packaging | android/MainActivity.java, build_qa.py |
+| Server | supabase/migrations/, supabase/functions/ |
+| Shared verification | scripts/verify.sh |
+| Regression cases | tests/ |
+| Deployment history | docs/PLAY80_RELEASE_STATUS.md |
 
-Keep game rules separated by module rather than joining everything into an unreadable file. UI must call server-authoritative RPCs; do not calculate authoritative balances or wins in the client. Use consistent source naming, narrow functions, meaningful comments, and tests for each business rule. Do not duplicate wallet or auth logic across game modules.
+## Demo wallet rules
 
-## Intended release workflow
+- Each approved normal deposit or completed owner send creates an independent 1x turnover source.
+- A first 1,000-coin deposit with its linked 5,000-coin bonus is one 6,000-coin source requiring 18,000 turnover.
+- Daily awards accumulate every 24 hours and each 50-coin period can be claimed once. The countdown does not depend on claims.
+- Verified server wins are allocated newest source first. A completed source disappears from the active list and releases its original demo coin amount.
+- While an incomplete source remains, available simulated withdrawal is capped by unused completed-source principal and unheld wallet balance. If no source remains, the whole unheld balance is available. Existing 200-coin minimum withdrawal is unchanged.
+- A pending withdrawal reserves its amount; approval consumes released allowances once. Zero settled wallet balance (and no held coins) closes all existing sources without deleting history or changing recorded progress. New deposits start new sources.
+- Source-specific withdrawal limits are implemented but the guard remains staged until all games that affect the server wallet have authoritative settlement. Local practice games and room matching do not pretend to be server-verified wins.
+- Historical reconstruction is restricted to the previously verified exact 6,500-coin account with zero progress; the original legacy record remains closed for audit. If preconditions do not match, no automatic reconstruction is made.
 
-1. Review changes against main and keep only one integrated candidate.
-2. Verify JavaScript/Python, database fixtures, and mobile browser UI. All checks must pass. No real-user data in test fixtures.
-3. Reconcile existing demo-wallet history without deleting records, resetting balances or counting the same credit twice. Record migration status. Do not apply unverified SQL.
-4. Build only an approved main revision with the existing application ID and owner signing identity. Increment internal versionCode.
-5. Test fresh installation and in-place update. Publish only one distributable APK, named `PLAY80.apk`, in the existing protected release. Do not publish another APK for each source commit. Never change package identity or signing key as a shortcut.
-6. Verify the uploaded digest and record the commit, version, server migration, and test results. Keep the last known working release until the replacement passes.
+## Release
 
-## Current integration status
+Run `bash scripts/verify.sh source`, `bash scripts/verify.sh database`, and `bash scripts/verify.sh browser` (Node 22, Python, Docker, Playwright/Chromium required). CI and the release workflow use the same script.
 
-The main branch is the last verified baseline; the new daily claim/turnover/filename changes are in `daily-bonus-claim-queue`. The royal cup table is separately staged in PR #18; check its tests before integrating. PRs #12 and #14 are historical/differing candidates and must be compared with main, not blindly merged. The latest candidate CI failed before producing usable step logs; APK and database deployment are not verified. The per-source simulated withdrawal allowance and zero-balance reset rules still need an explicit, tested server settlement model. Do not enable the turnover withdrawal guard prematurely.
+The existing signed APK remains the distribution baseline until the new migration, Android install and in-place upgrade checks all pass. Publish only from main with the existing application ID and signing certificate, increment internal versionCode, and replace the same protected GitHub release with one file named `PLAY80.apk`. No APK for every source commit. Never change signing keys to bypass failed checks.
 
-No additional APK is published by this document.
+## Integration and verification
+
+The menu-only logout, individual daily claims, newest-first turnover, owner-send credit, grouped first bonus, partial simulated withdrawal, zero balance closure, and royal cup table are now consolidated in main. The older wallet-navigation and initial turnover PRs contain historical implementation versions; do not merge them blindly.
+
+The integrated candidate passed JavaScript syntax checks (9 files), five existing JavaScript test scripts in an isolated evaluator, and the full PostgreSQL fixture with synthetic schemas inside a rolled-back transaction (including historical reconciliation). GitHub Actions jobs failed before runner assignment and returned no step logs; browser/device installation and signed release checks are not yet verified. No live user wallet has been changed and the new migration has not been deployed. Do not distribute the updated APK until backend/client compatibility and the full release gate are verified.

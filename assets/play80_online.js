@@ -6,7 +6,7 @@
   const BASE = 'https://suhpmjqrcqkzaslptpca.supabase.co';
   const KEY = 'sb_publishable_8VvDZLfwAeztWeDS2EqNBQ_nlYFwFyK';
   const STORAGE = 'play80.secure_account.v1';
-  const APK_DOWNLOAD = 'https://github.com/alifhosen302/play80/releases/download/qa-v5.2-unified-login-20261125/PLAY80_V5_2_GitHub_QA.apk';
+  const APK_DOWNLOAD = 'https://github.com/alifhosen302/play80/releases/download/qa-v5.2-unified-login-20261125/PLAY80.apk';
   const $ = (id) => document.getElementById(id);
   let menuReady=false;
   let session = null, profile = null, balance = null, verifiedAuth = false, signupRoleIntent = 'player';
@@ -85,6 +85,7 @@
     if(menuReady && !on){
       setMenuCounts(0,0);turnoverList.replaceChildren();rewardData=null;referralLink.value='';referralTotal.textContent='';
       copyNote.textContent='';countdown.textContent='—';claim.textContent='৫,০০০ কয়েন · ক্লেম —';
+      dailyStatus.textContent='';nextRewardCheck=0;renderDailyClaim();
       $('p8MyMessages').replaceChildren();$('p8OwnerInboxList').replaceChildren();
       $('p8SupportText').value='';supportReceipt.hidden=true;
       if(supportTopic)chooseSupportTopic(supportTopic);
@@ -282,7 +283,7 @@
       const viewer=session?.user?.id;
       const record=await readTurnover();
       if(!verifiedAuth||session?.user?.id!==viewer||signedIn.dataset.section!=='wallet')return;
-      if(!record||record.withdrawal_guard_enabled&&record.remaining>0){
+      if(!record||record.withdrawal_guard_enabled&&amount>record.withdrawable){
         showTurnover(record);
         return;
       }
@@ -300,6 +301,8 @@
     showWalletResponse('রিকোয়েস্ট পাঠানো হয়েছে। সিদ্ধান্ত রিকোয়েস্টের ইতিহাসে দেখাবে।');
   },showWalletResponse));
   $('cloudRefresh').addEventListener('click',e=>busy(e.currentTarget,loadAccount));
+  $('cloudSignOut').hidden=true;
+  $('cloudSignOut').style.setProperty('display','none','important');
   $('cloudSignOut').addEventListener('click',e=>busy(e.currentTarget,async()=>{
     hideStaffForm();
     if(pinDialog.open)pinDialog.close('cancel');
@@ -1086,11 +1089,17 @@
   amountInput.addEventListener('input',updatePresetSelection);
   renderWalletKind();
   const daily=document.createElement('div');daily.className='play80Surface p8-daily-reward';
+  daily.style.cssText='margin-top:16px;border:1px solid #cba65e;box-shadow:0 0 18px #d8ad5326;background:linear-gradient(155deg,#28203e,#171b35)';
   const countdown=createText('output','—','p8-countdown');
-  daily.append(createText('h3','প্রতি ২৪ ঘণ্টায় ৫০ ভার্চুয়াল কয়েন'),countdown,
-    createText('small','পরবর্তী বোনাস পর্যন্ত সময়'));
+  countdown.style.cssText='padding:12px;text-align:center;font-size:2.25rem;font-weight:800;border:1px solid #ad8d4e;border-radius:14px;background:#100e25;color:#ffe29c';
+  const dailyList=createText('div','','p8-daily-list');
+  dailyList.style.cssText='display:grid;gap:8px;margin-top:10px';
+  const dailyStatus=createText('p','');dailyStatus.setAttribute('role','status');
+  daily.append(createText('h3','প্রতি ২৪ ঘণ্টায় ৫০ ভার্চুয়াল কয়েন'),
+    createText('small','পরবর্তী বোনাস পর্যন্ত সময়'),countdown,
+    dailyList,dailyStatus);
   const claim=createText('p','৫,০০০ কয়েন · ক্লেম —','p8-claim');
-  bonusCard.append(claim);ownBonus.append(daily,bonusCard);
+  bonusCard.append(claim);ownBonus.append(bonusCard,daily);
   const referralLink=document.createElement('input');referralLink.readOnly=true;
   referralLink.setAttribute('aria-label','PLAY80 আমন্ত্রণ লিংক');
   const copyNote=createText('p','');copyNote.setAttribute('role','status');
@@ -1122,31 +1131,73 @@
   const copyButton=makeButton('লিংক কপি করুন',()=>copyReferral(referralLink.value),true);
   referral.append(createText('h2','রেফার বোনাস'),createText('p','আপনার লিংক বা কোড দিয়ে নতুন প্লেয়ার অ্যাকাউন্ট খুলে ইমেইল যাচাই করলে আপনি ৫০০ ভার্চুয়াল কয়েন পাবেন।'),
     referralLink,shareButton,copyButton,copyNote,referralTotal);
-  let rewardData=null, rewardRefresh=false, nextRewardCheck=0, serverOffset=0;
-  async function loadRewards(){
-    if(!verifiedAuth||isStaff()||isDsr()||rewardRefresh)return;
-    const id=session.user.id;
-    rewardRefresh=true;
-    try{
-      const data=await db('rpc/play80_my_rewards','POST',{});
-      if(!verifiedAuth||session?.user?.id!==id)return;
-      rewardData=data;
-      if(!data)return;
+  let rewardData=null, rewardRefresh=false, dailyClaimBusy=false, nextRewardCheck=0, serverOffset=0;
+  function renderDailyClaim(){
+    const periods=Array.isArray(rewardData?.pending_periods)?rewardData.pending_periods:[];
+    dailyList.replaceChildren();
+    for(const dueAt of periods){
+      if(typeof dueAt!=='string'||!Number.isFinite(Date.parse(dueAt)))continue;
+      const row=createText('div','','p8-daily-row');
+      row.style.cssText='display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px;padding:8px 10px;border:1px solid #514265;border-radius:12px;background:#28233f';
+      const icon=createText('span','🎁');icon.setAttribute('aria-hidden','true');
+      const amount=createText('strong','৫০ কয়েন');
+      amount.style.cssText='text-align:center;color:#ffe29c;font-size:1.15rem';
+      const button=createText('button','ক্লেইম','smallAction p8-daily-claim-button');
+      button.type='button';button.dataset.dueAt=dueAt;
+      button.style.cssText='width:auto;min-height:40px;margin:0;padding:7px 12px;background:linear-gradient(135deg,#ffe29c,#c99b42);color:#21182c;font-weight:800;border:1px solid #ffe29c;border-radius:9px';
+      button.disabled=dailyClaimBusy||rewardRefresh||!verifiedAuth;
+      button.addEventListener('click',()=>{void claimDailyBonus(dueAt);});
+      row.append(icon,amount,button);dailyList.append(row);
+    }
+  }
+  function applyRewardData(data){
+    rewardData=data;
+    if(data){
       referralLink.value=data.referral_code?APK_DOWNLOAD+'?ref='+encodeURIComponent(data.referral_code):'';
       referralTotal.textContent='সফল রেফার '+Number(data.referral_count||0).toLocaleString('bn-BD')+'টি';
       claim.textContent='৫,০০০ কয়েন · ক্লেম '+(data.first_claimed?'✓ পাওয়া হয়েছে':'✕ পাওয়া যায়নি');
-      serverOffset=Date.parse(data.server_at)-Date.now();
-      renderRewardClock();
-    }finally{rewardRefresh=false;}
+      const serverTime=Date.parse(data.server_at);
+      serverOffset=Number.isFinite(serverTime)?serverTime-Date.now():0;
+    }
+    renderDailyClaim();renderRewardClock();
+  }
+  async function loadRewards(){
+    if(!verifiedAuth||isStaff()||isDsr()||rewardRefresh||dailyClaimBusy)return;
+    const id=session.user.id;
+    rewardRefresh=true;renderDailyClaim();
+    try{
+      const data=await db('rpc/play80_my_rewards','POST',{});
+      if(!verifiedAuth||session?.user?.id!==id)return;
+      applyRewardData(data);
+    }finally{rewardRefresh=false;renderDailyClaim();}
+  }
+  async function claimDailyBonus(dueAt){
+    if(!verifiedAuth||isStaff()||isDsr()||dailyClaimBusy||rewardRefresh||!rewardData?.pending_periods?.includes(dueAt))return;
+    const id=session.user.id;
+    const stillCurrent=()=>verifiedAuth&&session?.user?.id===id;
+    dailyClaimBusy=true;renderDailyClaim();
+    dailyStatus.textContent='ক্লেইম যাচাই হচ্ছে…';
+    try{
+      const result=await db('rpc/play80_claim_daily_bonus','POST',{p_due_at:dueAt});
+      if(!stillCurrent())return;
+      applyRewardData(result.rewards);
+      dailyStatus.textContent=Number(result.claimed)===50?'৫০ কয়েন ব্যালান্সে যোগ হয়েছে।':'এই বোনাসটি ইতিমধ্যে ক্লেইম হয়েছে বা এখনো প্রস্তুত নয়।';
+      await loadAccount();
+    }catch(_){
+      if(stillCurrent())dailyStatus.textContent='ক্লেইম যাচাই করা যায়নি। আবার চেষ্টা করুন।';
+    }finally{
+      dailyClaimBusy=false;renderDailyClaim();
+      if(stillCurrent())void loadRewards().catch(()=>{});
+    }
   }
   function renderRewardClock(){
     const end=Date.parse(rewardData?.next_at);
     if(!Number.isFinite(end)){countdown.textContent='—';return;}
     const seconds=Math.max(0,Math.ceil((end-Date.now()-serverOffset)/1000));
     countdown.textContent=[Math.floor(seconds/3600),Math.floor(seconds/60)%60,seconds%60].map(n=>String(n).padStart(2,'0')).join(':');
-    if(!seconds&&Date.now()>=nextRewardCheck){
+    if(!seconds&&!dailyClaimBusy&&!rewardRefresh&&Date.now()>=nextRewardCheck){
       nextRewardCheck=Date.now()+15000;
-      void loadRewards().then(loadAccount).catch(()=>{});
+      void loadRewards().catch(()=>{});
     }
   }
   setInterval(()=>{
@@ -1158,7 +1209,7 @@
   turnoverPage.append(createText('h2','টার্নওভার'),turnoverList,
     makeButton('হিসাব রিফ্রেশ করুন',refreshTurnover,true));
   const turnoverLabels={
-    legacy:'আগের হিসাব',deposit:'ডিপোজিট',first_deposit_bonus:'প্রথম ডিপোজিট বোনাস',
+    legacy:'আগের হিসাব',deposit:'ডিপোজিট',first_deposit_bonus:'প্রথম ডিপোজিট + বোনাস',
     daily_bonus:'২৪ ঘণ্টার বোনাস',referral_bonus:'রেফার বোনাস'
   };
   async function readTurnover(){
@@ -1166,7 +1217,8 @@
       const data=await db('rpc/play80_my_turnover','POST',{});
       if(!Array.isArray(data?.items)||typeof data.withdrawal_guard_enabled!=='boolean')return null;
       const remaining=data.items.reduce((total,item)=>total+Math.max(0,Number(item.required)-Number(item.completed)),0);
-      return Number.isSafeInteger(remaining)?{...data,remaining}:null;
+      const withdrawable=Number(data.withdrawable_coins??(remaining?0:Math.max(0,Number(balance?.balance||0)-Number(balance?.held_balance||0))));
+      return Number.isSafeInteger(remaining)&&Number.isSafeInteger(withdrawable)&&withdrawable>=0?{...data,remaining,withdrawable}:null;
     }catch(_){return null;}
   }
   async function refreshTurnover(){
@@ -1192,10 +1244,11 @@
           createText('small','বাকি '+walletMoney(Number(item.required)-Number(item.completed))+' কয়েন'));
         turnoverList.append(card);
       }
+      turnoverList.append(createText('p','উইথড্রযোগ্য ডেমো কয়েন: '+walletMoney(record.withdrawable)));
       if(record.remaining&&!record.withdrawal_guard_enabled){
         turnoverList.append(createText('p','উইথড্রের টার্নওভার লক এখনো চালু হয়নি।'));
       }
-      if(!record.remaining||!record.withdrawal_guard_enabled){
+      if(record.withdrawable>=200||!record.remaining||!record.withdrawal_guard_enabled){
         turnoverList.append(makeButton('উইথড্র ফর্ম খুলুন',()=>openAccountPage('wallet','demo_debit'),true));
       }
     }
@@ -1210,7 +1263,7 @@
     const record=await readTurnover();
     if(!verifiedAuth||session?.user?.id!==viewer||document.body.dataset.play80Screen!==fromScreen
       ||signedIn.dataset.section!==fromSection)return;
-    if(!record||record.remaining>0)showTurnover(record);
+    if(!record||record.remaining>0&&record.withdrawable<200)showTurnover(record);
     else if(fromScreen==='account'&&fromSection==='wallet')selectWalletKind('demo_debit');
     else await openAccountPage('wallet','demo_debit');
   }
