@@ -1,7 +1,7 @@
 create role anon;
 create role authenticated;
 create schema cron;
-create function cron.schedule(text,text,text) returns bigint language sql as $ select 1::bigint $;
+create function cron.schedule(text,text,text) returns bigint language sql as $$ select 1::bigint $$;
 create schema auth;
 create schema private;
 create table auth.users (
@@ -15,20 +15,27 @@ create table public.bonus_transactions(id uuid primary key default gen_random_uu
 create table public.wallet_transactions(id uuid primary key default gen_random_uuid(),user_id uuid,transaction_type text,delta bigint,balance_after bigint,operation_key text unique,description text);
 create table public.turnover_records(user_id uuid primary key,required bigint not null,completed bigint not null default 0,updated_at timestamptz);
 create table public.profiles(id uuid primary key,username text);
+create table private.play80_owner_transfers (
+  operation_id uuid primary key,owner_id uuid not null,player_id uuid not null,
+  direction text not null,amount bigint not null,source_after bigint,destination_after bigint
+);
+create table private.staff_coin_transfer_keys(
+  operation_id uuid primary key,actor_id uuid not null,target_user_id uuid not null,amount bigint not null
+);
 create table public.demo_wallet_ledger(user_id uuid,delta bigint,balance_after bigint,reason text check(reason='demo_adjustment'));
 create table public.play80_support_messages(
   id uuid primary key default gen_random_uuid(),user_id uuid not null,sender_role text not null,
   body text not null,category text default 'general',created_at timestamptz default now(),owner_read_at timestamptz
 );
-create function private.staff_role(uuid) returns text language sql as $ select coalesce(raw_app_meta_data->>'role','player') from auth.users where id=$1 $;
-create function private.play80_require_staff_read() returns void language plpgsql as $ begin return; end $;
-create function private.play80_check_login_pin(text) returns boolean language sql as $ select false $;
-create function private.create_player_fixture() returns trigger language plpgsql as $
+create function private.staff_role(uuid) returns text language sql as $$ select coalesce(raw_app_meta_data->>'role','player') from auth.users where id=$1 $$;
+create function private.play80_require_staff_read() returns void language plpgsql as $$ begin return; end $$;
+create function private.play80_check_login_pin(text) returns boolean language sql as $$ select false $$;
+create function private.create_player_fixture() returns trigger language plpgsql as $$
 begin
   insert into public.profiles values(new.id,new.id::text);
   insert into public.demo_wallets(user_id) values(new.id);
   return new;
-end $;
+end $$;
 create trigger on_user_created after insert on auth.users for each row execute function private.create_player_fixture();
 create function private.play80_demo_credit_bonus_trigger() returns trigger language plpgsql as $$ begin return new; end $$;
 create function private.play80_turnover_on_entry() returns trigger language plpgsql as $$ begin return new; end $$;
@@ -108,4 +115,28 @@ begin
     'Combined requirements must total 18500';
   assert (select sum(required-completed) from private.play80_turnover_items where user_id=ordinary)=500,
     'A deposit without a linked bonus remains 1x';
+end $$;
+
+do $$
+declare player uuid:='00000000-0000-4000-8000-000000000004';
+declare actor uuid:=gen_random_uuid();
+declare op uuid:=gen_random_uuid();
+declare receive_op uuid:=gen_random_uuid();
+begin
+  insert into private.play80_owner_transfers(operation_id,owner_id,player_id,direction,amount)
+    values(op,actor,player,'send',500);
+  assert not exists(select 1 from private.play80_turnover_items where source_key='owner_transfer:'||op::text),
+    'Unfinished transfer cannot create turnover';
+  update private.play80_owner_transfers set source_after=5000,destination_after=6500 where operation_id=op;
+  update private.play80_owner_transfers set destination_after=6500 where operation_id=op;
+  assert (select count(*) from private.play80_turnover_items where source_key='owner_transfer:'||op::text and required=500)=1,
+    'Owner send creates exactly one 500 requirement';
+  insert into private.play80_owner_transfers(operation_id,owner_id,player_id,direction,amount)
+    values(receive_op,actor,player,'receive',100);
+  update private.play80_owner_transfers set source_after=6400,destination_after=5100 where operation_id=receive_op;
+  assert not exists(select 1 from private.play80_turnover_items where source_key='owner_transfer:'||receive_op::text),
+    'Owner receiving coins is not a deposit';
+  insert into private.staff_coin_transfer_keys values(gen_random_uuid(),actor,player,200);
+  assert (select count(*) from private.play80_turnover_items where user_id=player and source_key like 'owner_grant:%' and required=200)=1,
+    'Legacy owner send also counts at 1x';
 end $$;

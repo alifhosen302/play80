@@ -147,3 +147,38 @@ begin
   return new;
 end;
 $$;
+
+-- Only completed, server-recorded owner sends count as ordinary 1x virtual deposits.
+-- Generic wallet adjustments, bonus credits and reverse transfers are not deposits.
+create function private.play80_turnover_owner_send()
+returns trigger language plpgsql security definer set search_path='' as $$
+begin
+  if new.direction='send' and old.destination_after is null
+    and new.destination_after is not null and new.source_after is not null
+    and new.amount>0 then
+    perform private.play80_record_turnover(new.player_id,'deposit',
+      'owner_transfer:'||new.operation_id::text,new.amount);
+  end if;
+  return new;
+end;
+$$;
+revoke all on function private.play80_turnover_owner_send() from public,anon,authenticated;
+create trigger play80_turnover_owner_send after update of destination_after
+on private.play80_owner_transfers for each row execute function private.play80_turnover_owner_send();
+
+-- The legacy owner-grant RPC records its unique key and credit atomically.
+create function private.play80_turnover_owner_grant()
+returns trigger language plpgsql security definer set search_path='' as $$
+begin
+  if new.amount>0 and exists(select 1 from auth.users u
+    where u.id=new.target_user_id and u.email_confirmed_at is not null
+      and not u.is_anonymous and coalesce(u.raw_app_meta_data->>'role','player')='player') then
+    perform private.play80_record_turnover(new.target_user_id,'deposit',
+      'owner_grant:'||new.operation_id::text,new.amount);
+  end if;
+  return new;
+end;
+$$;
+revoke all on function private.play80_turnover_owner_grant() from public,anon,authenticated;
+create trigger play80_turnover_owner_grant after insert on private.staff_coin_transfer_keys
+for each row execute function private.play80_turnover_owner_grant();
