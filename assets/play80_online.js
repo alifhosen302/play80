@@ -1152,13 +1152,6 @@
   setInterval(()=>{
     if(verifiedAuth&&!document.hidden&&signedIn.dataset.section==='bonus'&&!ownBonus.hidden)renderRewardClock();
   },1000);
-  const downloadPage=document.createElement('section');
-  const downloadLink=createText('a','Android APK ডাউনলোড','action');
-  const androidWebView=location.protocol==='file:'&&/\bwv\b/.test(navigator.userAgent);
-  downloadLink.href=androidWebView?'play80-download://latest':APK_DOWNLOAD;
-  if(!androidWebView){downloadLink.target='_blank';downloadLink.rel='noopener noreferrer';}
-  downloadPage.append(createText('h2','ডাউনলোড'),downloadLink);
-
   const turnoverPage=document.createElement('section');
   const turnoverList=createText('div','','cloudList');
   turnoverList.setAttribute('aria-live','polite');
@@ -1223,7 +1216,7 @@
   }
 
   const accountSections={profile:ownProfile,wallet:ownWallet,history:historyPage,bonus:ownBonus,
-    referral,support:accountSupport,turnover:turnoverPage,download:downloadPage};
+    referral,support:accountSupport,turnover:turnoverPage};
   for(const section of Object.values(accountSections)){
     section.classList.add('p8-menu-section');signedIn.append(section);
   }
@@ -1242,7 +1235,6 @@
     document.dispatchEvent(new CustomEvent('play80:menu-navigate',{detail:'account'}));
     if(kind)selectWalletKind(kind);
     if(section==='turnover')await refreshTurnover();
-    else if(section==='download')return;
     else if(section==='support')await loadMyMessages();
     else if(section==='bonus'||section==='referral')await loadRewards();
     else await loadAccount();
@@ -1335,7 +1327,7 @@
     'প্রোফাইল':'👤','ড্যাশবোর্ড':'▥','ইউজার দেখুন':'👥','ডিপোজিট ও উইথড্র রিকোয়েস্ট':'⇄',
     'বোনাস':'🎁','সাপোর্ট':'💬','স্টাফ অ্যাকাউন্ট':'🛡','লাইভ গেম':'🎮','টুর্নামেন্ট':'🏆',
     'কম্পিউটার প্লেয়ার':'🤖','ডিপোজিট':'⬇','উইথড্র':'⬆','রিকোয়েস্টের ইতিহাস':'◉',
-    'রেফার বোনাস':'🔗','টার্নওভার':'▤','ডাউনলোড':'⬇','লগআউট':'↪'
+    'রেফার বোনাস':'🔗','টার্নওভার':'▤','লগআউট':'↪'
   };
   function renderMenu(){
     const root=$('p8MenuItems');
@@ -1372,7 +1364,6 @@
       add('রিকোয়েস্টের ইতিহাস',account('history'));
       add('টার্নওভার',account('turnover'));
     }
-    add('ডাউনলোড',account('download'));
     add('লগআউট',async()=>$('cloudSignOut').click());
     setMenuCounts(pendingRequests,unreadSupport);
   }

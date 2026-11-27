@@ -273,10 +273,8 @@ try:
   page.locator('#cloudRefresh').click()
   page.locator('#p8FirstCreditOffer').wait_for(state='hidden')
   page.locator('#p8MenuButton').click()
-  page.get_by_role('button',name='ডাউনলোড',exact=True).click()
-  download=page.get_by_role('link',name='Android APK ডাউনলোড',exact=True)
-  download.wait_for()
-  assert download.get_attribute('href').endswith('/PLAY80_V5_2_GitHub_QA.apk')
+  page.get_by_role('button',name='টার্নওভার',exact=True).click()
+  page.get_by_text('বাকি টার্নওভার নেই।',exact=True).wait_for()
   page.locator('#p8MenuButton').click()
   turnover['items']=[{'source':'deposit','required':500,'completed':250}]
   page.locator('#p8MenuQuick').get_by_role('button',name='উইথড্র',exact=True).click()
