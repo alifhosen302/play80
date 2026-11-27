@@ -5,7 +5,7 @@ name: Update the single PLAY80 APK (permanent signing required)
 on:
   push:
     branches: [main]
-    paths: ['.github/workflows/release-qa.yml']
+    paths: ['.github/workflows/release-qa.yml', 'tests/test_v50_roles_browser.py']
   workflow_dispatch:
     inputs:
       publish:

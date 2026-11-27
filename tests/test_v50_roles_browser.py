@@ -198,12 +198,13 @@ try:
   page.reload()
   assert page.locator('.play80TopTabs').is_hidden(),'Logout lock must persist after reload'
   current_role[0]='player'
-  turnover={'withdrawal_guard_enabled':True,'items':[]}
+  turnover={'withdrawal_guard_enabled':True,'items':[],'withdrawable_coins':0}
+  player_wallet={'balance':0,'held_balance':0}
   page.route('**/rest/v1/rpc/play80_my_turnover',lambda route:route.fulfill(json=turnover))
   approved_credits=[]
   page.route('**/rest/v1/demo_wallet_requests?*status=eq.approved*',
              lambda route:route.fulfill(json=approved_credits))
-  page.route('**/rest/v1/demo_wallets?*',lambda route:route.fulfill(json=[{'balance':0,'held_balance':0}]))
+  page.route('**/rest/v1/demo_wallets?*',lambda route:route.fulfill(json=[player_wallet]))
   page.route('**/rest/v1/profiles?*',lambda route:route.fulfill(json=[{'username':'example_player','display_name':'Player'}]))
   page.locator('#cloudLoginEmail').fill('testplayer@example.com')
   page.locator('#cloudLoginPassword').fill('123456')
@@ -332,7 +333,19 @@ try:
   page.get_by_role('button',name='অনুরোধ পাঠাও').click()
   page.get_by_text('মোট বাকি ২৫০ কয়েন',exact=True).wait_for()
   assert not page.locator('#play80ActionPin').is_visible()
+  # An empty wallet must not open an action PIN for a 500-coin debit.
   turnover['items']=[]
+  page.locator('#p8MenuButton').click()
+  page.locator('#p8MenuQuick').get_by_role('button',name='ডিপোজিট',exact=True).click()
+  page.locator('.p8-request-toolbar').get_by_role('button',name='উইথড্র',exact=True).click()
+  page.locator('.p8-amount-grid [data-amount="500"]').click()
+  page.get_by_role('button',name='অনুরোধ পাঠাও').click()
+  page.get_by_text('উইথড্রযোগ্য ডেমো কয়েন: ০',exact=True).wait_for()
+  assert not page.locator('#play80ActionPin').is_visible()
+  # A completed deposit unlocks 500 demo coins even with an older source pending.
+  player_wallet['balance']=6500
+  turnover['items']=[{'source':'first_deposit_bonus','required':18000,'completed':0}]
+  turnover['withdrawable_coins']=500
   page.locator('#p8MenuButton').click()
   page.locator('#p8MenuQuick').get_by_role('button',name='ডিপোজিট',exact=True).click()
   page.locator('.p8-request-toolbar').get_by_role('button',name='উইথড্র',exact=True).click()
