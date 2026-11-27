@@ -2,7 +2,7 @@
 create table private.bot_arena_terms (
  singleton boolean primary key default true check(singleton),
  win_percent integer not null default 180 check(win_percent between 100 and 200),
- draw_amounts jsonb not null default '{"100":90}'::jsonb
+ draw_fee integer not null default 10 check(draw_fee=10)
 );
 insert into private.bot_arena_terms default values;
 create table private.bot_arena_matches (
@@ -31,12 +31,11 @@ begin
  end if;
  if p_action='start' and m.id is null then
   select * into strict terms from private.bot_arena_terms where singleton;
-  if p_game='chess' and (terms.draw_amounts->>p_stake::text) is null then raise exception 'জয় ও ড্রয়ের বেট নীতি চালু হয়নি।'; end if;
   if exists(select 1 from private.bot_arena_closed_requests where id=p_id) then raise exception 'ম্যাচটি বন্ধ হয়েছে।'; end if;
   if (p_state->'quote') is distinct from (to_jsonb(terms)-'singleton') then raise exception 'বেটের শর্ত বদলেছে। আবার দেখে শুরু করো।'; end if;
   if available<p_stake then raise exception 'পর্যাপ্ত ব্যবহারযোগ্য কয়েন নেই।'; end if;
   insert into private.bot_arena_matches(id,player,game,stake,win_amount,draw_amount,status,state)
-   values(p_id,p_player,p_game,p_stake,p_stake*terms.win_percent/100,case when p_game='chess' then (terms.draw_amounts->>p_stake::text)::integer else 0 end,'active',p_state-'quote') returning * into m;
+   values(p_id,p_player,p_game,p_stake,p_stake*terms.win_percent/100,case when p_game='chess' then p_stake-terms.draw_fee else 0 end,'active',p_state-'quote') returning * into m;
   update public.demo_wallets set balance=balance-p_stake,updated_at=now() where user_id=p_player returning balance into bal;
   insert into public.wallet_transactions(user_id,transaction_type,delta,balance_after,operation_key,description)
    values(p_player,'bot_arena_entry',-p_stake,bal,'bot-entry:'||p_id,'Computer match stake');
