@@ -413,7 +413,7 @@ try:
   page.locator('#screen-remote-owner').wait_for(state='visible')
   page.locator('#p8MenuButton').click()
   assert page.locator('.footerNav [data-p8-footer="support"]').is_visible()
-  assert page.locator('#p8MenuItems').get_by_role('button',name='কম্পিউটার প্লেয়ার').is_visible()
+  assert page.locator('#p8MenuItems').get_by_role('button',name='AI').is_visible()
   assert page.locator('#p8MenuItems').get_by_role('button',name='টুর্নামেন্ট').is_visible()
   page.get_by_role('button',name='স্টাফ অ্যাকাউন্ট',exact=True).click()
   page.get_by_role('button',name='DSR অ্যাকাউন্ট তৈরি').wait_for()

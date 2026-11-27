@@ -72,6 +72,22 @@ try:
   page.wait_for_timeout(1250)
   assert 'Score:' in page.locator('#p8BubbleScore').inner_text()
   page.locator('#p8PracticeBack').click()
+  page.locator('#p8TourBack').click()
+  page.locator('[data-tour-choice="block"]').click()
+  page.locator('#p8TourPractice').click()
+  page.locator('#p8RulesAccept').click()
+  assert page.locator('#p8PracticeShapes .p8-block-mini').count()==3
+  assert page.locator('#p8PracticeShapes .p8-block-mini i').count()>=3
+  page.locator('#p8PracticeShapes button').first.scroll_into_view_if_needed()
+  pbox=page.locator('#p8PracticeShapes button').first.bounding_box()
+  target=page.locator('#p8PracticeGrid button[data-cell="27"]').bounding_box()
+  page.mouse.move(pbox['x']+pbox['width']/2,pbox['y']+pbox['height']/2)
+  page.mouse.down()
+  page.mouse.move(target['x']+target['width']/2,target['y']+target['height']/2,steps=12)
+  page.mouse.up()
+  assert page.locator('#p8PracticeGrid .blockFilled').count()>0,'Dragging a shaped piece fills cells'
+  assert page.locator('#p8PracticeScore').inner_text()!='Score: 0'
+  page.locator('#p8PracticeBack').click()
   page.locator('[data-main-tab="bet"]').click()
   page.locator('#p8OpenChess').click()
   assert page.locator('#p8RulesOverlay').is_visible()

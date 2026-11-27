@@ -10,7 +10,7 @@ source_checks() {
   for file in assets/play80_*.js; do node --check "$file"; done
   python -m compileall -q build_qa.py release_check.py
   node --experimental-strip-types tests/test_dsr_creation.mjs
-  for file in tests/test_2048.js tests/test_chess.js tests/test_v44_ui.js tests/test_rules_gate.js tests/test_v46_ui.js; do node "$file"; done
+  for file in tests/test_2048.js tests/test_chess.js tests/test_v44_ui.js tests/test_rules_gate.js tests/test_v46_ui.js tests/test_block_rules.js; do node "$file"; done
   python - <<'PY'
 from pathlib import Path
 banned = {'.keystore', '.jks', '.p12', '.pfx', '.pem', '.key'}

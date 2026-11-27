@@ -582,7 +582,7 @@
     if(tab==='tournaments')await loadTournamentOwner();
   }
   let staffSection='stats';
-  const staffTitles={stats:'ড্যাশবোর্ড',users:'ইউজার দেখুন',admins:'স্টাফ অ্যাকাউন্ট',activity:'লাইভ গেম',bots:'কম্পিউটার প্লেয়ার',tournaments:'টুর্নামেন্ট',inbox:'সাপোর্ট'};
+  const staffTitles={stats:'ড্যাশবোর্ড',users:'ইউজার দেখুন',admins:'স্টাফ অ্যাকাউন্ট',activity:'লাইভ গেম',bots:'AI প্লেয়ার',tournaments:'টুর্নামেন্ট',inbox:'সাপোর্ট'};
   $('cloudOwnerRefresh').addEventListener('click',e=>busy(e.currentTarget,loadOwnerRequests,ownerStatus));
   $('cloudStaffSearchButton').addEventListener('click',e=>busy(e.currentTarget,async()=>{userPage=0;selectedUser=null;await loadStaffUsers();},ownerStatus));
   $('cloudStaffActivityRefresh').addEventListener('click',e=>busy(e.currentTarget,loadActivity,ownerStatus));
@@ -1443,7 +1443,7 @@
   const menuIcons={
     'প্রোফাইল':'👤','ড্যাশবোর্ড':'▥','ইউজার দেখুন':'👥','ডিপোজিট ও উইথড্র রিকোয়েস্ট':'⇄',
     'বোনাস':'🎁','সাপোর্ট':'💬','স্টাফ অ্যাকাউন্ট':'🛡','লাইভ গেম':'🎮','টুর্নামেন্ট':'🏆',
-    'কম্পিউটার প্লেয়ার':'🤖','ডিপোজিট':'⬇','উইথড্র':'⬆','রিকোয়েস্টের ইতিহাস':'◉',
+    'AI':'🤖','কম্পিউটার প্লেয়ার':'🤖','ডিপোজিট':'⬇','উইথড্র':'⬆','রিকোয়েস্টের ইতিহাস':'◉',
     'রেফার বোনাস':'🔗','টার্নওভার':'▤','লগআউট':'↪'
   };
   function renderMenu(){
@@ -1468,7 +1468,7 @@
       add('স্টাফ অ্যাকাউন্ট',staff('admins'));
       add('লাইভ গেম',staff('activity'));
       add('টুর্নামেন্ট',staff('tournaments'));
-      add('কম্পিউটার প্লেয়ার',staff('bots'));
+      add('AI',staff('bots'));
     }else{
       add('ডিপোজিট',account('wallet','demo_credit'),null,quick);
       add('উইথড্র',openWithdraw,null,quick);
