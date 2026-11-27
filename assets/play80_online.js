@@ -1209,7 +1209,7 @@
   turnoverPage.append(createText('h2','টার্নওভার'),turnoverList,
     makeButton('হিসাব রিফ্রেশ করুন',refreshTurnover,true));
   const turnoverLabels={
-    legacy:'আগের হিসাব',deposit:'ডিপোজিট',first_deposit_bonus:'প্রথম ডিপোজিট বোনাস',
+    legacy:'আগের হিসাব',deposit:'ডিপোজিট',first_deposit_bonus:'প্রথম ডিপোজিট + বোনাস',
     daily_bonus:'২৪ ঘণ্টার বোনাস',referral_bonus:'রেফার বোনাস'
   };
   async function readTurnover(){

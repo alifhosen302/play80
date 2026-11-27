@@ -81,3 +81,31 @@ begin
   assert (public.play80_claim_daily_bonus(due)->>'claimed')::bigint=0,'Staff cannot claim';
   assert not has_function_privilege('anon','public.play80_claim_daily_bonus(timestamptz)','execute'),'Anonymous role has no claim access';
 end $$;
+
+-- Check the revised combined first-deposit rule separately from daily claims.
+do $$
+declare player uuid:='00000000-0000-4000-8000-000000000004';
+declare ordinary uuid:='00000000-0000-4000-8000-000000000005';
+declare payload jsonb;
+begin
+  insert into auth.users(id,email_confirmed_at) values(player,now()),(ordinary,now());
+  insert into public.demo_wallet_requests(user_id,request_kind,amount,status)
+    values(player,'demo_credit',1000,'pending'),(ordinary,'demo_credit',500,'pending');
+  update public.demo_wallet_requests set status='approved' where status='pending' and user_id in (player,ordinary);
+  insert into public.demo_wallet_requests(user_id,request_kind,amount,status)
+    values(player,'demo_credit',500,'pending');
+  update public.demo_wallet_requests set status='approved' where status='pending' and user_id=player;
+  perform set_config('test.uid',player::text,true);
+  payload:=public.play80_my_turnover();
+  assert jsonb_array_length(payload->'items')=2,'First deposit and bonus form one item; repeat deposit is separate';
+  assert (select count(*) from private.play80_turnover_items
+    where user_id=player and source='first_deposit_bonus' and coins=6000 and required=18000 and completed=0)=1,
+    'First deposit plus linked bonus must be 18000';
+  assert (select count(*) from private.play80_turnover_items
+    where user_id=player and source='deposit' and coins=500 and required=500 and completed=0)=1,
+    'Repeat 500 deposit must remain 500';
+  assert (select sum(required-completed) from private.play80_turnover_items where user_id=player)=18500,
+    'Combined requirements must total 18500';
+  assert (select sum(required-completed) from private.play80_turnover_items where user_id=ordinary)=500,
+    'A deposit without a linked bonus remains 1x';
+end $$;

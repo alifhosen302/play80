@@ -102,3 +102,48 @@ end;
 $$;
 revoke all on function public.play80_claim_daily_bonus(timestamptz) from public,anon;
 grant execute on function public.play80_claim_daily_bonus(timestamptz) to authenticated;
+
+
+-- A bonus-linked first deposit is one 3x item. Later ordinary deposits remain 1x.
+-- Existing historical rows require an explicitly reconciled backfill, not a blind reset.
+create or replace function private.play80_turnover_credit_source()
+returns trigger language plpgsql security definer set search_path='' as $$
+declare due_at timestamptz;
+declare deposit_amount bigint;
+begin
+  if tg_table_name='demo_wallet_requests' then
+    if new.status='approved' and old.status='pending' and new.request_kind='demo_credit' then
+      perform private.play80_record_turnover(new.user_id,'deposit',new.id::text,new.amount);
+    end if;
+  elsif tg_table_name='bonus_transactions' then
+    if new.bonus_kind='first_exact_1000_demo_credit' then
+      select q.amount into strict deposit_amount
+      from public.demo_wallet_requests q
+      where q.id=new.request_id and q.user_id=new.user_id
+        and q.status='approved' and q.request_kind='demo_credit';
+      -- The deposit trigger has already registered its 1x item. Convert that
+      -- item into the single 3x deposit-plus-bonus item, keeping any progress.
+      perform 1 from public.demo_wallets where user_id=new.user_id for update;
+      update private.play80_turnover_items
+        set source='first_deposit_bonus',source_key=new.id::text,
+            coins=deposit_amount+new.amount
+        where user_id=new.user_id and source='deposit'
+          and source_key=new.request_id::text;
+      if not found then
+        perform private.play80_record_turnover(new.user_id,'first_deposit_bonus',
+          new.id::text,deposit_amount+new.amount);
+      end if;
+    end if;
+  elsif tg_table_name='play80_referral_awards' then
+    perform private.play80_record_turnover(new.referrer,'referral_bonus',new.new_player::text,500);
+  elsif tg_table_name='play80_daily_reward_clock' then
+    due_at:=old.next_at;
+    while due_at<new.next_at loop
+      perform private.play80_record_turnover(new.user_id,'daily_bonus',
+        new.user_id::text||':'||extract(epoch from due_at)::text,50);
+      due_at:=due_at+interval '24 hours';
+    end loop;
+  end if;
+  return new;
+end;
+$$;
