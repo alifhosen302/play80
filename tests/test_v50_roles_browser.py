@@ -211,6 +211,29 @@ try:
   page.wait_for_timeout(450)
   assert page.locator('.play80TopTabs').is_visible(),'Player login failed'
   assert page.locator('#screen-home').is_visible(),'Player should enter Games, not Owner'
+  home=page.locator('#screen-home')
+  catalog=home.locator('.homeGameGrid')
+  games=catalog.locator('.gameTile')
+  assert games.count()==15
+  assert home.locator('.hero, #p8RealAccountCTA').count()==0
+  for width,height in [(360,720),(390,844)]:
+   page.set_viewport_size({'width':width,'height':height})
+   first_three=[games.nth(index).bounding_box() for index in range(3)]
+   assert len({box['y'] for box in first_three})==1,'Mobile catalog should have three columns'
+   assert games.nth(5).bounding_box()['y']+games.nth(5).bounding_box()['height'] < page.locator('.footerNav').bounding_box()['y']
+   assert home.locator('.homeTournament').bounding_box()['height']<=48
+  home.get_by_role('button',name='PLAY80 টুর্নামেন্ট').click()
+  page.locator('#screen-tournament').wait_for(state='visible')
+  page.locator('[data-main-tab="home"]').click()
+  home.locator('#gameSearch').fill('ludo')
+  assert games.filter(visible=True).count()==1
+  home.locator('#gameSearch').fill('')
+  catalog.locator('[data-favorite="ludo"]').click()
+  home.locator('#favoritesOnly').click()
+  assert games.filter(visible=True).count()==1
+  catalog.locator('[data-favorite="ludo"]').click()
+  home.locator('#favoritesOnly').click()
+  assert games.filter(visible=True).count()==15
   assert page.locator('#cloudOwnerEntry').is_hidden(),'Player must not access Owner panel'
   page.locator('#p8MenuButton').click()
   assert page.locator('#p8MenuQuick [data-panel="wallet"]').count()==0

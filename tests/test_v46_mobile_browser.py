@@ -26,8 +26,7 @@ try:
   page.on('dialog',lambda dialog:dialog.accept())
   page.goto(URL,wait_until='load')
   page.wait_for_timeout(500)
-  assert page.locator('#p8RealAccountCTA').count()==1,'Home must expose real sign-in'
-  page.locator('#p8RealAccountCTA [data-open="account"]').click()
+  assert page.locator('#p8RealAccountCTA').count()==0
   assert page.locator('#screen-account').is_visible(),'Real sign-in screen should be visible'
   assert page.locator('#cloudSignedOut').is_visible()
   page.locator('#p8ModeSignup').click()
@@ -35,6 +34,16 @@ try:
   assert page.locator('#cloudRegister').is_visible()
   page.locator('#p8ModeLogin').click()
   assert page.locator('#cloudLogin').is_visible()
+  page.route('**/rest/v1/**',lambda route:route.fulfill(json=[]))
+  test_user={'id':'00000000-0000-4000-8000-000000000001','email':'mock@example.test',
+             'email_confirmed_at':'2026-11-25T00:00:00Z','app_metadata':{'role':'player'}}
+  page.route('**/auth/v1/user',lambda route:route.fulfill(json=test_user))
+  page.evaluate('''user => localStorage.setItem('play80.secure_account.v1',JSON.stringify({
+   access_token:'mock-ui-test-jwt',refresh_token:'mock-ui-test-refresh',
+   expires_at:Math.floor(Date.now()/1000)+3600,user
+  }))''',test_user)
+  page.reload(wait_until='load')
+  page.locator('#screen-home').wait_for(state='visible')
   page.locator('[data-main-tab="tournament"]').click()
   assert page.locator('#p8TournamentCatalog').is_visible()
   assert page.locator('.p8TourCard').count()==4
