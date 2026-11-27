@@ -83,6 +83,21 @@ try:
   assert page.locator('.footerNav [data-p8-footer="bonus"]').is_hidden()
   page.locator('.footerNav [data-p8-footer="support"]').click()
   page.get_by_text('কোনো কথোপকথন নেই।',exact=True).wait_for()
+  thread={'user_id':'mock-player-uuid','username':'example_player','preview':'Hello','message_count':1}
+  page.route('**/rest/v1/rpc/play80_owner_threads',lambda route:route.fulfill(json=[thread]))
+  page.route('**/rest/v1/rpc/play80_owner_open_thread',lambda route:route.fulfill(json=[]))
+  replies=[]
+  def send_reply(route):
+   replies.append(route.request.post_data_json)
+   route.fulfill(json={'ok':True})
+  page.route('**/rest/v1/rpc/play80_owner_reply_support',send_reply)
+  page.locator('#p8InboxSearch').fill('mock-player')
+  page.get_by_role('button',name='@example_player · mock-player-uuid',exact=True).click()
+  page.get_by_label('প্লেয়ারকে উত্তর লিখুন').fill('সাপোর্ট পরীক্ষা')
+  page.get_by_role('button',name='উত্তর পাঠান',exact=True).click()
+  page.wait_for_function("() => document.querySelector('#p8OwnerInboxList textarea')?.value === ''")
+  assert replies==[{'p_user':'mock-player-uuid','p_note':'সাপোর্ট পরীক্ষা'}]
+  assert not page.locator('#play80ActionPin').is_visible()
   assert page.locator('.footerNav [aria-current="page"]').get_attribute('data-p8-footer')=='support'
   assert page.locator('.footerNav .active').count()==1
   page.locator('#globalBack').click()
@@ -110,8 +125,10 @@ try:
   page.route('**/rest/v1/rpc/play80_open_owner_panel',lambda route:route.fulfill(json={
    'ok':True,'token':'mock-staff-session','expires_in':180
   }))
+  wallet_calls=[]
   def wallet_page(route):
    request=route.request.post_data_json
+   wallet_calls.append(request)
    done=request['p_view']=='history'
    route.fulfill(json={
     'rows':[{'id':'mock-wallet-request','request_kind':'demo_credit','status':'approved' if done else 'pending',
@@ -130,9 +147,9 @@ try:
   assert page.locator('#screen-owner-wallet').is_visible()
   assert page.locator('.cloudStaffTabs').is_hidden()
   assert page.locator('.play80TopTabs').is_hidden()
-  page.locator('#cloudStaffPin').fill('123456')
-  page.locator('#cloudStaffUnlock').click()
   page.get_by_role('button',name='✓ অনুমোদন').wait_for()
+  assert wallet_calls[0]['p_pin_token'] is None
+  assert not page.locator('#play80ActionPin').is_visible()
   page.locator('.footerNav [data-p8-footer="wallet"]').click()
   assert page.locator('#cloudStaffPinGate').is_hidden()
   page.get_by_role('button',name='✓ অনুমোদন').click()
@@ -141,6 +158,7 @@ try:
   page.locator('#play80ActionPin button[value="confirm"]').click()
   page.wait_for_function("() => !document.querySelector('#play80ActionPin').open")
   page.get_by_text('রিকোয়েস্ট অনুমোদিত হয়েছে।').wait_for()
+  assert staff_calls[0]['p_panel_token'] is None
   assert staff_calls[0]['p_action']=='staff_review_demo_request'
   assert staff_calls[0]['p_payload']['p_decision']=='approved'
   assert page.locator('#play80OwnerAvailable').inner_text()=='৫০,০০০'
@@ -150,6 +168,28 @@ try:
   page.locator('#p8MenuButton').click()
   page.get_by_role('button',name='ড্যাশবোর্ড',exact=True).click()
   assert page.locator('#cloudStaffPinGate').is_hidden()
+  page.locator('#p8MenuButton').click()
+  page.get_by_role('button',name='স্টাফ অ্যাকাউন্ট',exact=True).click()
+  page.get_by_role('button',name='Admin অ্যাকাউন্ট তৈরি').wait_for()
+  assert page.get_by_role('button',name='DSR অ্যাকাউন্ট তৈরি').is_visible()
+  page.get_by_role('button',name='Admin অ্যাকাউন্ট তৈরি').click()
+  assert page.get_by_role('heading',name='Admin অ্যাকাউন্টের তথ্য').is_visible()
+  created=[]
+  def create_staff(route):
+   created.append(route.request.post_data_json)
+   route.fulfill(json={'message':'Admin তৈরি হয়েছে।'})
+  page.route('**/functions/v1/play80-create-dsr',create_staff)
+  form=page.locator('#p8StaffCreate form')
+  for field,value in {'email':'new-admin@example.invalid','username':'new_admin','phone_number':'01700000001',
+                      'full_name':'Test Admin','address':'Test address','pin':'654321'}.items():
+   form.locator(f'input[name="{field}"]').fill(value)
+  form.get_by_role('button',name='অ্যাকাউন্ট তৈরি ও যাচাই ইমেইল পাঠান').click()
+  page.locator('#play80ActionPinValue').fill('123456')
+  page.locator('#play80ActionPin button[value="confirm"]').click()
+  page.get_by_text('Admin তৈরি হয়েছে।',exact=True).wait_for()
+  assert created[0]['account_role']=='admin' and created[0]['pin_token']=='mock-staff-session'
+  page.get_by_role('button',name='DSR অ্যাকাউন্ট তৈরি').click()
+  assert page.get_by_role('heading',name='DSR অ্যাকাউন্টের তথ্য').is_visible()
   page.locator('#p8MenuButton').click()
   page.get_by_role('button',name='লগআউট',exact=True).click()
   assert page.locator('#screen-account').is_visible(),'Owner logout not returned to Sign In'
@@ -264,11 +304,14 @@ try:
   page.locator('#cloudLogin').click()
   page.locator('#screen-remote-owner').wait_for(state='visible')
   page.locator('#p8MenuButton').click()
-  assert page.locator('.footerNav [data-p8-footer="support"]').is_hidden()
-  assert page.locator('#p8MenuItems').get_by_role('button',name='কম্পিউটার প্লেয়ার').count()==0
-  assert page.locator('#p8MenuItems').get_by_role('button',name='টুর্নামেন্ট').count()==0
+  assert page.locator('.footerNav [data-p8-footer="support"]').is_visible()
+  assert page.locator('#p8MenuItems').get_by_role('button',name='কম্পিউটার প্লেয়ার').is_visible()
+  assert page.locator('#p8MenuItems').get_by_role('button',name='টুর্নামেন্ট').is_visible()
+  page.get_by_role('button',name='স্টাফ অ্যাকাউন্ট',exact=True).click()
+  page.get_by_role('button',name='DSR অ্যাকাউন্ট তৈরি').wait_for()
+  assert page.get_by_role('button',name='Admin অ্যাকাউন্ট তৈরি').count()==0
   assert not errors,'Unexpected JavaScript exceptions: '+str(errors)
-  print('PASS: unified Sign In/Sign Up, small Owner creation, server-role Owner/Player routing, PIN gate and logout')
+  print('PASS: unified Sign In/Sign Up, small Owner creation, server-role Owner/Player routing, wallet without entry PIN, action PIN, staff creation and logout')
   browser.close()
 finally:
  srv.shutdown();srv.server_close()

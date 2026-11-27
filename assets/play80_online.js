@@ -9,7 +9,7 @@
   const $ = (id) => document.getElementById(id);
   let menuReady=false;
   let session = null, profile = null, balance = null, verifiedAuth = false, signupRoleIntent = 'player';
-  let staffPinToken = null, staffPinExpires = 0, activeGameCode = null;
+  let activeGameCode = null;
   const escDate = (d) => { try { return new Date(d).toLocaleString(); } catch (_) {return '—';} };
   const status = (message, error=false) => {
     const e = $('cloudNotice');
@@ -78,7 +78,7 @@
     document.getElementById('screen-account')?.classList.toggle('hidden',!on?false:document.getElementById('screen-account')?.classList.contains('hidden'));
     if(!on)window.scrollTo(0,0);
     show('cloudSignedOut',!on);show('cloudSignedIn',on);
-    show('cloudOwnerEntry',on&&isStaff());show('cloudOwnerAuthBlocked',!on||!isStaff());show('cloudStaffPinGate',on&&isStaff()&&walletOpen()&&!staffPinToken);show('cloudOwnerContent',on&&isStaff());show('play80OwnerWalletContent',on&&isStaff()&&!!staffPinToken);
+    show('cloudOwnerEntry',on&&isStaff());show('cloudOwnerAuthBlocked',!on||!isStaff());show('cloudOwnerContent',on&&isStaff());show('play80OwnerWalletContent',on&&isStaff());
     if(menuReady && on){renderMenu();syncFooter();}
     if(menuReady)renderIdentity();
     if(menuReady && !on){
@@ -92,7 +92,9 @@
     else {$('cloudBalance').textContent='—';$('cloudRequests').replaceChildren();}
     const ownerBadge=$('p8AccountIdentity');
     if(ownerBadge)ownerBadge.textContent=on?(isOwner()?'🛡️ Owner account':isStaff()?'🛡️ Staff account':isDsr()?'DSR account':'🎮 Player account'):'🔐 PLAY80 · Secure sign in';
-    document.querySelectorAll('[data-p8-owner-only]').forEach(el=>el.classList.toggle('hidden',!on||!isOwner()));
+    show('p8StaffCreate',on&&isStaff());
+    show('p8CreateAdmin',on&&isOwner());
+    if(!on||!isOwner()&&staffCreateForm.dataset.role==='admin')hideStaffForm();
   }
   let accountLoadVersion=0, firstCreditEligible=false;
   async function loadAccount(){
@@ -209,7 +211,6 @@
     }
     const remote=await raw('/auth/v1/user','GET',null,data.access_token);
     if(!remote?.id||remote.id!==data.user?.id||!remote.email_confirmed_at)throw Error('প্রথমে ইমেইল Verify করতে হবে।');
-    staffPinToken=null;staffPinExpires=0;
     saveSession({...data,user:remote});$('cloudLoginPassword').value='';
     await loadAccount();
     if(isStaff())document.querySelector('[data-open="remote-owner"]')?.click();
@@ -289,13 +290,13 @@
   },showWalletResponse));
   $('cloudRefresh').addEventListener('click',e=>busy(e.currentTarget,loadAccount));
   $('cloudSignOut').addEventListener('click',e=>busy(e.currentTarget,async()=>{
-    dsrForm.reset();
+    hideStaffForm();
     if(pinDialog.open)pinDialog.close('cancel');
     const oldAccessToken=session?.access_token;
     ++accountLoadVersion;
     firstCreditEligible=false;
     showFirstCreditOffer();
-    session=null;profile=null;balance=null;staffPinToken=null;staffPinExpires=0;verifiedAuth=false;
+    session=null;profile=null;balance=null;verifiedAuth=false;
     persist();renderAuth();
     document.querySelectorAll('.screen').forEach(el=>el.classList.toggle('hidden',el.id!=='screen-account'));
     selectAuthMode(false);
@@ -308,11 +309,7 @@
   }));
   async function staffRpc(name, data={}) {
     if(!isStaff()) throw Error('Verified Owner / Admin login required');
-    if(name==='play80_owner_wallet_page' && (!staffPinToken || Date.now()>=staffPinExpires)) {
-      staffOpenGate();
-      throw Error('Staff PIN expired. Enter PIN to unlock again.');
-    }
-    return db('rpc/'+name,'POST',{p_pin_token:staffPinToken,...data});
+    return db('rpc/'+name,'POST',{p_pin_token:null,...data});
   }
   const createText=(tag,content,cls='')=>{const el=document.createElement(tag);el.textContent=String(content??'');if(cls)el.className=cls;return el;};
   const makeButton=(title,fn,secondary=false,writeStatus=ownerStatus)=>{
@@ -338,32 +335,13 @@
     return response;
   }
   async function confirmStaffAction(name,payload,title){
-    if(name==='staff_review_demo_request'&&(!staffPinToken||Date.now()>=staffPinExpires)){staffOpenGate();throw Error('প্যানেল খুলতে লগইনের PIN দাও।');}
     const pin=await askLoginPin(title);
     if(pin===null)return null;
     const result=requirePinSuccess(await db('rpc/play80_confirm_staff_action','POST',{
-      p_panel_token:staffPinToken,p_pin:pin,p_action:name,p_payload:payload
+      p_panel_token:null,p_pin:pin,p_action:name,p_payload:payload
     }));
     return result.result??true;
   }
-  function staffOpenGate(){
-    staffPinToken=null;staffPinExpires=0;
-    show('play80OwnerWalletContent',false);show('cloudStaffPinGate',isStaff()&&walletOpen());
-    $('cloudStaffPin').value='';
-    ownerStatus(isStaff()?'এখানে লগইনের PIN দাও।':'যাচাইকৃত Owner বা Admin অ্যাকাউন্টে লগইন করো।',!isStaff());
-  }
-  $('cloudStaffUnlock').addEventListener('click',e=>busy(e.currentTarget,async()=>{
-    const pin=$('cloudStaffPin').value;
-    $('cloudStaffPin').value='';
-    if(!/^[0-9]{6}$/.test(pin))throw Error('লগইনের PIN-এ ইংরেজি ৬টি সংখ্যা দাও।');
-    const data=requirePinSuccess(await db('rpc/play80_open_owner_panel','POST',{p_pin:pin}));
-    if(!data.token)throw Error('প্যানেল খোলার অনুমতি পাওয়া যায়নি।');
-    staffPinToken=data.token;staffPinExpires=Date.now()+Math.max(0,Number(data.expires_in||180)-8)*1000;
-    show('cloudStaffPinGate',false);show('cloudOwnerContent',true);show('play80OwnerWalletContent',true);
-    ownerStatus(walletOpen()?'':'Owner প্যানেল খুলেছে।');
-    await loadOwnerRequests();
-    await refreshMenuCounts();
-  },ownerStatus));
   let walletPage=0, walletLoadVersion=0;
   const walletMoney=value=>Number(value||0).toLocaleString('bn-BD');
   function makeOwnerItem(r){
@@ -421,18 +399,14 @@
     if(walletPage)pager.append(makeButton('আগের পাতা',async()=>{walletPage--;await loadOwnerRequests();},true));
     if(rows.length>30)pager.append(makeButton('পরের পাতা',async()=>{walletPage++;await loadOwnerRequests();},true));
   }
-  document.addEventListener('play80:screen-changed',event=>{
-    const gate=$('cloudStaffPinGate');
-    const target=$(event.detail==='owner-wallet'?'walletGateSlot':'cloudStaffGateSlot');
-    if(gate.parentElement!==target)target.append(gate);
-    if(event.detail!=='owner-wallet')show('cloudStaffPinGate',false);
-    if(event.detail==='owner-wallet'&&isStaff()&&Date.now()>=staffPinExpires)staffOpenGate();
-  });
   for(const id of ['play80WalletKind','play80WalletView'])$(id).addEventListener('change',async()=>{
     walletPage=0;
     try{await loadOwnerRequests();}catch(e){ownerStatus(e.message,true);}
   });
   let userPage=0, selectedUser=null;
+  addUserSuggestions('cloudStaffSearch','cloudStaffSearchButton',
+    search=>staffRpc('play80_staff_user_page',{p_search:search,p_offset:0}),
+    async user=>{userPage=0;selectedUser=user.id;await loadStaffUsers();});
   async function loadStaffUsers(){
     const search=$('cloudStaffSearch').value.trim();
     const rows=await staffRpc('play80_staff_user_page',{p_search:search,p_offset:userPage*50});
@@ -466,7 +440,7 @@
         ['মোট কয়েন',walletMoney(u.balance)],['ব্যবহারযোগ্য কয়েন',walletMoney(Number(u.balance)-Number(u.held_balance))],
         ['আটকে রাখা কয়েন',walletMoney(u.held_balance)]
       ]));
-      if(isOwner())attachOwnerUserTools(card,u);
+      attachOwnerUserTools(card,u);
       if(isOwner() && u.role!=='owner'){
         card.append(makeButton(u.role==='admin'?'REMOVE ADMIN ROLE':'MAKE ADMIN',async()=>{
           const action=u.role==='admin'?'revoke':'grant';
@@ -481,12 +455,12 @@
   }
   async function loadAdmins(){
     const staff=await staffRpc('staff_list_admins');const list=$('cloudStaffAdmins');list.replaceChildren();
-    if(!staff.length)list.textContent='No registered Admin/Owner yet.';
+    if(!staff.length)list.textContent='কোনো স্টাফ অ্যাকাউন্ট পাওয়া যায়নি।';
     staff.forEach(u=>{
       const card=document.createElement('div');card.className='cloudRequestItem';
       card.append(createText('strong',u.role.toUpperCase()+' • '+(u.username||u.email)));
-      card.append(createText('small',u.email+' • Joined '+escDate(u.created_at)));
-      if(u.role==='admin'&&isOwner())card.append(makeButton('REVOKE ADMIN ROLE',async()=>{
+      card.append(createText('small',u.email+' · '+(u.email_verified?'ইমেইল যাচাই হয়েছে':'ইমেইল যাচাই বাকি')));
+      if(u.role==='admin'&&isOwner())card.append(makeButton('Admin অনুমতি সরান',async()=>{
 
         if(await confirmStaffAction('staff_manage_admin',{p_target_user:u.id,p_action:'revoke'},'Admin অনুমতি পরিবর্তন')===null)return;
         await loadAdmins();
@@ -575,7 +549,7 @@
   $('cloudBotsRefresh').addEventListener('click',e=>busy(e.currentTarget,loadBotOwner,ownerStatus));
   $('cloudTournamentRefresh').addEventListener('click',e=>busy(e.currentTarget,loadTournamentOwner,ownerStatus));
   async function switchStaffTab(tab){
-    if(!staffTitles[tab]||!isStaff()||(['inbox','bots','tournaments'].includes(tab)&&!isOwner()))return;
+    if(!staffTitles[tab]||!isStaff())return;
     staffSection=tab;
     syncFooter();
     $('p8StaffHeading').textContent=staffTitles[tab];
@@ -769,7 +743,7 @@
     <button class="action secondary" id="p8InboxRefresh" type="button">ইনবক্স দেখুন</button><div id="p8OwnerInboxList" class="cloudList"></div>`;
   $('cloudStaffTab-users').parentNode.append(inbox);
   async function getOwnerThreads(search=''){
-    if(!isOwner())throw Error('শুধু ওনার এই ইনবক্স খুলতে পারবেন।');
+    if(!isStaff())throw Error('Owner বা Admin অ্যাকাউন্টে লগইন করুন।');
     return db('rpc/play80_owner_threads','POST',{p_search:search});
   }
   async function loadOwnerInbox(){
@@ -788,9 +762,11 @@
   }
   async function openOwnerThread(thread){
     const {user_id,username}=thread;
+    const viewer=session.user.id;
     const messages=await db('rpc/play80_owner_open_thread','POST',{p_user:user_id});
     const latest=messages.at(-1)?.id;
     const fresh=(await getOwnerThreads(user_id))[0];
+    if(!verifiedAuth||!isStaff()||session?.user?.id!==viewer)return;
     const list=$('p8OwnerInboxList');list.replaceChildren();
     list.append(makeButton('← সব কথোপকথন',loadOwnerInbox,true),
       createText('h4',username?'@'+username:'ইউজার'),createText('small','আইডি '+user_id));
@@ -799,7 +775,7 @@
     reply.placeholder='প্লেয়ারকে উত্তর লিখুন';reply.setAttribute('aria-label',reply.placeholder);
     list.append(reply,makeButton('উত্তর পাঠান',async()=>{
       if(!reply.value.trim())throw Error('উত্তর লিখুন।');
-      if(await confirmStaffAction('play80_owner_send_message',{p_user:user_id,p_note:reply.value.trim()},'সাপোর্ট উত্তর পাঠান')===null)return;
+      await db('rpc/play80_owner_reply_support','POST',{p_user:user_id,p_note:reply.value.trim()});
       await openOwnerThread(thread);
     }));
     if(fresh&&!fresh.needs_attention&&fresh.latest_id===latest){
@@ -817,9 +793,52 @@
     await refreshMenuCounts();
   }
   $('p8InboxRefresh').addEventListener('click',e=>busy(e.currentTarget,loadOwnerInbox,ownerStatus));
+  addUserSuggestions('p8InboxSearch','p8InboxRefresh',getOwnerThreads,openOwnerThread);
+
+  function addUserSuggestions(inputId,submitId,findUsers,selectUser){
+    const input=$(inputId), submit=$(submitId);
+    const list=document.createElement('div');
+    list.className='p8-user-suggestions';
+    list.setAttribute('role','group');
+    list.setAttribute('aria-label','ইউজার আইডি সাজেশন');
+    input.after(list);
+    input.autocomplete='off';
+    let timer, revision=0;
+    function clear(){
+      clearTimeout(timer);
+      revision++;
+      list.replaceChildren();
+    }
+    input.addEventListener('input',()=>{
+      clear();
+      const search=input.value.trim();
+      if(search.length<2||!verifiedAuth)return;
+      const version=revision, viewer=session?.user?.id;
+      timer=setTimeout(async()=>{
+        try{
+          const users=await findUsers(search);
+          if(version!==revision||search!==input.value.trim()||!verifiedAuth||viewer!==session?.user?.id||!input.getClientRects().length)return;
+          for(const user of users.slice(0,5)){
+            const id=user.user_id||user.id;
+            list.append(makeButton(user.username?'@'+user.username+' · '+id:id,async()=>{
+              input.value=id;
+              clear();
+              await selectUser(user);
+            },true));
+          }
+        }catch(_){/* The search button remains available if suggestions fail. */}
+      },250);
+    });
+    input.addEventListener('keydown',event=>{
+      if(event.key==='Escape')clear();
+      if(event.key==='Enter'){event.preventDefault();submit.click();}
+    });
+    submit.addEventListener('click',clear);
+    document.addEventListener('play80:screen-changed',clear);
+  }
   function newId(){return crypto.randomUUID?crypto.randomUUID():('xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx').replace(/[xy]/g,c=>{const n=crypto.getRandomValues(new Uint8Array(1))[0]&15;return(c==='x'?n:(n&3|8)).toString(16)});}
   function attachOwnerUserTools(card,u){
-    if(!isOwner()||u.role!=='player')return;
+    if(!isStaff()||u.role!=='player')return;
     const note=document.createElement('input');note.maxLength=200;note.placeholder='নোট';
     note.setAttribute('aria-label','লেনদেনের নোট');card.append(note);
     const amountField=document.createElement('input');amountField.type='number';amountField.min='1';
@@ -842,7 +861,7 @@
     card.append(makeButton('💬 SEND USER NOTICE',async()=>{
       if(!note.value.trim())throw Error('Type a message');
 
-      if(await confirmStaffAction('play80_owner_send_message',{p_user:u.id,p_note:note.value.trim()},'সাপোর্ট মেসেজ পাঠান')===null)return;
+      await db('rpc/play80_owner_reply_support','POST',{p_user:u.id,p_note:note.value.trim()});
       ownerStatus('Message delivered to user.');
     },true));
     const suspend=makeButton('⛔ SUSPEND PLAYER',async()=>{
@@ -859,33 +878,59 @@
     },true));
   }
 
-  const dsrPanel=document.createElement('details');
-  dsrPanel.dataset.p8OwnerOnly='';
-  dsrPanel.innerHTML='<summary>DSR অ্যাকাউন্ট তৈরি</summary><form></form>';
-  const dsrForm=dsrPanel.querySelector('form');
-  for(const [name,label,type] of [
-    ['email','DSR ইমেইল','email'],['username','User ID','text'],['phone_number','মোবাইল','tel'],
-    ['full_name','পূর্ণ নাম','text'],['address','ঠিকানা','text'],['pin','প্রাথমিক ছয় সংখ্যার PIN','password']]){
-    const wrapper=document.createElement('label'),input=document.createElement('input');
-    wrapper.textContent=label;input.type=type;input.name=name;input.required=true;
-    if(name==='pin'){input.pattern='[0-9]{6}';input.inputMode='numeric';input.autocomplete='new-password';}
-    wrapper.append(input);dsrForm.append(wrapper);
+  const staffCreate=document.createElement('div');
+  staffCreate.id='p8StaffCreate';
+  staffCreate.className='hidden';
+  const staffCreateForm=document.createElement('form');
+  staffCreateForm.className='hidden';
+  const staffFormTitle=createText('h3','');
+  staffCreateForm.append(staffFormTitle);
+  function hideStaffForm(){
+    staffCreateForm.reset();
+    staffCreateForm.classList.add('hidden');
+    delete staffCreateForm.dataset.role;
   }
-  const createDsr=document.createElement('button');createDsr.textContent='DSR তৈরি করে যাচাই ইমেইল পাঠাও';
-  dsrForm.append(createDsr);$('cloudStaffTab-admins').prepend(dsrPanel);
-  dsrForm.onsubmit=e=>{
-    e.preventDefault();
-    busy(createDsr,async()=>{
-      if(!isOwner())throw Error('Owner access required');
-      const fields=Object.fromEntries(new FormData(dsrForm));
+  const staffChoices=createText('div','','cloudActions');
+  for(const [role,label] of [['admin','Admin'],['dsr','DSR']]){
+    const button=makeButton(label+' অ্যাকাউন্ট তৈরি',async()=>{
+      hideStaffForm();
+      staffCreateForm.dataset.role=role;
+      staffFormTitle.textContent=label+' অ্যাকাউন্টের তথ্য';
+      staffCreateForm.classList.remove('hidden');
+      staffCreateForm.elements.email.focus();
+    },true);
+    button.id=role==='admin'?'p8CreateAdmin':'p8CreateDsr';
+    staffChoices.append(button);
+  }
+  for(const [name,label,type] of [
+    ['email','ইমেইল','email'],['username','User ID','text'],['phone_number','মোবাইল','tel'],
+    ['full_name','পূর্ণ নাম','text'],['address','ঠিকানা','text'],['pin','প্রাথমিক ছয় সংখ্যার PIN','password']]){
+    const wrapper=createText('label',label,'formGroup'),input=document.createElement('input');
+    input.type=type;input.name=name;input.required=true;
+    if(name==='pin'){input.pattern='[0-9]{6}';input.maxLength=6;input.inputMode='numeric';input.autocomplete='new-password';}
+    wrapper.append(input);staffCreateForm.append(wrapper);
+  }
+  const createStaff=createText('button','অ্যাকাউন্ট তৈরি ও যাচাই ইমেইল পাঠান','action');
+  createStaff.type='submit';
+  staffCreateForm.append(createStaff,makeButton('ফর্ম বন্ধ করুন',async()=>hideStaffForm(),true));
+  staffCreate.append(staffChoices,staffCreateForm);
+  $('cloudStaffTab-admins').prepend(staffCreate);
+  staffCreateForm.addEventListener('submit',event=>{
+    event.preventDefault();
+    busy(createStaff,async()=>{
+      const role=staffCreateForm.dataset.role;
+      if(!isStaff()||!['admin','dsr'].includes(role)||role==='admin'&&!isOwner())throw Error('অ্যাকাউন্ট তৈরির অনুমতি নেই।');
+      const fields=Object.fromEntries(new FormData(staffCreateForm));
       fields.email=fields.email.trim().toLowerCase();fields.username=fields.username.trim().toLowerCase();
-      const pin=await askLoginPin('DSR অ্যাকাউন্ট তৈরি');
+      const pin=await askLoginPin((role==='admin'?'Admin':'DSR')+' অ্যাকাউন্ট তৈরি ও যাচাই ইমেইল পাঠানো');
       if(pin===null)return;
-      const confirmation=requirePinSuccess(await db('rpc/play80_open_owner_panel','POST',{p_pin:pin,p_scope:'dsr'}));
-      const result=await raw('/functions/v1/play80-create-dsr','POST',{...fields,pin_token:confirmation.token},await token());
-      dsrForm.reset();ownerStatus(result.message);
+      const confirmation=requirePinSuccess(await db('rpc/play80_open_owner_panel','POST',{p_pin:pin,p_scope:role}));
+      const result=await raw('/functions/v1/play80-create-dsr','POST',{...fields,account_role:role,pin_token:confirmation.token},await token());
+      hideStaffForm();
+      ownerStatus(result.message);
+      await loadAdmins();
     },ownerStatus);
-  };
+  });
   const signedIn=$('cloudSignedIn');
   const ownProfile=document.createElement('section');
   const ownWallet=document.createElement('section');
@@ -1121,7 +1166,8 @@
     if(tab==='wallet'){
       document.dispatchEvent(new CustomEvent('play80:menu-navigate',{detail:'owner-wallet'}));
       walletPage=0;$('play80WalletView').value='pending';$('play80WalletKind').value='all';
-      staffOpenGate();
+      ownerStatus('');
+      await loadOwnerRequests();
       return;
     }
     document.dispatchEvent(new CustomEvent('play80:menu-navigate',{detail:'remote-owner'}));
@@ -1138,7 +1184,7 @@
     for(const button of document.querySelectorAll('.footerNav .navBtn')){
       const key=button.dataset.p8Footer||button.dataset.open;
       const selected=active===key;
-      button.hidden=verifiedAuth&&((key==='bonus'&&(isStaff()||isDsr()))||(key==='support'&&isStaff()&&!isOwner()));
+      button.hidden=verifiedAuth&&key==='bonus'&&(isStaff()||isDsr());
       button.classList.toggle('active',selected&&!button.hidden);
       if(selected&&!button.hidden)button.setAttribute('aria-current','page');
       else button.removeAttribute('aria-current');
@@ -1151,7 +1197,7 @@
   const footerActions={
     wallet:()=>isStaff()?openStaffPage('wallet'):openAccountPage('wallet','demo_credit'),
     bonus:()=>openAccountPage('bonus'),
-    support:()=>isOwner()?openStaffPage('inbox'):openAccountPage('support')
+    support:()=>isStaff()?openStaffPage('inbox'):openAccountPage('support')
   };
   for(const button of document.querySelectorAll('[data-p8-footer]')){
     const action=footerActions[button.dataset.p8Footer];
@@ -1224,13 +1270,11 @@
       add('ডিপোজিট ও উইথড্র রিকোয়েস্ট',staff('wallet'),'wallet',quick);
       add('ড্যাশবোর্ড',staff('stats'),null,quick);
       add('ইউজার দেখুন',staff('users'));
-      if(isOwner())add('সাপোর্ট',staff('inbox'),'inbox');
+      add('সাপোর্ট',staff('inbox'),'inbox');
       add('স্টাফ অ্যাকাউন্ট',staff('admins'));
       add('লাইভ গেম',staff('activity'));
-      if(isOwner()){
-        add('টুর্নামেন্ট',staff('tournaments'));
-        add('কম্পিউটার প্লেয়ার',staff('bots'));
-      }
+      add('টুর্নামেন্ট',staff('tournaments'));
+      add('কম্পিউটার প্লেয়ার',staff('bots'));
     }else{
       add('ডিপোজিট',account('wallet','demo_credit'),null,quick);
       add('উইথড্র',account('wallet','demo_debit'),null,quick);
