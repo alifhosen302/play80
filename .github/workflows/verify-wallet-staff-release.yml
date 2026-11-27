@@ -35,7 +35,7 @@ jobs:
           path="repos/$GITHUB_REPOSITORY/releases/tags/$tag"
           meta="$(gh api "$path" --jq ".assets[] | select(.name == \"$asset\")")"
           jq '{browser_download_url,digest,updated_at}' <<< "$meta"
-          gh release download "$tag" --pattern "$asset" --dir "$RUNNER_TEMP/verified-release"
+          gh release download --repo "$GITHUB_REPOSITORY" "$tag" --pattern "$asset" --dir "$RUNNER_TEMP/verified-release"
           file="$RUNNER_TEMP/verified-release/$asset"
           hash="$(sha256sum "$file" | cut -d' ' -f1)"
           [[ "$(jq -r .digest <<< "$meta")" == "sha256:$hash" ]]
