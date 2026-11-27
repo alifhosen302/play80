@@ -673,7 +673,33 @@ body.play80PracticeActive .footerNav{display:none!important}
 .p8TourCard small{font-size:11px;color:#ecd69b}
 .p8TourLogo{object-fit:contain;display:grid;place-items:center;width:112px;height:112px;max-width:95%;aspect-ratio:1/1;border-radius:22px;background:radial-gradient(circle at 30% 20%,#a565eb,#4c287a 58%,#181731);font-size:61px;text-shadow:0 4px 7px #0009;box-shadow:inset 0 0 0 2px #dbac68,0 5px 15px #000a}
 #p8TourBack{min-height:44px;margin:7px 0 15px}
-#p8TournamentDetail .tourRules{display:none!important}
+#p8TournamentDetail .tourRules{display:block!important;font-size:11px;margin:7px 0 0}
+.p8TourCompactHead{display:flex;align-items:center;gap:7px;margin:5px 0}
+.p8TourCompactHead h2{flex:1;min-width:0;font-size:16px;margin:0}
+#p8TourBack{font-size:24px;line-height:1;width:34px;padding:4px;margin:0;min-height:34px}
+#p8TourPrizeButton{font-size:12px;padding:6px 9px;min-height:34px}
+#p8TournamentDetail .play80Surface{margin:7px 0;padding:9px;border-radius:12px}
+.p8TourClock{text-align:center;display:grid;gap:2px;padding:8px;background:#ffffff08;border:1px solid #ffffff16;border-radius:10px}
+.p8TourClock strong{font-size:clamp(25px,8vw,35px);font-variant-numeric:tabular-nums;color:#ffe39a}
+.p8TourClock span{font-size:12px;color:#c6f1c8}
+.p8TourStats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin-top:8px;text-align:center}
+.p8TourStats>div{background:#ffffff08;border-radius:8px;padding:5px}
+.p8TourStats strong{display:block;color:#ffe5a1;font-size:18px}
+.p8TourStats small,.p8TourFeeLine{font-size:11px}
+.p8TourFeeLine{text-align:center;margin:5px 0;color:#e4d6ef}
+#p8TournamentDetail .tourBtnRow{margin:5px 0;gap:6px}
+#p8TournamentDetail .tourBtnRow button{min-height:36px;padding:6px 10px}
+#tourJoin,#tourPlay{flex:1}
+#p8TournamentDetail .tourNotice{margin:5px 0;min-height:0;font-size:11px}
+#p8TournamentDetail .tourLeaderboard{max-height:none}
+#p8TournamentDetail .tourLeader{padding:6px;min-height:36px}
+#p8TournamentDetail .tourLeader .tourRank{width:27px}
+#p8TournamentDetail .p8TourListPanel h3{font-size:14px}
+#p8TourPrizeBreakdown[hidden]{display:none!important}
+#p8TourPrizeBreakdown .p8PrizeRow{display:flex;justify-content:space-between;gap:6px;padding:6px 8px;border-bottom:1px solid #ffffff18;font-size:13px}
+#p8TourPrizeBreakdown .p8PrizeRow:last-child{border:0}
+#p8TourPastWinners button{min-height:34px;font-size:12px;padding:5px 9px}
+
 @media(max-width:360px){.p8TourCard{min-height:160px}.p8TourLogo{width:90px;height:90px;font-size:49px}}
 </style>
 <style id="play80-auth-entry-v47">
@@ -1020,28 +1046,17 @@ body.p8-auth-locked .app{max-width:560px}
   <button type="button" class="p8TourCard" data-tour-choice="block"><img class="p8TourLogo" src="tournament_block_premium.svg" alt="block tournament game icon"><strong>Block Puzzle</strong><small>Practice available</small></button>
   <button type="button" class="p8TourCard" data-tour-choice="memory"><img class="p8TourLogo" src="tournament_memory_premium.svg" alt="memory tournament game icon"><strong>Memory Puzzle</strong><small>Server tournament</small></button>
   <button type="button" class="p8TourCard" data-tour-choice="2048"><img class="p8TourLogo" src="tournament_puzzle_premium.svg" alt="2048 tournament game icon"><strong>2048 Puzzle</strong><small>Practice available</small></button>
- </div></div><div id="p8TournamentDetail" class="hidden"><button type="button" id="p8TourBack" class="play80SecondaryBtn">← ALL TOURNAMENT GAMES</button>
- <div id="p8TourChosenHeader" class="play80Surface"><h2 id="p8TourChosenTitle">Tournament Details</h2><p id="p8TourChosenMeta">Select a game</p></div>
- <div id="p8TourUpcoming" class="play80Surface hidden"><div class="tourFacts"><div class="tourFact"><small>TOURNAMENT STATUS</small><strong id="p8TourUpcomingState">NOT SCHEDULED</strong></div><div class="tourFact"><small>TIME UNTIL START</small><strong>প্রকাশের পর</strong></div><div class="tourFact"><small>পরিকল্পিত রাউন্ড ফি</small><strong>৫০০ ডেমো কয়েন</strong></div><div class="tourFact"><small>পরিকল্পিত মেয়াদ</small><strong>৩ দিন</strong></div></div><p>পরিকল্পিত নিয়ম: ৩ ঘণ্টা নিবন্ধন, এরপর ৭২ ঘণ্টা খেলা। প্রতিটি নতুন রাউন্ডে ৫০০ ডেমো কয়েন; অসমাপ্ত রাউন্ড আবার চালাতে ফি নেই। সর্বমোট যাচাইকৃত স্কোরে র‍্যাঙ্কিং। AI প্লেয়ারদের পরিচয় স্পষ্টভাবে দেখানো হবে। AI-এর পুরস্কার কোম্পানির ডেমো লেজারে যাবে।</p><p>এখনো এই গেমের সার্ভারভিত্তিক টুর্নামেন্ট চালু হয়নি। বর্তমানে শুধু ফ্রি Practice; কোনো ফি বা পুরস্কার নেই।</p><button type="button" class="play80PrimaryBtn" id="p8TourPractice">PLAY PRACTICE</button></div>
+ </div></div><div id="p8TournamentDetail" class="hidden">
+ <div class="p8TourCompactHead"><button type="button" id="p8TourBack" class="play80SecondaryBtn" aria-label="সব টুর্নামেন্ট">‹</button><h2 id="p8TourChosenTitle">Tournament</h2><button type="button" id="p8TourPrizeButton" class="play80SecondaryBtn" aria-expanded="false" aria-controls="p8TourPrizeBreakdown">🏆 পুরস্কার</button></div>
+ <div id="p8TourUpcoming" class="play80Surface hidden"><div class="tourFact"><small>টুর্নামেন্টের অবস্থা</small><strong id="p8TourUpcomingState">এখনো চালু হয়নি</strong></div><p>এখন শুধু ফ্রি অনুশীলন করা যাবে।</p><button type="button" class="play80PrimaryBtn" id="p8TourPractice">অনুশীলন করুন</button></div>
  <div id="p8TourMemoryLive">
- <div class="play80Promo"><h2>🏆 TOURNAMENT — PLAY80 MAIN EVENT</h2><p>টুর্নামেন্টে অংশ নিন। নিজের দক্ষতা, অনুশীলন ও পারফরম্যান্স দিয়ে প্রতিযোগিতা করুন এবং ভার্চুয়াল পুরস্কার জিতুন।</p></div>
- <div class="play80Surface"><h2>🧠 Memory Puzzle • 72-hour Skill Tournament</h2>
-  <div class="tourFacts" aria-live="polite">
-   <div class="tourFact"><small>⏱️ SERVER COUNTDOWN</small><strong id="tourCountdown">--:--:--</strong></div>
-   <div class="tourFact"><small>TOURNAMENT STATE</small><strong id="tourState" style="font-size:17px">Loading...</strong></div>
-   <div class="tourFact"><small>👥 HUMAN PLAYERS</small><strong id="tourHumans">—</strong></div>
-   <div class="tourFact"><small>🤖 AI PLAYERS</small><strong id="tourBots">—</strong></div>
-   <div class="tourFact"><small>🪙 CURRENT FUNDED PRIZE</small><strong id="tourPool">—</strong></div>
-   <div class="tourFact"><small>🏅 MAXIMUM PRIZE</small><strong>7,500</strong></div>
-   <div class="tourFact"><small>MY SCORE</small><strong id="tourMyScore">0</strong></div>
-   <div class="tourFact"><small id="tourFeeMode">ONE-TIME ENTRY</small><strong>500</strong></div>
-  </div>
-  <div class="tourBtnRow"><button id="tourJoin" class="play80PrimaryBtn" type="button">JOIN TOURNAMENT</button>
-    <button id="tourPlay" class="play80PrimaryBtn" type="button" disabled>PLAY MEMORY PUZZLE</button>
-    <button id="tourRefresh" class="play80SecondaryBtn" type="button">↻ REFRESH</button>
-    <button class="play80SecondaryBtn" type="button" data-open="account">ONLINE ACCOUNT</button></div>
-  <div class="tourNotice" id="tourNotice" role="status">Sign in to join the server tournament. No real money.</div>
-  <details class="tourRules" open><summary>Rules &amp; Regulations — published before entry</summary>
+ <div class="play80Surface p8TourOverview">
+  <div class="p8TourClock"><small id="tourClockLabel">খেলা শুরু হতে বাকি</small><strong id="tourCountdown">--:--:--</strong><span id="tourState">লোড হচ্ছে…</span></div>
+  <div class="p8TourStats"><div><small>নিবন্ধিত</small><strong id="tourHumans">—</strong></div><div><small>AI</small><strong id="tourBots">—</strong></div><div><small>আমার স্কোর</small><strong id="tourMyScore">0</strong></div></div>
+  <div class="p8TourFeeLine"><span id="tourFeeMode">রাউন্ড ফি</span> · ৫০০ ডেমো কয়েন <span class="hidden" id="tourPool">—</span></div>
+  <div class="tourBtnRow"><button id="tourJoin" class="play80PrimaryBtn" type="button" disabled>নিবন্ধন করুন</button><button id="tourPlay" class="play80PrimaryBtn hidden" type="button" disabled>খেলুন</button><button id="tourRefresh" class="play80SecondaryBtn" type="button" aria-label="রিফ্রেশ">↻</button></div>
+  <div class="tourNotice" id="tourNotice" role="status">সার্ভারের তথ্য লোড হচ্ছে…</div>
+  <details class="tourRules"><summary>খেলার নিয়ম</summary>
    <ul id="tourRulesList"><li>Entry fee: 500 non-redeemable Demo Coins, paid once per tournament. Repeat games require no further fee.</li>
    <li>Registration lasts three hours; 15 human players start early. If one to 14 humans register, bots join at the deadline. With zero humans the countdown restarts.</li>
    <li>The tournament runs exactly 72 hours; late human entries are allowed until its end. AI identity is disclosed on the leaderboard.</li>
@@ -1050,9 +1065,7 @@ body.p8-auth-locked .app{max-width:560px}
    <li>AI winners receive no spendable coins; their notional rewards are recorded in a separate company virtual ledger. Winners are never predetermined.</li>
    <li>Server validates Memory Puzzle flips. No real-money deposits, bets, withdrawals or exchange to cash.</li></ul></details>
  </div>
- <div class="play80Surface"><h3>🔢 More Skill Games</h3><p>2048 is playable now as a free practice game. Other skill games remain unavailable until their gameplay and server-side score verification pass testing.</p>
- <button type="button" class="play80PrimaryBtn" data-open="2048">PLAY 2048 · PRACTICE</button></div>
- <div class="play80Surface"><h3>🏅 Live Leaderboard</h3><div id="tourLeaderboard" class="tourLeaderboard" aria-live="polite">No entries yet.</div></div>
+ <div class="play80Surface p8TourListPanel"><h3 id="tourListTitle">👥 নিবন্ধিত খেলোয়াড়</h3><div id="tourLeaderboard" class="tourLeaderboard" aria-live="polite">তালিকা লোড হচ্ছে…</div></div>
  <button id="tourOpenMemory" type="button" data-open="memory" class="hidden" style="display:none">Open Memory</button>
 </div></div></section>
 <section id="screen-2048" class="screen hidden">

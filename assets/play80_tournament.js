@@ -49,13 +49,17 @@
        t=await res.json();
      }
      tournament=t;lastSync=Date.now();serverDelta=new Date(t.server_time).getTime()-Date.now();
-     setText('tourState',({registration_open:'REGISTRATION',running:'ACTIVE',finished:'COMPLETED',idle:'WAITING'})[t.status]||t.status);
+     setText('tourState',({registration_open:'নিবন্ধন চলছে',running:'খেলা চলছে',finished:'শেষ হয়েছে',idle:'অপেক্ষমাণ'})[t.status]||'তথ্য নেই');
+     setText('tourClockLabel',t.status==='running'?'খেলা শেষ হতে বাকি':'খেলা শুরু হতে বাকি');
+     setText('tourListTitle',t.status==='registration_open'?'👥 নিবন্ধিত খেলোয়াড়':'🏅 লিডারবোর্ড');
      setText('tourHumans',fmt(t.human_count));setText('tourBots',fmt(t.bot_count));
      setText('tourPool',fmt(t.funded_pool));setText('tourMyScore',fmt(t.my_score));
      const roundMode=t.fee_mode==='per_round'||t.rules?.fee_mode==='per_round';
      const join=$('tourJoin');join.disabled=!signed||t.joined||!(roundMode?t.status==='registration_open':['running','registration_open'].includes(t.status));
-     join.textContent=t.joined?'✓ REGISTERED':roundMode?'JOIN · FREE REGISTRATION':'JOIN · 500 DEMO COINS';
-     setText('tourFeeMode',roundMode?'PER NEW ROUND':'ONE-TIME ENTRY');
+     join.textContent=t.joined?'✓ নিবন্ধিত':roundMode?'নিবন্ধন করুন · ফ্রি':'নিবন্ধন · ৫০০ কয়েন';
+     join.classList.toggle('hidden',t.status==='running'&&t.joined);
+     setText('tourFeeMode',roundMode?'প্রতি নতুন রাউন্ড':'একবারের ফি');
+     setText('p8PrizeInfo','বর্তমান তহবিল: '+fmt(t.funded_pool)+' / ৭,৫০০ ডেমো কয়েন। প্রকৃত পুরস্কার তহবিল অনুযায়ী বণ্টিত হবে।');
      const rules=$('tourRulesList');
      if(rules&&rules.dataset.mode!==(roundMode?'round':'once')){
        if(!rules.dataset.original)rules.dataset.original=rules.innerHTML;
@@ -66,9 +70,8 @@
        }else rules.innerHTML=rules.dataset.original;
      }
      const play=$('tourPlay');play.disabled=!signed||!(t.joined&&t.status==='running'&&t.game==='memory');
-     notice(!signed?'Public tournament details and leaderboard shown. Sign in to join the match.':
-        t.status==='registration_open'?'Registration open. Countdown shows when enrollment closes.':
-        t.status==='running'?'Tournament live. View leaderboard.':'Waiting for next event.');
+     play.classList.toggle('hidden',t.status!=='running');
+     notice(!signed?'নিবন্ধনের জন্য লগইন করুন।':t.status==='registration_open'?(t.joined?'আপনার নিবন্ধন সম্পন্ন।':''):'');
       countdown();
       if(t.id)await loadLeaderboard(t.id,signed);
       else $('tourLeaderboard').textContent='No active tournament entries yet.';
@@ -88,20 +91,18 @@
       }
    }catch(e){setText('tourLeaderboard','Leaderboard unavailable: '+e.message);return;}
    const list=$('tourLeaderboard');list.replaceChildren();
-   if(!Array.isArray(ranks)||!ranks.length){list.textContent='No participants yet. The tournament begins automatically.';return;}
+   if(!Array.isArray(ranks)||!ranks.length){list.textContent=tournament?.status==='registration_open'?'এখনো কেউ নিবন্ধন করেনি।':'এখনো কোনো স্কোর নেই।';return;}
    for(const p of ranks.slice(0,150)){
      const item=document.createElement('div');item.className='tourLeader';
      if(active()?.id===p.user_id)item.classList.add('me');
-     const rank=document.createElement('span');rank.className='tourRank';rank.textContent=({1:'🥇',2:'🥈',3:'🥉'})[p.rank]||('#'+p.rank);
+     const rank=document.createElement('span');rank.className='tourRank';rank.textContent=tournament?.status==='registration_open'?'✓':(({1:'🥇',2:'🥈',3:'🥉'})[p.rank]||('#'+p.rank));
      const avatar=document.createElement('span');avatar.textContent=p.avatar||'👤';
      const who=document.createElement('div');who.className='tourUser';
      const name=document.createElement('strong');name.textContent=p.username;
-     const meta=document.createElement('small');meta.textContent=(p.type==='ai'?'🤖 AI Player':'👤 Human')+' · '+fmt(p.games_played)+' games';
+     const meta=document.createElement('small');meta.textContent=p.type==='ai'?'🤖 AI':tournament?.status==='registration_open'?'নিবন্ধিত':fmt(p.games_played)+' রাউন্ড';
      who.append(name,meta);
      const score=document.createElement('div');score.className='tourPoints';
-     const possible=Math.floor(Number(p.maximum_rank_reward||0)*Number(tournament?.funded_pool||0)/7500);
-     score.textContent=fmt(p.total_score)+' pts';
-     const small=document.createElement('small');small.textContent=possible?'Up to '+fmt(possible)+' demo':'No funded reward';small.style.display='block';score.append(small);
+     score.textContent=tournament?.status==='registration_open'?'✓':fmt(p.total_score)+' স্কোর';
      item.append(rank,avatar,who,score);list.append(item);
    }
  }
@@ -204,7 +205,7 @@
  renderBoard();
  setInterval(()=>{
    if(!$('screen-tournament').classList.contains('hidden')){
-     countdown();if(Date.now()-lastSync>30000)loadTournament();
+     countdown();if(Date.now()-lastSync>10000)loadTournament();
    }
  },1000);
  showTabs('home');

@@ -4,16 +4,14 @@
 'use strict';
 const $=id=>document.getElementById(id),home=$('p8TournamentCatalog'),detail=$('p8TournamentDetail'),live=$('p8TourMemoryLive'),upcoming=$('p8TourUpcoming');
 if(!home||!detail)return;
-if(live){
-  const card=document.createElement('div');
-  card.className='play80Surface';
-  card.id='p8TourPrizeBreakdown';
-  const rankRewards=[1800,1200,1000,900,800,700,600,500];
-  card.innerHTML='<h3>🏆 Tournament Prize Distribution</h3><p><b>Maximum funded pool:</b> 7,500 Demo Coins. Actual awards scale with the funded prize pool; no company subsidy or cash redemption. See the current entry terms above.</p>';
-  const list=document.createElement('div');list.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px';
-  rankRewards.forEach((amount,i)=>{const item=document.createElement('div');item.style.cssText='padding:10px;border:1px solid #a57ce2;border-radius:10px;background:#282041';item.textContent='#'+(i+1)+' · up to '+amount.toLocaleString('en-US')+' coins';list.append(item);});
-  card.append(list);live.append(card);
-}
+const prizeButton=$('p8TourPrizeButton'),card=document.createElement('section');
+card.className='play80Surface';card.id='p8TourPrizeBreakdown';card.hidden=true;
+card.innerHTML='<h3>🏆 পুরস্কার</h3><p id="p8PrizeInfo">শুধু ডেমো কয়েন। সর্বোচ্চ বরাদ্দ ৭,৫০০; প্রকৃত পুরস্কার তহবিল অনুযায়ী কম হতে পারে।</p>';
+const rankRewards=[1800,1200,1000,900,800,700,600,500];
+const list=document.createElement('div');
+rankRewards.forEach((amount,i)=>{const item=document.createElement('div');item.className='p8PrizeRow';const rank=document.createElement('span'),reward=document.createElement('strong');rank.textContent=(['🥇','🥈','🥉'][i]||'🏅')+' '+(i+1)+' নম্বর';reward.textContent=amount.toLocaleString('bn-BD')+' কয়েন পর্যন্ত';item.append(rank,reward);list.append(item);});
+card.append(list);detail.querySelector('.p8TourCompactHead').after(card);
+prizeButton.addEventListener('click',()=>{card.hidden=!card.hidden;prizeButton.setAttribute('aria-expanded',String(!card.hidden));});
 const games={bubble:'Bubble Shooter',block:'Block Puzzle',memory:'Memory Puzzle','2048':'2048 Puzzle'};
 const serverGames={bubble:'bubbles',block:'blockpuzzle',memory:'memory','2048':'game2048'};
 let current='memory',grid=[],score=0,selected=0,pieces=[],drag=null,blockOver=false;
@@ -27,7 +25,7 @@ function choose(key){
  if(!games[key])return;
  current=key;pastList.replaceChildren();home.classList.add('hidden');detail.classList.remove('hidden');
  $('p8TourChosenTitle').textContent=games[key];
- $('p8TourChosenMeta').textContent=key==='memory'?'Live server tournament: start time, players, fee, ranking and funded rewards.':'Server tournament NOT scheduled. Practice mode only. No registration fee or prize.';
+ card.hidden=true;prizeButton.setAttribute('aria-expanded','false');prizeButton.hidden=key!=='memory';
  live.classList.toggle('hidden',key!=='memory');upcoming.classList.toggle('hidden',key==='memory');
  if(key==='memory')$('tourRefresh')?.click();
  window.scrollTo(0,0);
@@ -37,7 +35,7 @@ home.querySelectorAll('[data-tour-choice]').forEach(el=>el.addEventListener('cli
 $('p8TourBack').addEventListener('click',back);
 document.querySelectorAll('[data-main-tab="tournament"]').forEach(el=>el.addEventListener('click',back));
 const screen=document.createElement('section');screen.id='screen-p8-practice';screen.className='screen hidden';
-screen.innerHTML='<div class="play80Surface"><button id="p8PracticeBack" class="play80SecondaryBtn" type="button">← TOURNAMENT GAMES</button><h2 id="p8PracticeName">Practice</h2><p>Practice only. No server tournament fees, rankings or prizes for this game yet.</p><div id="p8PracticeScore">Score: 0</div><div id="p8PracticeGrid" role="grid" aria-label="Puzzle practice board"></div><div id="p8PracticeShapes"></div><p id="p8BlockNotice" role="status"></p><button id="p8PracticeReset" class="play80PrimaryBtn">NEW PRACTICE</button></div>';
+screen.innerHTML='<div class="play80Surface"><button id="p8PracticeBack" class="play80SecondaryBtn" type="button">‹</button><h2 id="p8PracticeName">Practice</h2><p>Practice only. No server tournament fees, rankings or prizes for this game yet.</p><div id="p8PracticeScore">Score: 0</div><div id="p8PracticeGrid" role="grid" aria-label="Puzzle practice board"></div><div id="p8PracticeShapes"></div><p id="p8BlockNotice" role="status"></p><button id="p8PracticeReset" class="play80PrimaryBtn">NEW PRACTICE</button></div>';
 document.querySelector('main')?.append(screen);
 const style=document.createElement('style');style.textContent=[
 '#p8PracticeGrid{width:100%;max-width:410px;aspect-ratio:1;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(8,minmax(0,1fr));gap:3px;background:#272440;padding:5px;border-radius:12px;margin:12px auto}',

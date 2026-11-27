@@ -50,6 +50,19 @@ try:
   page.locator('[data-main-tab="tournament"]').click()
   assert page.locator('#p8TournamentCatalog').is_visible(),'Tournament selector visible'
   assert page.locator('.p8TourCard').count()==4
+  event={'id':'mock-event','game':'memory','status':'registration_open','server_time':'2026-11-27T12:00:00Z','registration_ends_at':'2026-11-27T15:00:00Z','human_count':1,'bot_count':0,'funded_pool':0,'my_score':0,'fee_mode':'per_round','joined':True}
+  page.route('**/rest/v1/rpc/play80_tournament_public',lambda route:route.fulfill(json=event))
+  page.route('**/rest/v1/rpc/play80_tournament_leaderboard',lambda route:route.fulfill(json=[{'rank':1,'username':'mock_registered','type':'human','total_score':0,'games_played':0}]))
+  page.locator('[data-tour-choice="memory"]').click()
+  page.locator('#tourLeaderboard').get_by_text('mock_registered',exact=True).wait_for()
+  assert page.locator('#tourCountdown').inner_text()!='--:--:--'
+  assert page.locator('#p8TourPrizeBreakdown').is_hidden()
+  page.locator('#p8TourPrizeButton').click()
+  assert page.locator('#p8TourPrizeBreakdown .p8PrizeRow').count()==8
+  assert page.locator('#p8TourPrizeBreakdown').is_visible()
+  page.locator('#p8TourPrizeButton').click()
+  assert page.locator('#p8TourPrizeBreakdown').is_hidden()
+  page.locator('#p8TourBack').click()
   page.locator('[data-tour-choice="bubble"]').click()
   assert page.locator('#p8TourUpcoming').is_visible()
   page.locator('#p8TourPractice').click()
