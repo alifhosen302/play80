@@ -38,11 +38,80 @@
  #screen-chess .p8ChessOptions button:disabled{opacity:.5}
   `;
  document.head.append(style);
- el('p8OpenBotLudo').addEventListener('click',()=>{
-   go('ludo');newLudo('bot');ludo.arenaBot=true;
-   $('ludoSetup').classList.add('hidden');
-   beginLudoMatch();
- });
+ const picker=el('arenaStake');
+ const notices=el('arenaNotice');
+ const stakeButtons=['p8OpenBotLudo','p8OpenChess'].map(el);
+ let match=null,busy=false,leaving=false,waitingBot=0;
+ const owner=()=>window.Play80Cloud?.user()?.id;
+ const key=()=> 'play80.bot.open.'+owner();
+ function id(){const b=crypto.getRandomValues(new Uint8Array(16));b[6]=64|(b[6]&15);b[8]=128|(b[8]&63);const h=Array.from(b,v=>v.toString(16).padStart(2,'0')).join('');return [h.slice(0,8),h.slice(8,12),h.slice(12,16),h.slice(16,20),h.slice(20)].join('-');}
+ function message(s){notices.textContent=s;el('arenaLiveNotice').textContent=match?s:'';if(!match)el('arenaRetry').hidden=true;}
+ function locks(){for(const button of stakeButtons)button.disabled=busy||!picker.value;}
+ picker.addEventListener('change',locks);locks();
+ function renderMatch(){
+  if(!match)return;
+  const s=match.state;
+  if(match.game==='chess'){chess=s;selected=-1;renderChess();}
+  else{
+   ludo.pawns=s.pawns.map(a=>a.slice());ludo.turn=s.turn===2?1:0;ludo.die=s.die;
+   ludo.complete=match.status!=='active';ludo.serverLast=s.last;ludoDraw();
+  }
+  clearTimeout(waitingBot);
+  if(match.status!=='active'){
+   const info=match.status==='won'?'জিতেছ। জমা '+match.win_amount+' কয়েন।':match.status==='draw'?'ড্র। জমা '+match.draw_amount+' কয়েন।':'ম্যাচ হেরেছ। বেট ফেরত নেই।';
+   localStorage.removeItem(key());match=null;window.Play80Cloud.reloadAccount().catch(()=>{});
+   document.body.classList.remove('ludo-playing');go('bet');message(info);return;
+  }
+  if(match.game==='chess'?chess.turn==='b':s.turn===2)waitingBot=setTimeout(()=>turn('bot'),650);
+ }
+ async function turn(action,params={}){
+  if(!match||busy||leaving)return;
+  busy=true;locks();
+  try{
+   const next=await window.Play80Cloud.botArena({action,id:match.id,revision:match.revision,...params});
+   if(!next)throw Error('ম্যাচ পাওয়া যায়নি।');match=next;message('');renderMatch();
+  }catch(e){message('চাল নিশ্চিত হয়নি। সংযোগ ফিরে এলে আবার চেষ্টা করো।');el('arenaRetry').hidden=false;}
+  finally{busy=false;locks();}
+ }
+ async function leave(){
+  if(!match||busy||leaving)return;
+  if(!confirm('এখন বের হলে '+match.stake+' কয়েনের বেট হারাবে। ফেরত পাবে না। বের হবে?'))return;
+  leaving=true;clearTimeout(waitingBot);
+  try{match=await window.Play80Cloud.botArena({action:'forfeit',id:match.id});renderMatch();}
+  catch(e){message('ম্যাচ ছাড়ার হিসাব নিশ্চিত হয়নি। আবার চেষ্টা করো।');}
+  finally{leaving=false;}
+ }
+ window.Play80Arena={active:()=>!!match,leave,roll:()=>turn('roll'),pawn:i=>turn('pawn',{pawn:i})};
+ async function start(game){
+  if(busy||match||!picker.value)return;
+  if(!owner()){message('বেট খেলতে আগে অ্যাকাউন্টে লগইন করো।');return;}
+  busy=true;locks();
+  const localKey=key(),stake=Number(picker.value);
+  try{
+   // An app restart ends the previous match. Retry a lost acknowledgement by the same ID.
+   const orphan=localStorage.getItem(localKey);
+   if(orphan){await window.Play80Cloud.botArena({action:'forfeit',id:orphan});localStorage.removeItem(localKey);}
+   const terms=await window.Play80Cloud.botArena({action:'terms'});
+   if(terms.win_percent==null||terms.draw_refund==null)throw Error('সার্ভারে বেট চালু হয়নি।');
+   if(!confirm(stake+' ডেমো কয়েন দিয়ে শুরু করবে? জিতলে মোট '+(stake*terms.win_percent/100)+' কয়েন। '+(game==='chess'?'ড্র হলে '+(terms.draw_refund?stake:0)+' কয়েন। ':'')+'মাঝপথে বের হলে পুরো বেট হারাবে।'))return;
+   const mid=id();localStorage.setItem(localKey,mid);
+   match=await window.Play80Cloud.botArena({action:'start',id:mid,game,stake,terms});
+   if(match.status!=='active'){renderMatch();return;}
+   if(game==='ludo'){
+    go('ludo');newLudo('bot');ludo.arenaBot=true;beginLudoMatch();
+   }else{document.querySelectorAll('.screen').forEach(x=>x.classList.add('hidden'));chessSection.classList.remove('hidden');window.scrollTo(0,0);}
+   window.Play80Cloud.reloadAccount().catch(()=>{});message('');renderMatch();
+  }catch(e){message(e.message||'বেট ম্যাচ শুরু হয়নি।');}
+  finally{busy=false;locks();}
+ }
+ el('p8OpenBotLudo').addEventListener('click',()=>start('ludo'));
+ el('p8OpenChess').addEventListener('click',()=>start('chess'));
+ // Protect delegated navigation including tab switches and native back.
+ document.addEventListener('click',e=>{
+  if(!match||!e.target.closest('[data-open],[data-main-tab],#globalBack,#ludoExit,#p8ChessRestart,#p8ChessLeave,#p8ChessResign'))return;
+  e.preventDefault();e.stopImmediatePropagation();leave();
+ },true);
+ window.addEventListener('pagehide',()=>{if(match)window.Play80Cloud.botArena({action:'forfeit',id:match.id}).catch(()=>{});});
  const chessSection=document.createElement('section');chessSection.id='screen-chess';chessSection.className='screen hidden';
  chessSection.innerHTML=`<div class="play80Surface p8ChessClean">
  <div class="p8ChessPlayer" id="p8BlackRow"><span>♟</span><input id="p8BlackName" maxlength="28" aria-label="Black player" value="Computer" readonly><span>●</span></div>
@@ -81,26 +150,17 @@
   el('p8ChessWin').classList.toggle('hidden',!chess.finished);
   el('p8ChessResign').disabled=!!chess.finished;
  }
- function computerReply(){
-  if(chess.finished||chess.turn!=='b')return;
-  const position=chess;
-  setTimeout(()=>{
-   if(chess!==position||chessSection.classList.contains('hidden'))return;
-   const m=window.PLAY80Chess.hardMove(position);
-   if(m){const reply=window.PLAY80Chess.move(position,m.from,m.to);if(reply.ok)chess=reply.state;}
-   renderChess();
-  },80);
- }
  el('p8ChessBoard').addEventListener('click',e=>{
-  const b=e.target.closest('[data-cell]');if(!b||chess.finished||chess.turn!=='w')return;const to=Number(b.dataset.cell),p=chess.board[to];
-  if(selected>=0){const r=window.PLAY80Chess.move(chess,selected,to,'Q');if(r.ok){chess=r.state;selected=-1;renderChess();computerReply();return;}}
+  const b=e.target.closest('[data-cell]');if(!match||busy||!b||chess.finished||chess.turn!=='w')return;const to=Number(b.dataset.cell),p=chess.board[to];
+  if(selected>=0){const r=window.PLAY80Chess.move(chess,selected,to,'Q');if(r.ok){turn('chess',{from:selected,to});return;}}
   if(p!=='.'&&(p===p.toUpperCase()?'w':'b')===chess.turn){selected=to;renderChess();}else{selected=-1;renderChess();}
  });
- el('p8OpenChess')?.addEventListener('click',()=>{document.querySelectorAll('.screen').forEach(x=>x.classList.add('hidden'));chessSection.classList.remove('hidden');window.scrollTo(0,0);renderChess();computerReply();});
- el('p8ChessRestart').addEventListener('click',()=>{chess=window.PLAY80Chess.start();selected=-1;renderChess();});
- el('p8ChessLeave').addEventListener('click',()=>document.querySelector('[data-main-tab="bet"]')?.click());
- el('p8ChessResign').addEventListener('click',()=>{if(chess.finished)return;if(!confirm(chessName('w')+' resigns and loses the match?'))return;const r=window.PLAY80Chess.resign(chess,'w');if(r.ok){chess=r.state;selected=-1;renderChess();}});
  for(const id of ['p8WhiteName','p8BlackName'])el(id).addEventListener('input',renderChess);
 
+ const feedback=document.createElement('aside');feedback.id='arenaFeedback';
+ feedback.innerHTML='<span id="arenaLiveNotice" role="status"></span> <button id="arenaRetry" type="button" hidden>আবার চেষ্টা করো</button>';
+ feedback.style.cssText='position:fixed;bottom:8px;left:5%;width:90%;z-index:99;color:white;background:#231833;text-align:center';
+ document.body.append(feedback);
+ el('arenaRetry').addEventListener('click',()=>{el('arenaRetry').hidden=true;turn('read');});
  renderChess();
 })();

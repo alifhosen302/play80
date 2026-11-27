@@ -617,6 +617,7 @@
   },40000);
   window.Play80Cloud=Object.freeze({
     user:()=>verifiedAuth?session?.user||null:null,
+    botArena:async(payload)=>raw('/functions/v1/bot-arena','POST',payload,await token()),
     rpc:async(name,payload={})=>db('rpc/'+encodeURIComponent(name),'POST',payload),
     reloadAccount:loadAccount
   });

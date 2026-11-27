@@ -133,7 +133,11 @@
     const value=shownDice[seat];
     if(value!==(active?5:4)){
       patch(active?123:562,active?430:1121,8,13,dx+5,dy+4,50,50);
-      for(const point of LUDO_DICE_PIP_POS[value]){
+      if(value>6){
+        ctx.save();ctx.fillStyle='#37214f';ctx.font='bold 29px system-ui';
+        ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(value),dx+30,dy+30);ctx.restore();
+      }
+      for(const point of (LUDO_DICE_PIP_POS[value]||[])){
         const j=point-1;patch(131,416,15,15,dx+8+(j%3)*14,dy+8+Math.floor(j/3)*14,14,14);
       }
     }
@@ -142,6 +146,7 @@
   function paint() {
     if(!art.naturalWidth||game.classList.contains('hidden'))return;
     if(lastMatch!==ludo){lastMatch=ludo;shownDice=[5,5,4,4];}
+    if(ludo.serverLast)shownDice[ludo.serverLast.p]=ludo.serverLast.d;
     if(ludo.die)shownDice[turnPlayer()]=ludo.die;
     hitAreas=[];
     ctx.setTransform(1,0,0,1,0,-origin);
