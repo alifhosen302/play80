@@ -250,10 +250,12 @@ try:
   assert page.get_by_role('button',name='রেফার বোনাস').is_visible()
   pending_periods=['2026-11-24T12:00:00Z','2026-11-25T12:00:00Z','2026-11-26T11:59:59Z']
   daily_claims=[]
+  pending_referrals=['referral-fixture-1','referral-fixture-2']
+  referral_claims=[]
   def reward_response():
    return {'server_at':'2026-11-26T12:00:00Z','next_at':'2026-11-27T11:59:59Z',
            'referral_code':'example_player','referral_count':2,'first_claimed':True,
-           'pending_periods':pending_periods[:]}
+           'pending_periods':pending_periods[:],'pending_referrals':pending_referrals[:]}
   def capture_daily_claim(route):
    due=route.request.post_data_json['p_due_at']
    daily_claims.append(due)
@@ -262,9 +264,19 @@ try:
    route.fulfill(json={'claimed':claimed,'rewards':reward_response()})
   page.route('**/rest/v1/rpc/play80_my_rewards',lambda route:route.fulfill(json=reward_response()))
   page.route('**/rest/v1/rpc/play80_claim_daily_bonus',capture_daily_claim)
+  def capture_referral(route):
+   award=route.request.post_data_json['p_new_player']
+   referral_claims.append(award)
+   pending_referrals.remove(award)
+   route.fulfill(json={'claimed':500,'rewards':reward_response()})
+  page.route('**/rest/v1/rpc/play80_claim_referral_bonus',capture_referral)
   page.get_by_role('button',name='রেফার বোনাস',exact=True).click()
   page.get_by_text('সফল রেফার ২টি').wait_for()
   assert page.get_by_label('PLAY80 আমন্ত্রণ লিংক').input_value().endswith('?ref=example_player')
+  assert page.locator('.p8-referral-row').count()==2
+  page.locator('.p8-referral-row').first.get_by_role('button',name='ক্লেইম',exact=True).click()
+  page.wait_for_function("document.querySelectorAll('.p8-referral-row').length === 1")
+  assert referral_claims==['referral-fixture-1']
   page.locator('#p8MenuButton').click()
   page.locator('.footerNav [data-p8-footer="bonus"]').click()
   page.get_by_text('৫,০০০ কয়েন · ক্লেম ✓ পাওয়া হয়েছে').wait_for()
@@ -319,10 +331,16 @@ try:
   assert page.locator('#cloudSubmit').is_visible()
   page.get_by_role('button',name='অনুরোধ পাঠাও').click()
   page.get_by_text('ডেমো ট্রান্সেকশন নম্বর লিখুন।',exact=True).wait_for()
+  deposit_requests=[]
+  def capture_deposit(route):
+   deposit_requests.append(route.request.post_data_json)
+   route.fulfill(json={'ok':True,'request_id':'mock-credit'})
+  page.route('**/rest/v1/rpc/play80_submit_demo_credit',capture_deposit)
   page.get_by_label('ট্রান্সেকশন নম্বর',exact=True).fill('DEMO-1001')
   page.get_by_role('button',name='অনুরোধ পাঠাও').click()
-  page.locator('#play80ActionPin').wait_for(state='visible')
-  page.locator('#play80ActionPin button[value="cancel"]').click()
+  page.get_by_text('রিকোয়েস্ট পাঠানো হয়েছে। সিদ্ধান্ত রিকোয়েস্টের ইতিহাসে দেখাবে।',exact=True).wait_for()
+  assert deposit_requests==[{'p_amount':100,'p_reference':'DEMO-1001'}]
+  assert not page.locator('#play80ActionPin').is_visible()
   approved_credits.append({'id':'already-approved'})
   page.locator('#cloudRefresh').click()
   page.locator('#p8FirstCreditOffer').wait_for(state='hidden')

@@ -85,7 +85,7 @@
     if(menuReady && !on){
       setMenuCounts(0,0);turnoverList.replaceChildren();rewardData=null;referralLink.value='';referralTotal.textContent='';
       copyNote.textContent='';countdown.textContent='—';claim.textContent='৫,০০০ কয়েন · ক্লেম —';
-      dailyStatus.textContent='';nextRewardCheck=0;renderDailyClaim();
+      dailyStatus.textContent='';referralStatus.textContent='';nextRewardCheck=0;renderDailyClaim();renderReferralClaims();
       $('p8MyMessages').replaceChildren();$('p8OwnerInboxList').replaceChildren();
       $('p8SupportText').value='';supportReceipt.hidden=true;
       supportSignature='';activeOwnerThread=null;
@@ -288,10 +288,14 @@
         return;
       }
     }
-    const pin=await askLoginPin((type==='demo_credit'?'ডিপোজিট':'উইথড্র')+' রিকোয়েস্ট · '+amount+' ভার্চুয়াল কয়েন');
-    if(pin===null)return;
     try{
-      requirePinSuccess(await db('rpc/play80_confirm_wallet_request','POST',{p_pin:pin,p_kind:type,p_amount:amount,p_note:type==='demo_credit'?'ডেমো ট্রান্সেকশন নম্বর: '+reference:null}));
+      if(type==='demo_credit'){
+        requirePinSuccess(await db('rpc/play80_submit_demo_credit','POST',{p_amount:amount,p_reference:reference}));
+      }else{
+        const pin=await askLoginPin('উইথড্র রিকোয়েস্ট · '+amount+' ভার্চুয়াল কয়েন');
+        if(pin===null)return;
+        requirePinSuccess(await db('rpc/play80_confirm_wallet_request','POST',{p_pin:pin,p_kind:type,p_amount:amount,p_note:null}));
+      }
     }catch(error){
       if(type!=='demo_debit'||!error.message.includes('PLAY80_TURNOVER_PENDING'))throw error;
       await openAccountPage('turnover');
@@ -1123,6 +1127,9 @@
   referralLink.setAttribute('aria-label','PLAY80 আমন্ত্রণ লিংক');
   const copyNote=createText('p','');copyNote.setAttribute('role','status');
   const referralTotal=createText('p','');
+  const referralList=createText('div','','p8-referral-list');
+  referralList.style.cssText='display:grid;gap:6px';
+  const referralStatus=createText('p','');referralStatus.setAttribute('role','status');
   const shareButton=makeButton('আমন্ত্রণ শেয়ার করুন',async()=>{
     if(!referralLink.value)return;
     const message='PLAY80 অ্যাকাউন্ট খুলতে সাইন আপে রেফার কোড '+rewardData.referral_code+' লিখুন।';
@@ -1149,25 +1156,62 @@
   }
   const copyButton=makeButton('লিংক কপি করুন',()=>copyReferral(referralLink.value),true);
   referral.append(createText('h2','রেফার বোনাস'),createText('p','আপনার লিংক বা কোড দিয়ে নতুন প্লেয়ার অ্যাকাউন্ট খুলে ইমেইল যাচাই করলে আপনি ৫০০ ভার্চুয়াল কয়েন পাবেন।'),
-    referralLink,shareButton,copyButton,copyNote,referralTotal);
-  let rewardData=null, rewardRefresh=false, dailyClaimBusy=false, nextRewardCheck=0, serverOffset=0;
+    referralLink,shareButton,copyButton,copyNote,referralTotal,referralList,referralStatus);
+  let rewardData=null, rewardRefresh=false, dailyClaimBusy=false, referralClaimBusy=false, nextRewardCheck=0, serverOffset=0;
   function renderDailyClaim(){
     const periods=Array.isArray(rewardData?.pending_periods)?rewardData.pending_periods:[];
     dailyList.replaceChildren();
     for(const dueAt of periods){
       if(typeof dueAt!=='string'||!Number.isFinite(Date.parse(dueAt)))continue;
       const row=createText('div','','p8-daily-row');
-      row.style.cssText='display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px;padding:8px 10px;border:1px solid #514265;border-radius:12px;background:#28233f';
+      row.style.cssText='display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:6px;padding:4px 8px;border:1px solid #514265;border-radius:12px;background:#28233f';
       const icon=createText('span','🎁');icon.setAttribute('aria-hidden','true');
       const amount=createText('strong','৫০ কয়েন');
       amount.style.cssText='text-align:center;color:#ffe29c;font-size:1.15rem';
       const button=createText('button','ক্লেইম','smallAction p8-daily-claim-button');
       button.type='button';button.dataset.dueAt=dueAt;
-      button.style.cssText='width:auto;min-height:40px;margin:0;padding:7px 12px;background:linear-gradient(135deg,#ffe29c,#c99b42);color:#21182c;font-weight:800;border:1px solid #ffe29c;border-radius:9px';
-      button.disabled=dailyClaimBusy||rewardRefresh||!verifiedAuth;
+      button.style.cssText='width:auto;min-height:32px;margin:0;padding:4px 9px;background:linear-gradient(135deg,#ffe29c,#c99b42);color:#21182c;font-weight:800;border:1px solid #ffe29c;border-radius:9px';
+      button.disabled=dailyClaimBusy||referralClaimBusy||rewardRefresh||!verifiedAuth;
       button.addEventListener('click',()=>{void claimDailyBonus(dueAt);});
       row.append(icon,amount,button);dailyList.append(row);
     }
+  }
+  function renderReferralClaims(){
+    referralList.replaceChildren();
+    for(const award of (Array.isArray(rewardData?.pending_referrals)?rewardData.pending_referrals:[])){
+      if(typeof award!=='string')continue;
+      const row=createText('div','','p8-referral-row');
+      row.style.cssText='display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:6px;padding:4px 8px;border:1px solid #514265;border-radius:10px;background:#28233f';
+      const gift=createText('span','🎁');gift.setAttribute('aria-hidden','true');
+      const amount=createText('strong','৫০০ কয়েন');amount.style.cssText='text-align:center;color:#ffe29c';
+      const button=makeButton('ক্লেইম',()=>claimReferral(award),true);button.dataset.award=award;
+      button.style.cssText='width:auto;min-height:32px;margin:0;padding:4px 9px;font-size:.85rem';
+      button.disabled=referralClaimBusy||dailyClaimBusy||rewardRefresh||!verifiedAuth;
+      row.append(gift,amount,button);referralList.append(row);
+    }
+    updateRewardDots();
+  }
+  function updateRewardDots(){
+    const player=verifiedAuth&&!isStaff()&&!isDsr();
+    const daily=!!(player&&rewardData?.pending_periods?.length);
+    const refer=!!(player&&rewardData?.pending_referrals?.length);
+    dot(document.querySelector('[data-p8-footer="bonus"]'),daily);
+    dot($('p8MenuItems').querySelector('[data-panel="bonus"]'),daily);
+    dot($('p8MenuItems').querySelector('[data-panel="referral"]'),refer);
+    dot($('p8MenuButton'),pendingRequests>0||unreadSupport>0||daily||refer);
+    dot(document.querySelector('[data-p8-footer="menu"]'),daily||refer);
+  }
+  async function claimReferral(award){
+    if(!verifiedAuth||isStaff()||isDsr()||dailyClaimBusy||referralClaimBusy||rewardRefresh||!rewardData?.pending_referrals?.includes(award))return;
+    const viewer=session.user.id;referralClaimBusy=true;renderReferralClaims();renderDailyClaim();
+    try{
+      const result=await db('rpc/play80_claim_referral_bonus','POST',{p_new_player:award});
+      if(!verifiedAuth||session?.user?.id!==viewer)return;
+      applyRewardData(result.rewards);
+      referralStatus.textContent=Number(result.claimed)===500?'৫০০ কয়েন ব্যালান্সে যোগ হয়েছে।':'এই বোনাসটি আর ক্লেইম করা যাবে না।';
+      await loadAccount();
+    }catch(_){if(verifiedAuth&&session?.user?.id===viewer)referralStatus.textContent='ক্লেইম যাচাই করা যায়নি।';}
+    finally{referralClaimBusy=false;renderReferralClaims();renderDailyClaim();}
   }
   function applyRewardData(data){
     rewardData=data;
@@ -1178,23 +1222,23 @@
       const serverTime=Date.parse(data.server_at);
       serverOffset=Number.isFinite(serverTime)?serverTime-Date.now():0;
     }
-    renderDailyClaim();renderRewardClock();
+    renderDailyClaim();renderReferralClaims();renderRewardClock();
   }
   async function loadRewards(){
-    if(!verifiedAuth||isStaff()||isDsr()||rewardRefresh||dailyClaimBusy)return;
+    if(!verifiedAuth||isStaff()||isDsr()||rewardRefresh||dailyClaimBusy||referralClaimBusy)return;
     const id=session.user.id;
-    rewardRefresh=true;renderDailyClaim();
+    rewardRefresh=true;renderDailyClaim();renderReferralClaims();
     try{
       const data=await db('rpc/play80_my_rewards','POST',{});
       if(!verifiedAuth||session?.user?.id!==id)return;
       applyRewardData(data);
-    }finally{rewardRefresh=false;renderDailyClaim();}
+    }finally{rewardRefresh=false;renderDailyClaim();renderReferralClaims();}
   }
   async function claimDailyBonus(dueAt){
-    if(!verifiedAuth||isStaff()||isDsr()||dailyClaimBusy||rewardRefresh||!rewardData?.pending_periods?.includes(dueAt))return;
+    if(!verifiedAuth||isStaff()||isDsr()||dailyClaimBusy||referralClaimBusy||rewardRefresh||!rewardData?.pending_periods?.includes(dueAt))return;
     const id=session.user.id;
     const stillCurrent=()=>verifiedAuth&&session?.user?.id===id;
-    dailyClaimBusy=true;renderDailyClaim();
+    dailyClaimBusy=true;renderDailyClaim();renderReferralClaims();
     dailyStatus.textContent='ক্লেইম যাচাই হচ্ছে…';
     try{
       const result=await db('rpc/play80_claim_daily_bonus','POST',{p_due_at:dueAt});
@@ -1205,7 +1249,7 @@
     }catch(_){
       if(stillCurrent())dailyStatus.textContent='ক্লেইম যাচাই করা যায়নি। আবার চেষ্টা করুন।';
     }finally{
-      dailyClaimBusy=false;renderDailyClaim();
+      dailyClaimBusy=false;renderDailyClaim();renderReferralClaims();
       if(stillCurrent())void loadRewards().catch(()=>{});
     }
   }
@@ -1222,7 +1266,7 @@
   setInterval(()=>{
     if(verifiedAuth&&!document.hidden&&signedIn.dataset.section==='bonus'&&!ownBonus.hidden)renderRewardClock();
   },1000);
-  const turnoverPage=document.createElement('section');
+  const turnoverPage=document.createElement('section');turnoverPage.className='p8-compact-turnover';
   const turnoverList=createText('div','','cloudList');
   turnoverList.setAttribute('aria-live','polite');
   turnoverPage.append(createText('h2','টার্নওভার'),turnoverList,
@@ -1386,7 +1430,8 @@
   }
   let countsPending=false;
   async function refreshMenuCounts(){
-    if(!verifiedAuth||!isStaff()||countsPending)return;
+    if(!verifiedAuth||countsPending)return;
+    if(!isStaff()){await loadRewards().catch(()=>{});return;}
     const id=session?.user?.id;
     countsPending=true;
     try{
@@ -1428,8 +1473,8 @@
       add('ডিপোজিট',account('wallet','demo_credit'),null,quick);
       add('উইথড্র',openWithdraw,null,quick);
       if(!isDsr()){
-        add('বোনাস',account('bonus'));
-        add('রেফার বোনাস',account('referral'));
+        add('বোনাস',account('bonus'),'bonus');
+        add('রেফার বোনাস',account('referral'),'referral');
       }
       add('সাপোর্ট',account('support'));
       add('প্রোফাইল',account('profile'));
@@ -1437,7 +1482,7 @@
       add('টার্নওভার',account('turnover'));
     }
     add('লগআউট',async()=>$('cloudSignOut').click());
-    setMenuCounts(pendingRequests,unreadSupport);
+    setMenuCounts(pendingRequests,unreadSupport);updateRewardDots();
   }
   document.querySelectorAll('[data-staff-tab="wallet"],[data-staff-tab="inbox"]').forEach(el=>el.classList.add('p8-menu-item'));
   $('p8MenuButton').addEventListener('click',()=>{renderMenu();renderIdentity();void loadAccount();});

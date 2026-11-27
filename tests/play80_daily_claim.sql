@@ -230,3 +230,41 @@ begin
   assert (select close_reason from public.turnover_records where user_id=player)='reconciled','Legacy row is closed, not deleted';
   assert (select balance from public.demo_wallets where user_id=player)=6500,'Historical reconciliation never changes wallet balance';
 end $$;
+
+-- New demo deposit RPC uses the existing request function; this stub only
+-- verifies the allowed request kind, pending row and reference boundary.
+create function public.submit_demo_wallet_request(p_kind text,p_amount bigint,p_note text)
+returns uuid language plpgsql as $$
+declare result uuid;
+begin
+  assert p_kind='demo_credit' and p_note is not null;
+  insert into public.demo_wallet_requests(user_id,request_kind,amount,status)
+    values(auth.uid(),p_kind,p_amount,'pending') returning id into result;
+  return result;
+end $$;
+\i /work/supabase/migrations/20261127203000_referral_claim_and_demo_credit.sql
+do $$
+declare sponsor uuid:=gen_random_uuid();
+declare referred uuid:=gen_random_uuid();
+declare other uuid:=gen_random_uuid();
+declare result jsonb;
+begin
+  insert into auth.users(id,email_confirmed_at,created_at) values(sponsor,now(),now()-interval '1 day'),(other,now(),now()-interval '1 day');
+  insert into auth.users(id,email_confirmed_at,raw_user_meta_data) values(referred,now(),jsonb_build_object('play80_referral',sponsor::text));
+  perform set_config('test.uid',sponsor::text,true);
+  assert (select balance from public.demo_wallets where user_id=sponsor)=0,'Referral must not credit before claim';
+  assert jsonb_array_length(public.play80_my_rewards()->'pending_referrals')=1;
+  perform set_config('test.uid',other::text,true);
+  assert (public.play80_claim_referral_bonus(referred)->>'claimed')::bigint=0,'Other account cannot claim';
+  perform set_config('test.uid',sponsor::text,true);
+  assert (public.play80_claim_referral_bonus(referred)->>'claimed')::bigint=500;
+  assert (public.play80_claim_referral_bonus(referred)->>'claimed')::bigint=0,'Replay must not credit again';
+  assert (select balance from public.demo_wallets where user_id=sponsor)=500;
+  assert jsonb_array_length(public.play80_my_rewards()->'pending_referrals')=0;
+  assert (select count(*) from private.play80_turnover_items where user_id=sponsor and source='referral_bonus')=1;
+  result:=public.play80_submit_demo_credit(100,'DEMO-TEST');
+  assert (result->>'ok')::boolean;
+  assert (select count(*) from public.demo_wallet_requests where user_id=sponsor and request_kind='demo_credit' and status='pending')=1;
+  assert (select balance from public.demo_wallets where user_id=sponsor)=500,'Submitting must not credit wallet';
+  assert not has_function_privilege('anon','public.play80_submit_demo_credit(bigint,text)','execute');
+end $$;
