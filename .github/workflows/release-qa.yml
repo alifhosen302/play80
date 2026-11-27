@@ -81,6 +81,11 @@ jobs:
           docker exec play80-db-test createdb -h 127.0.0.1 -U postgres play80_turnover_test
           docker cp supabase/migrations/20261126222000_stage_coin_turnover.sql play80-db-test:/tmp/play80-turnover.sql
           docker exec -i play80-db-test psql -h 127.0.0.1 -U postgres -d play80_turnover_test -v ON_ERROR_STOP=1 < tests/play80_turnover.sql
+          docker exec play80-db-test createdb -h 127.0.0.1 -U postgres play80_daily_claim_test
+          docker exec play80-db-test mkdir -p /work
+          docker cp supabase play80-db-test:/work/supabase
+          docker cp tests play80-db-test:/work/tests
+          docker exec -i play80-db-test psql -h 127.0.0.1 -U postgres -d play80_daily_claim_test -v ON_ERROR_STOP=1 -f /work/tests/play80_daily_claim.sql
       - name: Run account and signup browser tests
         run: |
           pip install playwright==1.56.0
@@ -93,8 +98,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          gh release download qa-v5.2-unified-login-20261125 --pattern PLAY80_V5_2_GitHub_QA.apk --dir "$RUNNER_TEMP/baseline"
+          mkdir -p "$RUNNER_TEMP/baseline"
           old="$RUNNER_TEMP/baseline/PLAY80_V5_2_GitHub_QA.apk"
+          if gh release download qa-v5.2-unified-login-20261125 --pattern PLAY80.apk --dir "$RUNNER_TEMP/baseline"; then
+            cp "$RUNNER_TEMP/baseline/PLAY80.apk" "$old"
+          else
+            gh release download qa-v5.2-unified-login-20261125 --pattern PLAY80_V5_2_GitHub_QA.apk --dir "$RUNNER_TEMP/baseline"
+          fi
           tools="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
           info="$("$tools/aapt" dump badging "$old")"
           code="$(sed -n "s/^package: .*versionCode='\([0-9]*\)'.*/\1/p" <<< "$info")"
@@ -158,8 +168,8 @@ jobs:
           echo "Verified menu and server coin header inside APK build $PLAY80_VERSION_CODE"
           "$TOOLS/apksigner" verify --verbose --min-sdk-version 28 ../PLAY80_V4_1_Practice_QA.apk
           mkdir -p dist
-          cp ../PLAY80_V4_1_Practice_QA.apk dist/PLAY80_V5_2_GitHub_QA.apk
-          sha256sum dist/PLAY80_V5_2_GitHub_QA.apk
+          cp ../PLAY80_V4_1_Practice_QA.apk dist/PLAY80.apk
+          sha256sum dist/PLAY80.apk
       - name: Verify signing identity against the released APK
         shell: bash
         run: |
@@ -171,7 +181,7 @@ jobs:
             openssl x509 -in "$RUNNER_TEMP/signer.txt" -outform DER | sha256sum | cut -d' ' -f1
           }
           old="$(fingerprint "$RUNNER_TEMP/update-base.apk")"
-          new="$(fingerprint dist/PLAY80_V5_2_GitHub_QA.apk)"
+          new="$(fingerprint dist/PLAY80.apk)"
           [[ "$old" == "$PLAY80_SIGNER_SHA256" && "$new" == "$PLAY80_SIGNER_SHA256" ]]
       - name: Make disk space for the Android system image
         run: |
@@ -198,8 +208,8 @@ jobs:
         continue-on-error: true
         if: ${{ !(inputs.publish || (github.event_name == 'push' && contains(github.event.head_commit.message, '[publish-tested-play80]'))) }}
         with:
-          name: PLAY80-V5.2-QA
-          path: dist/PLAY80_V5_2_GitHub_QA.apk
+          name: PLAY80
+          path: dist/PLAY80.apk
           retention-days: 14
       - name: Update the same existing V5.2 Release asset without creating another version
         if: inputs.publish || (github.event_name == 'push' && contains(github.event.head_commit.message, '[publish-tested-play80]'))
@@ -210,9 +220,9 @@ jobs:
           set -euo pipefail
           TAG=qa-v5.2-unified-login-20261125
           gh release view "$TAG" >/dev/null || { echo "::error::Protected latest release missing"; exit 1; }
-          gh release upload "$TAG" dist/PLAY80_V5_2_GitHub_QA.apk --clobber
-          gh release edit "$TAG" --title "PLAY80 Latest QA (one stable download link)"
-          ASSET=PLAY80_V5_2_GitHub_QA.apk
+          gh release upload "$TAG" dist/PLAY80.apk --clobber
+          gh release edit "$TAG" --title "PLAY80"
+          ASSET=PLAY80.apk
           EXPECTED="sha256:$(sha256sum "dist/$ASSET" | cut -d' ' -f1)"
           META="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" --jq ".assets[] | select(.name == \"$ASSET\")")"
           [[ "$(jq -r .digest <<< "$META")" == "$EXPECTED" ]]

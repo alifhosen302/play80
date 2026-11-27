@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 package=com.play80.arcade.master.tournamentv41qa
-candidate=dist/PLAY80_V5_2_GitHub_QA.apk
+candidate=dist/PLAY80.apk
 launch() {
   adb shell am start -W -n "$package/.MainActivity" | tee "$RUNNER_TEMP/launch.txt"
   grep -q 'Status: ok' "$RUNNER_TEMP/launch.txt"

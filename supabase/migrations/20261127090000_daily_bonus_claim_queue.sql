@@ -182,3 +182,53 @@ $$;
 revoke all on function private.play80_turnover_owner_grant() from public,anon,authenticated;
 create trigger play80_turnover_owner_grant after insert on private.staff_coin_transfer_keys
 for each row execute function private.play80_turnover_owner_grant();
+
+-- For server-verified virtual tournament rewards, allocate newest item first.
+-- Withdrawal eligibility remains staged until per-source redeemable balances are verified.
+create or replace function private.play80_turnover_on_entry()
+returns trigger language plpgsql security definer set search_path='' as $$
+declare item record;
+declare remaining_win bigint := new.delta;
+declare applied bigint;
+begin
+  if new.transaction_type<>'tournament_reward' or remaining_win<=0 then return new; end if;
+  for item in
+    select source,source_key,required-completed as remaining
+    from private.play80_turnover_items where user_id=new.user_id and completed<required
+    order by created_at desc,source_key desc,source desc for update
+  loop
+    applied:=least(remaining_win,item.remaining);
+    update private.play80_turnover_items set completed=completed+applied
+    where source=item.source and source_key=item.source_key;
+    remaining_win:=remaining_win-applied;
+    exit when remaining_win=0;
+  end loop;
+  if remaining_win>0 then
+  select least(remaining_win, required-completed) into applied
+  from public.turnover_records where user_id=new.user_id and completed<required for update;
+  if found then
+    update public.turnover_records set completed=completed+applied,updated_at=now()
+    where user_id=new.user_id;
+    remaining_win:=remaining_win-applied;
+
+  end if;
+  end if;
+  return new;
+end;
+$$;
+create or replace function public.play80_my_turnover()
+returns jsonb language sql stable security definer set search_path='' as $$
+  select jsonb_build_object(
+    'withdrawal_guard_enabled',(select withdrawal_guard_enabled from private.play80_turnover_settings where singleton),
+    'items',coalesce(jsonb_agg(jsonb_build_object('source',source,'coins',coins,'required',required,
+      'completed',completed,'created_at',created_at) order by created_at desc,source_key desc,source desc),'[]'::jsonb))
+  from (
+    select source,source_key,coins,required,completed,created_at
+    from private.play80_turnover_items
+    where user_id=auth.uid() and completed<required
+    union all
+    select 'legacy',user_id::text,required,required,completed,'-infinity'::timestamptz
+    from public.turnover_records
+    where user_id=auth.uid() and completed<required
+  ) as pending;
+$$;

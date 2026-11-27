@@ -16,7 +16,7 @@ def axml():
     android_uri='http://schemas.android.com/apk/res/android'
     sset={
         'android',android_uri,'manifest','package',APP_PACKAGE,'versionCode','versionName','5.2',
-        'uses-sdk','uses-permission','android.permission.INTERNET','minSdkVersion','targetSdkVersion','application','label','play80',
+        'uses-sdk','uses-permission','android.permission.INTERNET','minSdkVersion','targetSdkVersion','application','label','PLAY80',
         'hasCode','icon','activity','name',APP_ACTIVITY,'exported','intent-filter','action',
         'android.intent.action.MAIN','category','android.intent.category.LAUNCHER'
     }
@@ -66,7 +66,7 @@ def axml():
     content+=start('manifest',[('package',APP_PACKAGE,'s'),('versionCode',int(os.environ.get('PLAY80_VERSION_CODE','44')),'i'),('versionName','5.2','s')])
     content+=start('uses-sdk',[('minSdkVersion',23,'i'),('targetSdkVersion',28,'i')]);content+=end('uses-sdk')
     content+=start('uses-permission',[('name','android.permission.INTERNET','s')]);content+=end('uses-permission')
-    content+=start('application',[('label','play80','s'),('icon',0x7f010000,'r'),('hasCode',True,'b')])
+    content+=start('application',[('label','PLAY80','s'),('icon',0x7f010000,'r'),('hasCode',True,'b')])
     content+=start('activity',[('name',APP_ACTIVITY,'s'),('exported',True,'b')])
     content+=start('intent-filter')
     content+=start('action',[('name','android.intent.action.MAIN','s')]);content+=end('action')

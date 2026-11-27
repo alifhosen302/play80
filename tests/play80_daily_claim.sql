@@ -1,5 +1,7 @@
-create role anon;
-create role authenticated;
+do $$ begin
+  if not exists(select 1 from pg_roles where rolname='anon') then create role anon; end if;
+  if not exists(select 1 from pg_roles where rolname='authenticated') then create role authenticated; end if;
+end $$;
 create schema cron;
 create function cron.schedule(text,text,text) returns bigint language sql as $$ select 1::bigint $$;
 create schema auth;
@@ -139,4 +141,20 @@ begin
   insert into private.staff_coin_transfer_keys values(gen_random_uuid(),actor,player,200);
   assert (select count(*) from private.play80_turnover_items where user_id=player and source_key like 'owner_grant:%' and required=200)=1,
     'Legacy owner send also counts at 1x';
+end $$;
+
+do $$
+declare player uuid:='00000000-0000-4000-8000-000000000004';
+declare recent_key text;
+begin
+  select source_key into recent_key from private.play80_turnover_items
+    where user_id=player and source_key like 'owner_grant:%' limit 1;
+  update private.play80_turnover_items set created_at=clock_timestamp()+interval '1 second'
+    where source_key=recent_key;
+  insert into public.wallet_transactions(user_id,transaction_type,delta,operation_key)
+    values(player,'tournament_reward',50,'daily-test-newest-wins-first');
+  assert (select completed from private.play80_turnover_items where source_key=recent_key)=50,
+    'Latest item receives verified win first';
+  assert not exists(select 1 from private.play80_turnover_items where user_id=player and source_key<>recent_key and completed>0),
+    'Older items must remain unchanged while latest is incomplete';
 end $$;

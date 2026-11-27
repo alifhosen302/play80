@@ -6,7 +6,7 @@
   const BASE = 'https://suhpmjqrcqkzaslptpca.supabase.co';
   const KEY = 'sb_publishable_8VvDZLfwAeztWeDS2EqNBQ_nlYFwFyK';
   const STORAGE = 'play80.secure_account.v1';
-  const APK_DOWNLOAD = 'https://github.com/alifhosen302/play80/releases/download/qa-v5.2-unified-login-20261125/PLAY80_V5_2_GitHub_QA.apk';
+  const APK_DOWNLOAD = 'https://github.com/alifhosen302/play80/releases/download/qa-v5.2-unified-login-20261125/PLAY80.apk';
   const $ = (id) => document.getElementById(id);
   let menuReady=false;
   let session = null, profile = null, balance = null, verifiedAuth = false, signupRoleIntent = 'player';
