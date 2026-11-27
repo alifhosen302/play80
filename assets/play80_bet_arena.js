@@ -38,6 +38,9 @@
  #screen-chess .p8ChessOptions button:disabled{opacity:.5}
   `;
  document.head.append(style);
+ const logo=document.createElement('img');
+ logo.className='p8ChessBrand';logo.src='play80_chess_logo_premium.webp';logo.alt='PLAY80 Chess';
+ el('p8OpenChess').parentElement.prepend(logo);
  const picker=el('arenaStake');
  const notices=el('arenaNotice');
  const stakeButtons=['p8OpenBotLudo','p8OpenChess'].map(el);

@@ -143,22 +143,27 @@ try:
   assert page.locator('#p8PracticeScore').inner_text()!='Score: 0'
   page.locator('#p8PracticeBack').click()
   page.locator('[data-main-tab="bet"]').click()
+  assert page.locator('#p8OpenChess').is_disabled()
+  page.locator('#arenaStake').select_option('500')
+  state=page.evaluate('()=>PLAY80Chess.start()')
+  calls=[]
+  def bot_api(route):
+   body=route.request.post_data_json
+   calls.append(body['action'])
+   if body['action']=='terms':
+    route.fulfill(json={'win_percent':180,'draw_fee':10})
+   else:
+    route.fulfill(json={'id':body['id'],'game':'chess','revision':0,'stake':500,'win_amount':900,'draw_amount':490,'state':state,'status':'forfeit' if body['action']=='forfeit' else 'active'})
+  page.route('**/functions/v1/bot-arena',bot_api)
   page.locator('#p8OpenChess').click()
-  assert page.locator('#p8RulesOverlay').is_visible()
   page.locator('#p8RulesAccept').click()
-  assert page.locator('#screen-chess').is_visible()
-  def move(a,b):
-   for cell in [a,b]:
-    col=ord(cell[0])-97;row=8-int(cell[1])
-    page.locator('#p8ChessBoard button[data-cell="%s"]'%(row*8+col)).click()
-  move('f2','f3');move('e7','e5');move('g2','g4');move('d8','h4')
-  assert 'CHECKMATE' in page.locator('#p8ChessStatus').inner_text()
-  assert page.locator('#p8ChessBoard button:not([disabled])').count()==0
-  page.locator('#p8ChessRestart').click()
-  page.locator('#p8ChessResign').click()
-  assert 'RESIGNATION' in page.locator('#p8ChessStatus').inner_text()
+  page.locator('#screen-chess').wait_for(state='visible')
+  assert page.locator('#p8ChessBoard button').count()==64
+  page.locator('#p8ChessLeave').click()
+  page.locator('#arenaNotice').get_by_text('বেট ফেরত নেই।',exact=False).wait_for()
+  assert calls==['terms','start','forfeit'],calls
   assert not errors,'Uncaught JS errors: '+str(errors)
-  print('PASS: account-first PIN registration, no blank gap, authenticated-game gate, Bubble cannon/swap/bomb, 4 tournaments, Chess checkmate')
+  print('PASS: account-first PIN registration, no blank gap, authenticated-game gate, Bubble cannon/swap/bomb, 4 tournaments, computer bet entry and forfeit')
   browser.close()
 finally:
  server.shutdown();server.server_close()

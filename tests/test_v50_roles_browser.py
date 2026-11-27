@@ -238,7 +238,7 @@ try:
   catalog=home.locator('.homeGameGrid')
   games=catalog.locator('.gameTile')
   assert games.count()==14
-  assert page.locator('#screen-bet .gameTile[data-game-id="ludo"]').count()==1
+  assert page.locator('#screen-bet #p8OpenBotLudo').count()==1
   assert home.locator('.hero, #p8RealAccountCTA').count()==0
   for width,height in [(360,720),(390,844)]:
    page.set_viewport_size({'width':width,'height':height})
