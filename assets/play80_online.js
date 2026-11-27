@@ -283,7 +283,7 @@
       const viewer=session?.user?.id;
       const record=await readTurnover();
       if(!verifiedAuth||session?.user?.id!==viewer||signedIn.dataset.section!=='wallet')return;
-      if(!record||record.withdrawal_guard_enabled&&record.remaining>0){
+      if(!record||record.withdrawal_guard_enabled&&amount>record.withdrawable){
         showTurnover(record);
         return;
       }
@@ -1217,7 +1217,8 @@
       const data=await db('rpc/play80_my_turnover','POST',{});
       if(!Array.isArray(data?.items)||typeof data.withdrawal_guard_enabled!=='boolean')return null;
       const remaining=data.items.reduce((total,item)=>total+Math.max(0,Number(item.required)-Number(item.completed)),0);
-      return Number.isSafeInteger(remaining)?{...data,remaining}:null;
+      const withdrawable=Number(data.withdrawable_coins??(remaining?0:Math.max(0,Number(balance?.balance||0)-Number(balance?.held_balance||0))));
+      return Number.isSafeInteger(remaining)&&Number.isSafeInteger(withdrawable)&&withdrawable>=0?{...data,remaining,withdrawable}:null;
     }catch(_){return null;}
   }
   async function refreshTurnover(){
@@ -1243,10 +1244,11 @@
           createText('small','বাকি '+walletMoney(Number(item.required)-Number(item.completed))+' কয়েন'));
         turnoverList.append(card);
       }
+      turnoverList.append(createText('p','উইথড্রযোগ্য ডেমো কয়েন: '+walletMoney(record.withdrawable)));
       if(record.remaining&&!record.withdrawal_guard_enabled){
         turnoverList.append(createText('p','উইথড্রের টার্নওভার লক এখনো চালু হয়নি।'));
       }
-      if(!record.remaining||!record.withdrawal_guard_enabled){
+      if(record.withdrawable>=200||!record.remaining||!record.withdrawal_guard_enabled){
         turnoverList.append(makeButton('উইথড্র ফর্ম খুলুন',()=>openAccountPage('wallet','demo_debit'),true));
       }
     }
@@ -1261,7 +1263,7 @@
     const record=await readTurnover();
     if(!verifiedAuth||session?.user?.id!==viewer||document.body.dataset.play80Screen!==fromScreen
       ||signedIn.dataset.section!==fromSection)return;
-    if(!record||record.remaining>0)showTurnover(record);
+    if(!record||record.remaining>0&&record.withdrawable<200)showTurnover(record);
     else if(fromScreen==='account'&&fromSection==='wallet')selectWalletKind('demo_debit');
     else await openAccountPage('wallet','demo_debit');
   }

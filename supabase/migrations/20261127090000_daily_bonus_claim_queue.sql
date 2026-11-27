@@ -183,8 +183,144 @@ revoke all on function private.play80_turnover_owner_grant() from public,anon,au
 create trigger play80_turnover_owner_grant after insert on private.staff_coin_transfer_keys
 for each row execute function private.play80_turnover_owner_grant();
 
+
+-- A completed source unlocks its own original demo coin amount, not its 3x
+-- gameplay requirement. While any source is open, only unused completed-source
+-- coins are withdrawable. With no open source, the whole unheld wallet is free.
+-- Preserve zero-balance closures and spent allowances as audit history.
+alter table private.play80_turnover_items
+  add column voided_at timestamptz,
+  add column released_used bigint not null default 0 check(released_used>=0 and released_used<=coins);
+alter table public.turnover_records
+  add column closed_at timestamptz,
+  add column close_reason text check(close_reason in ('zero_balance','reconciled'));
+
+create function private.play80_open_turnover(p_user uuid)
+returns boolean language sql stable security definer set search_path='' as $$
+  select exists(select 1 from private.play80_turnover_items
+    where user_id=p_user and voided_at is null and completed<required)
+  or exists(select 1 from public.turnover_records
+    where user_id=p_user and closed_at is null and completed<required);
+$$;
+revoke all on function private.play80_open_turnover(uuid) from public,anon,authenticated;
+
+create function private.play80_released_coins(p_user uuid)
+returns bigint language sql stable security definer set search_path='' as $$
+  select coalesce(sum(coins-released_used),0)::bigint
+  from private.play80_turnover_items
+  where user_id=p_user and voided_at is null and completed=required;
+$$;
+revoke all on function private.play80_released_coins(uuid) from public,anon,authenticated;
+
+create function private.play80_withdrawable_coins(p_user uuid)
+returns bigint language sql stable security definer set search_path='' as $$
+  select greatest(0,least(w.balance-w.held_balance,
+    case when private.play80_open_turnover(p_user)
+      then private.play80_released_coins(p_user)-w.held_balance
+      else w.balance-w.held_balance end))
+  from public.demo_wallets w where w.user_id=p_user;
+$$;
+revoke all on function private.play80_withdrawable_coins(uuid) from public,anon,authenticated;
+
+-- Reserve existing wallet holds at request creation. At approval the existing
+-- staff RPC has already debited the balance and released that request's hold;
+-- consume released allowances exactly once in the same transaction.
+create or replace function private.play80_guard_turnover_withdrawal()
+returns trigger language plpgsql security definer set search_path='' as $$
+declare guarded boolean;
+declare held bigint;
+declare remaining bigint;
+declare take_coins bigint;
+declare item record;
+begin
+  if new.request_kind<>'demo_debit' then return new; end if;
+  select withdrawal_guard_enabled into guarded from private.play80_turnover_settings where singleton;
+  select held_balance into held from public.demo_wallets where user_id=new.user_id for update;
+  if not found then raise exception 'Wallet missing'; end if;
+  if tg_op='INSERT' and new.status='pending' then
+    if guarded and new.amount>coalesce(private.play80_withdrawable_coins(new.user_id),0)
+      then raise exception 'PLAY80_TURNOVER_PENDING'; end if;
+  elsif tg_op='UPDATE' and old.status='pending' and new.status='approved' then
+    if guarded and private.play80_open_turnover(new.user_id)
+      and private.play80_released_coins(new.user_id)<new.amount+held
+      then raise exception 'PLAY80_TURNOVER_PENDING'; end if;
+    remaining:=new.amount;
+    for item in select source,source_key,coins-released_used as available
+      from private.play80_turnover_items
+      where user_id=new.user_id and voided_at is null and completed=required and released_used<coins
+      order by created_at desc,source_key desc,source desc for update
+    loop
+      take_coins:=least(remaining,item.available);
+      update private.play80_turnover_items set released_used=released_used+take_coins
+        where source=item.source and source_key=item.source_key;
+      remaining:=remaining-take_coins;
+      exit when remaining=0;
+    end loop;
+  end if;
+  return new;
+end;
+$$;
+revoke all on function private.play80_guard_turnover_withdrawal() from public,anon,authenticated;
+
+create function private.play80_close_zero_balance_turnover()
+returns trigger language plpgsql security definer set search_path='' as $$
+begin
+  if old.balance>0 and new.balance=0 and new.held_balance=0 then
+    update private.play80_turnover_items set voided_at=clock_timestamp()
+      where user_id=new.user_id and voided_at is null;
+    update public.turnover_records set closed_at=clock_timestamp(),close_reason='zero_balance'
+      where user_id=new.user_id and closed_at is null;
+  end if;
+  return new;
+end;
+$$;
+revoke all on function private.play80_close_zero_balance_turnover() from public,anon,authenticated;
+create trigger play80_close_zero_balance_turnover after update of balance on public.demo_wallets
+for each row execute function private.play80_close_zero_balance_turnover();
+
+-- A verified historical correction: only accounts with zero recorded progress,
+-- no staged source items, no verified wins or debits and a balance equal to the
+-- exact audited credits can be safely reconstructed. Nothing is deleted.
+-- Historical transfers lack created_at; use the associated audit event time.
+-- Only reconcile the one exact, previously verified deposit/owner-send pair.
+do $$
+declare account_id uuid;
+declare credit_at timestamptz;
+declare send_at timestamptz;
+begin
+  select q.user_id,q.reviewed_at into account_id,credit_at
+  from public.demo_wallet_requests q
+  join public.bonus_transactions b on b.request_id=q.id and b.user_id=q.user_id
+  join private.play80_owner_transfers o on o.player_id=q.user_id
+  join public.turnover_records r on r.user_id=q.user_id
+  join public.demo_wallets w on w.user_id=q.user_id
+  where q.id='6b53c901-cae4-4957-b81a-f0c70ff83f2d'::uuid and q.status='approved'
+    and q.request_kind='demo_credit' and q.amount=1000
+    and b.id='127d880e-ca01-4971-a441-293020aef555'::uuid and b.amount=5000
+    and o.operation_id='d9042dcd-f1d5-4141-9724-8c162ef581b1'::uuid and o.direction='send'
+    and o.amount=500 and o.destination_after is not null
+    and r.required=2000 and r.completed=0 and r.closed_at is null
+    and w.balance=6500 and w.held_balance=0
+    and not exists(select 1 from private.play80_turnover_items i where i.user_id=q.user_id)
+    and not exists(select 1 from public.wallet_transactions t where t.user_id=q.user_id and t.transaction_type='tournament_reward')
+    and not exists(select 1 from public.demo_wallet_requests d where d.user_id=q.user_id and d.request_kind='demo_debit');
+  if account_id is not null then
+    perform 1 from public.demo_wallets where user_id=account_id for update;
+    select a.created_at into send_at from public.owner_audit_log a
+      where a.action='owner_transfer_demo_coins' and a.object_id=account_id
+        and a.details->>'operation_id'='d9042dcd-f1d5-4141-9724-8c162ef581b1'
+      order by a.created_at limit 1;
+    if send_at is null or send_at<credit_at then raise exception 'Historical transfer audit timestamp missing or inconsistent'; end if;
+    insert into private.play80_turnover_items(user_id,source,source_key,coins,created_at)
+      values(account_id,'first_deposit_bonus','127d880e-ca01-4971-a441-293020aef555',6000,credit_at),
+        (account_id,'deposit','owner_transfer:d9042dcd-f1d5-4141-9724-8c162ef581b1',500,send_at);
+    update public.turnover_records set closed_at=clock_timestamp(),close_reason='reconciled'
+      where user_id=account_id and closed_at is null;
+  end if;
+end $$;
+
 -- For server-verified virtual tournament rewards, allocate newest item first.
--- Withdrawal eligibility remains staged until per-source redeemable balances are verified.
+-- Settlement counts only server-verified tournament wins. Other games remain demo practice.
 create or replace function private.play80_turnover_on_entry()
 returns trigger language plpgsql security definer set search_path='' as $$
 declare item record;
@@ -194,7 +330,7 @@ begin
   if new.transaction_type<>'tournament_reward' or remaining_win<=0 then return new; end if;
   for item in
     select source,source_key,required-completed as remaining
-    from private.play80_turnover_items where user_id=new.user_id and completed<required
+    from private.play80_turnover_items where user_id=new.user_id and completed<required and voided_at is null
     order by created_at desc,source_key desc,source desc for update
   loop
     applied:=least(remaining_win,item.remaining);
@@ -205,7 +341,7 @@ begin
   end loop;
   if remaining_win>0 then
   select least(remaining_win, required-completed) into applied
-  from public.turnover_records where user_id=new.user_id and completed<required for update;
+  from public.turnover_records where user_id=new.user_id and completed<required and closed_at is null for update;
   if found then
     update public.turnover_records set completed=completed+applied,updated_at=now()
     where user_id=new.user_id;
@@ -220,15 +356,16 @@ create or replace function public.play80_my_turnover()
 returns jsonb language sql stable security definer set search_path='' as $$
   select jsonb_build_object(
     'withdrawal_guard_enabled',(select withdrawal_guard_enabled from private.play80_turnover_settings where singleton),
+    'withdrawable_coins',coalesce(private.play80_withdrawable_coins(auth.uid()),0),
     'items',coalesce(jsonb_agg(jsonb_build_object('source',source,'coins',coins,'required',required,
       'completed',completed,'created_at',created_at) order by created_at desc,source_key desc,source desc),'[]'::jsonb))
   from (
     select source,source_key,coins,required,completed,created_at
     from private.play80_turnover_items
-    where user_id=auth.uid() and completed<required
+    where user_id=auth.uid() and completed<required and voided_at is null
     union all
     select 'legacy',user_id::text,required,required,completed,'-infinity'::timestamptz
     from public.turnover_records
-    where user_id=auth.uid() and completed<required
+    where user_id=auth.uid() and completed<required and closed_at is null
   ) as pending;
 $$;

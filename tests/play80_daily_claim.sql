@@ -11,12 +11,13 @@ create table auth.users (
   raw_app_meta_data jsonb, raw_user_meta_data jsonb, banned_until timestamptz, created_at timestamptz not null default now()
 );
 create function auth.uid() returns uuid language sql as $$ select nullif(current_setting('test.uid',true),'')::uuid $$;
-create table public.demo_wallets(user_id uuid primary key,balance bigint not null default 0,updated_at timestamptz);
-create table public.demo_wallet_requests(id uuid primary key default gen_random_uuid(),user_id uuid,request_kind text,amount bigint,status text);
+create table public.demo_wallets(user_id uuid primary key,balance bigint not null default 0,held_balance bigint not null default 0,updated_at timestamptz);
+create table public.demo_wallet_requests(id uuid primary key default gen_random_uuid(),user_id uuid,request_kind text,amount bigint,status text,reviewed_at timestamptz);
 create table public.bonus_transactions(id uuid primary key default gen_random_uuid(),user_id uuid,request_id uuid,bonus_kind text,amount bigint,unique(user_id,bonus_kind));
 create table public.wallet_transactions(id uuid primary key default gen_random_uuid(),user_id uuid,transaction_type text,delta bigint,balance_after bigint,operation_key text unique,description text);
 create table public.turnover_records(user_id uuid primary key,required bigint not null,completed bigint not null default 0,updated_at timestamptz);
 create table public.profiles(id uuid primary key,username text);
+create table public.owner_audit_log(action text,object_id uuid,details jsonb,created_at timestamptz default now());
 create table private.play80_owner_transfers (
   operation_id uuid primary key,owner_id uuid not null,player_id uuid not null,
   direction text not null,amount bigint not null,source_after bigint,destination_after bigint
@@ -157,4 +158,48 @@ begin
     'Latest item receives verified win first';
   assert not exists(select 1 from private.play80_turnover_items where user_id=player and source_key<>recent_key and completed>0),
     'Older items must remain unchanged while latest is incomplete';
+end $$;
+
+-- A completed recent 500-coin source releases only its principal while an
+-- older 18,000-turnover source is pending. A hold and approval spend once.
+do $$
+declare player uuid:='00000000-0000-4000-8000-000000000006';
+declare req uuid;
+declare rejected boolean:=false;
+begin
+  insert into auth.users(id,email_confirmed_at) values(player,now());
+  update public.demo_wallets set balance=6500 where user_id=player;
+  perform private.play80_record_turnover(player,'first_deposit_bonus','fixture-old',6000);
+  perform private.play80_record_turnover(player,'deposit','fixture-new',500);
+  update private.play80_turnover_items set created_at=clock_timestamp()+interval '1 second' where source_key='fixture-new';
+  perform set_config('test.uid',player::text,true);
+  assert private.play80_withdrawable_coins(player)=0,'No completed source releases no coins';
+  update public.demo_wallets set balance=7000 where user_id=player;
+  insert into public.wallet_transactions(user_id,transaction_type,delta,operation_key)
+    values(player,'tournament_reward',500,'fixture-win');
+  assert private.play80_withdrawable_coins(player)=500,'Only completed latest principal releases';
+  assert jsonb_array_length(public.play80_my_turnover()->'items')=1,'Completed source disappears';
+  update private.play80_turnover_settings set withdrawal_guard_enabled=true where singleton;
+  begin
+    insert into public.demo_wallet_requests(user_id,request_kind,amount,status)
+      values(player,'demo_debit',501,'pending');
+  exception when others then
+    if sqlerrm='PLAY80_TURNOVER_PENDING' then rejected:=true; else raise; end if;
+  end;
+  assert rejected,'Excess simulated withdrawal is rejected';
+  insert into public.demo_wallet_requests(user_id,request_kind,amount,status)
+    values(player,'demo_debit',500,'pending') returning id into req;
+  update public.demo_wallets set held_balance=500 where user_id=player;
+  assert private.play80_withdrawable_coins(player)=0,'Pending hold reserves allowance';
+  update public.demo_wallets set balance=6500,held_balance=0 where user_id=player;
+  update public.demo_wallet_requests set status='approved' where id=req;
+  assert private.play80_withdrawable_coins(player)=0,'Approved debit consumes allowance once';
+  update public.demo_wallets set balance=0 where user_id=player;
+  assert jsonb_array_length(public.play80_my_turnover()->'items')=0,'Zero balance closes old turnover';
+  assert (select count(*) from private.play80_turnover_items where user_id=player and voided_at is not null)=2,'Audit records remain';
+  update public.demo_wallets set balance=500 where user_id=player;
+  perform private.play80_record_turnover(player,'deposit','fixture-redeposit',500);
+  assert jsonb_array_length(public.play80_my_turnover()->'items')=1,'Only new deposit survives zero reset';
+  assert private.play80_withdrawable_coins(player)=0,'Old allowance cannot be reused';
+  update private.play80_turnover_settings set withdrawal_guard_enabled=false where singleton;
 end $$;
