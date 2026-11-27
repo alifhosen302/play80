@@ -158,7 +158,7 @@ begin
           u.created_at,u.email_confirmed_at is not null as email_verified
    from auth.users u left join public.profiles p on p.id=u.id
    where u.raw_app_meta_data->>'role' in ('owner','admin','dsr')
-   order by case when u.raw_app_meta_data->>'role'='owner' then 0 when u.raw_app_meta_data->>'role'='admin' then 1 else 2 end,u.created_at,u.id,u.email_confirmed_at is not null as email_verified
+   order by case when u.raw_app_meta_data->>'role'='owner' then 0 when u.raw_app_meta_data->>'role'='admin' then 1 else 2 end,u.created_at,u.id
  ) x;
  return v_data;
 end;
