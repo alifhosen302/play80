@@ -56,10 +56,14 @@ try:
   assert page.locator('#p8RulesOverlay').is_visible(),'Rules are before game'
   page.locator('#p8RulesAccept').click()
   assert page.locator('#p8BubbleCanvas').is_visible(),'Real aimable bubble cannon canvas'
-  assert page.locator('#p8BubbleSwap').is_visible()
+  assert page.locator('#p8BubbleSwap').count()==0,'No separate swap button'
   assert page.locator('#p8BubbleBomb').is_visible()
-  page.locator('#p8BubbleSwap').click()
-  assert page.locator('#p8BubbleSwap').is_disabled(),'Swap limited to one per shot'
+  canvas=page.locator('#p8BubbleCanvas')
+  cb=canvas.bounding_box()
+  page.mouse.click(cb['x']+cb['width']*341/400,cb['y']+cb['height']*545/590)
+  assert 'swapped' in page.locator('#p8BubbleMessage').inner_text()
+  page.mouse.click(cb['x']+cb['width']*200/400,cb['y']+cb['height']*548/590)
+  assert 'Score: 0' in page.locator('#p8BubbleScore').inner_text(),'Cannon tap must not fire'
   page.locator('#p8BubbleBomb').click()
   assert 'CANCEL' in page.locator('#p8BubbleBomb').inner_text()
   # Pointer aim and fire into upper field
