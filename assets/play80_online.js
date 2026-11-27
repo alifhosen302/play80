@@ -301,6 +301,8 @@
     showWalletResponse('রিকোয়েস্ট পাঠানো হয়েছে। সিদ্ধান্ত রিকোয়েস্টের ইতিহাসে দেখাবে।');
   },showWalletResponse));
   $('cloudRefresh').addEventListener('click',e=>busy(e.currentTarget,loadAccount));
+  $('cloudSignOut').hidden=true;
+  $('cloudSignOut').style.setProperty('display','none','important');
   $('cloudSignOut').addEventListener('click',e=>busy(e.currentTarget,async()=>{
     hideStaffForm();
     if(pinDialog.open)pinDialog.close('cancel');
@@ -1090,15 +1092,12 @@
   daily.style.cssText='margin-top:16px;border:1px solid #cba65e;box-shadow:0 0 18px #d8ad5326;background:linear-gradient(155deg,#28203e,#171b35)';
   const countdown=createText('output','—','p8-countdown');
   countdown.style.cssText='padding:12px;text-align:center;font-size:2.25rem;font-weight:800;border:1px solid #ad8d4e;border-radius:14px;background:#100e25;color:#ffe29c';
-  const dailyPending=createText('p','জমা বোনাস —','p8-claim');
-  const dailyClaim=createText('button','৫০ কয়েন ক্লেইম করুন','action');
-  dailyClaim.type='button';dailyClaim.hidden=true;dailyClaim.disabled=true;
-  dailyClaim.style.cssText='width:100%;margin-top:10px;background:linear-gradient(135deg,#ffe29c,#c99b42);color:#21182c;font-weight:800;border:1px solid #ffe29c';
+  const dailyList=createText('div','','p8-daily-list');
+  dailyList.style.cssText='display:grid;gap:8px;margin-top:10px';
   const dailyStatus=createText('p','');dailyStatus.setAttribute('role','status');
-  dailyClaim.addEventListener('click',()=>{void claimDailyBonus();});
   daily.append(createText('h3','প্রতি ২৪ ঘণ্টায় ৫০ ভার্চুয়াল কয়েন'),
     createText('small','পরবর্তী বোনাস পর্যন্ত সময়'),countdown,
-    dailyPending,dailyClaim,dailyStatus);
+    dailyList,dailyStatus);
   const claim=createText('p','৫,০০০ কয়েন · ক্লেম —','p8-claim');
   bonusCard.append(claim);ownBonus.append(bonusCard,daily);
   const referralLink=document.createElement('input');referralLink.readOnly=true;
@@ -1134,11 +1133,22 @@
     referralLink,shareButton,copyButton,copyNote,referralTotal);
   let rewardData=null, rewardRefresh=false, dailyClaimBusy=false, nextRewardCheck=0, serverOffset=0;
   function renderDailyClaim(){
-    const pending=Number(rewardData?.pending_coins);
-    const ready=Number.isSafeInteger(pending)&&pending>=0;
-    dailyPending.textContent='জমা বোনাস: '+(ready?pending.toLocaleString('bn-BD')+' কয়েন':'—');
-    dailyClaim.hidden=!ready||pending<50;
-    dailyClaim.disabled=dailyClaimBusy||rewardRefresh||!verifiedAuth||!rewardData?.claim_due_at||pending<50;
+    const periods=Array.isArray(rewardData?.pending_periods)?rewardData.pending_periods:[];
+    dailyList.replaceChildren();
+    for(const dueAt of periods){
+      if(typeof dueAt!=='string'||!Number.isFinite(Date.parse(dueAt)))continue;
+      const row=createText('div','','p8-daily-row');
+      row.style.cssText='display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px;padding:8px 10px;border:1px solid #514265;border-radius:12px;background:#28233f';
+      const icon=createText('span','🎁');icon.setAttribute('aria-hidden','true');
+      const amount=createText('strong','৫০ কয়েন');
+      amount.style.cssText='text-align:center;color:#ffe29c;font-size:1.15rem';
+      const button=createText('button','ক্লেইম','smallAction p8-daily-claim-button');
+      button.type='button';button.dataset.dueAt=dueAt;
+      button.style.cssText='width:auto;min-height:40px;margin:0;padding:7px 12px;background:linear-gradient(135deg,#ffe29c,#c99b42);color:#21182c;font-weight:800;border:1px solid #ffe29c;border-radius:9px';
+      button.disabled=dailyClaimBusy||rewardRefresh||!verifiedAuth;
+      button.addEventListener('click',()=>{void claimDailyBonus(dueAt);});
+      row.append(icon,amount,button);dailyList.append(row);
+    }
   }
   function applyRewardData(data){
     rewardData=data;
@@ -1161,9 +1171,9 @@
       applyRewardData(data);
     }finally{rewardRefresh=false;renderDailyClaim();}
   }
-  async function claimDailyBonus(){
-    if(!verifiedAuth||isStaff()||isDsr()||dailyClaimBusy||rewardRefresh||!rewardData?.claim_due_at)return;
-    const id=session.user.id, dueAt=rewardData.claim_due_at;
+  async function claimDailyBonus(dueAt){
+    if(!verifiedAuth||isStaff()||isDsr()||dailyClaimBusy||rewardRefresh||!rewardData?.pending_periods?.includes(dueAt))return;
+    const id=session.user.id;
     const stillCurrent=()=>verifiedAuth&&session?.user?.id===id;
     dailyClaimBusy=true;renderDailyClaim();
     dailyStatus.textContent='ক্লেইম যাচাই হচ্ছে…';

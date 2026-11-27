@@ -1,7 +1,13 @@
 -- Daily virtual rewards accrue into a claim queue; previously credited wallets stay unchanged.
--- A claim is bound to the oldest due period so replaying a request cannot double-credit.
-alter table private.play80_daily_reward_clock
-  add column pending_cycles bigint not null default 0 check (pending_cycles>=0);
+-- Each due period is independently claimable; claimed rows remain for replay protection and audit.
+create table private.play80_daily_bonus_claims (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  due_at timestamptz not null,
+  claimed_at timestamptz,
+  primary key(user_id,due_at)
+);
+create index play80_daily_bonus_pending on private.play80_daily_bonus_claims(user_id,due_at) where claimed_at is null;
+revoke all on private.play80_daily_bonus_claims from public,anon,authenticated;
 -- Turnover belongs to the actual wallet credit, not the accrual clock.
 alter table private.play80_daily_reward_clock disable trigger play80_turnover_on_daily;
 
@@ -18,8 +24,11 @@ begin
   for update of c;
   if not found or due>now() then return; end if;
   cycles:=floor(extract(epoch from (now()-due))/86400)::bigint+1;
+  insert into private.play80_daily_bonus_claims(user_id,due_at)
+  select p_user,due+i*interval '24 hours' from generate_series(0::bigint,cycles-1) as g(i)
+  on conflict do nothing;
   update private.play80_daily_reward_clock
-  set next_at=due+cycles*interval '24 hours',pending_cycles=pending_cycles+cycles
+  set next_at=due+cycles*interval '24 hours'
   where user_id=p_user;
 end;
 $$;
@@ -49,8 +58,8 @@ declare result jsonb;
 begin
   perform private.play80_accrue_daily_bonus(auth.uid());
   select jsonb_build_object('server_at',now(),'next_at',c.next_at,
-    'pending_coins',coalesce(c.pending_cycles,0)*50,
-    'claim_due_at',case when c.pending_cycles>0 then c.next_at-c.pending_cycles*interval '24 hours' end,
+    'pending_periods',coalesce((select jsonb_agg(b.due_at order by b.due_at)
+      from private.play80_daily_bonus_claims b where b.user_id=u.id and b.claimed_at is null),'[]'::jsonb),
     'first_claimed',exists(select 1 from public.bonus_transactions b
       where b.user_id=u.id and b.bonus_kind='first_exact_1000_demo_credit'),
     'referral_code',p.username,
@@ -75,18 +84,17 @@ declare credited bigint:=0;
 begin
   if player_id is null then raise exception 'Login required'; end if;
   perform private.play80_accrue_daily_bonus(player_id);
-  select c.next_at-c.pending_cycles*interval '24 hours' into due
-  from private.play80_daily_reward_clock c
-  join auth.users u on u.id=c.user_id join public.demo_wallets w on w.user_id=c.user_id
-  where c.user_id=player_id and c.pending_cycles>0 and u.email_confirmed_at is not null
-    and not u.is_anonymous and (u.banned_until is null or u.banned_until<=now())
-    and coalesce(u.raw_app_meta_data->>'role','player')='player'
-  for update of c;
-  if found and due=p_due_at then
+  update private.play80_daily_bonus_claims b set claimed_at=now()
+  where b.user_id=player_id and b.due_at=p_due_at and b.claimed_at is null
+    and exists(select 1 from auth.users u join public.demo_wallets w on w.user_id=u.id
+      where u.id=player_id and u.email_confirmed_at is not null and not u.is_anonymous
+      and (u.banned_until is null or u.banned_until<=now())
+      and coalesce(u.raw_app_meta_data->>'role','player')='player')
+  returning b.due_at into due;
+  if found then
     perform private.play80_credit_reward(player_id,50);
     perform private.play80_record_turnover(player_id,'daily_bonus',
       player_id::text||':'||extract(epoch from due)::text,50);
-    update private.play80_daily_reward_clock set pending_cycles=pending_cycles-1 where user_id=player_id;
     credited:=50;
   end if;
   return jsonb_build_object('claimed',credited,'rewards',public.play80_my_rewards());

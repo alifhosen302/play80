@@ -247,16 +247,35 @@ try:
   assert tiles.nth(3).bounding_box()['y']==tiles.nth(0).bounding_box()['y']
   assert tiles.nth(4).bounding_box()['y']>tiles.nth(0).bounding_box()['y']
   assert page.get_by_role('button',name='রেফার বোনাস').is_visible()
-  page.route('**/rest/v1/rpc/play80_my_rewards',lambda route:route.fulfill(json={
-    'server_at':'2026-11-26T12:00:00Z','next_at':'2026-11-27T11:59:59Z',
-    'referral_code':'example_player','referral_count':2,'first_claimed':True
-  }))
+  pending_periods=['2026-11-24T12:00:00Z','2026-11-25T12:00:00Z','2026-11-26T11:59:59Z']
+  daily_claims=[]
+  def reward_response():
+   return {'server_at':'2026-11-26T12:00:00Z','next_at':'2026-11-27T11:59:59Z',
+           'referral_code':'example_player','referral_count':2,'first_claimed':True,
+           'pending_periods':pending_periods[:]}
+  def capture_daily_claim(route):
+   due=route.request.post_data_json['p_due_at']
+   daily_claims.append(due)
+   claimed=50 if due in pending_periods else 0
+   if claimed: pending_periods.remove(due)
+   route.fulfill(json={'claimed':claimed,'rewards':reward_response()})
+  page.route('**/rest/v1/rpc/play80_my_rewards',lambda route:route.fulfill(json=reward_response()))
+  page.route('**/rest/v1/rpc/play80_claim_daily_bonus',capture_daily_claim)
   page.get_by_role('button',name='রেফার বোনাস',exact=True).click()
   page.get_by_text('সফল রেফার ২টি').wait_for()
   assert page.get_by_label('PLAY80 আমন্ত্রণ লিংক').input_value().endswith('?ref=example_player')
   page.locator('#p8MenuButton').click()
   page.locator('.footerNav [data-p8-footer="bonus"]').click()
   page.get_by_text('৫,০০০ কয়েন · ক্লেম ✓ পাওয়া হয়েছে').wait_for()
+  assert page.locator('.p8-countdown').inner_text().startswith('23:59:')
+  assert page.locator('#cloudSignOut').is_hidden()
+  rows=page.locator('.p8-daily-row')
+  assert rows.count()==3
+  assert rows.locator('strong').all_text_contents()==['৫০ কয়েন']*3
+  rows.nth(1).get_by_role('button',name='ক্লেইম',exact=True).click()
+  page.wait_for_function("document.querySelectorAll('.p8-daily-row').length === 2")
+  assert daily_claims==['2026-11-25T12:00:00Z']
+  assert rows.locator('button').evaluate_all("(buttons)=>buttons.map(b=>b.dataset.dueAt)")==pending_periods
   assert page.locator('.p8-countdown').inner_text().startswith('23:59:')
   sent=[]
   def capture_support(route):
@@ -330,7 +349,9 @@ try:
   page.locator('#play80ActionPin button[value="cancel"]').click()
   assert page.locator('#play80ActionPin').is_hidden()
   page.locator('.footerNav [data-p8-footer="wallet"]').first.click()
-  page.locator('#cloudSignOut').click()
+  assert page.locator('#cloudSignOut').is_hidden()
+  page.locator('#p8MenuButton').click()
+  page.locator('#p8MenuItems').get_by_role('button',name='লগআউট',exact=True).click()
   assert page.locator('.play80TopTabs').is_hidden(),'Player logout must lock gameplay'
   current_role[0]='dsr'
   page.locator('#cloudLoginEmail').fill('dsr@example.invalid')
