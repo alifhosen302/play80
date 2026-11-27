@@ -198,6 +198,8 @@ try:
   page.reload()
   assert page.locator('.play80TopTabs').is_hidden(),'Logout lock must persist after reload'
   current_role[0]='player'
+  turnover={'withdrawal_guard_enabled':True,'items':[]}
+  page.route('**/rest/v1/rpc/play80_my_turnover',lambda route:route.fulfill(json=turnover))
   approved_credits=[]
   page.route('**/rest/v1/demo_wallet_requests?*status=eq.approved*',
              lambda route:route.fulfill(json=approved_credits))
@@ -209,6 +211,30 @@ try:
   page.wait_for_timeout(450)
   assert page.locator('.play80TopTabs').is_visible(),'Player login failed'
   assert page.locator('#screen-home').is_visible(),'Player should enter Games, not Owner'
+  home=page.locator('#screen-home')
+  catalog=home.locator('.homeGameGrid')
+  games=catalog.locator('.gameTile')
+  assert games.count()==14
+  assert page.locator('#screen-bet .gameTile[data-game-id="ludo"]').count()==1
+  assert home.locator('.hero, #p8RealAccountCTA').count()==0
+  for width,height in [(360,720),(390,844)]:
+   page.set_viewport_size({'width':width,'height':height})
+   first_three=[games.nth(index).bounding_box() for index in range(3)]
+   assert len({box['y'] for box in first_three})==1,'Mobile catalog should have three columns'
+   assert games.nth(5).bounding_box()['y']+games.nth(5).bounding_box()['height'] < page.locator('.footerNav').bounding_box()['y']
+   assert home.locator('.homeTournament').bounding_box()['height']<=48
+  home.get_by_role('button',name='PLAY80 টুর্নামেন্ট').click()
+  page.locator('#screen-tournament').wait_for(state='visible')
+  page.locator('[data-main-tab="home"]').click()
+  home.locator('#gameSearch').fill('dice')
+  assert games.filter(visible=True).count()==1
+  home.locator('#gameSearch').fill('')
+  catalog.locator('[data-favorite="dice"]').click()
+  home.locator('#favoritesOnly').click()
+  assert games.filter(visible=True).count()==1
+  catalog.locator('[data-favorite="dice"]').click()
+  home.locator('#favoritesOnly').click()
+  assert games.filter(visible=True).count()==14
   assert page.locator('#cloudOwnerEntry').is_hidden(),'Player must not access Owner panel'
   page.locator('#p8MenuButton').click()
   assert page.locator('#p8MenuQuick [data-panel="wallet"]').count()==0
@@ -270,8 +296,28 @@ try:
   approved_credits.append({'id':'already-approved'})
   page.locator('#cloudRefresh').click()
   page.locator('#p8FirstCreditOffer').wait_for(state='hidden')
+  page.locator('#p8MenuButton').click()
+  page.get_by_role('button',name='টার্নওভার',exact=True).click()
+  page.get_by_text('বাকি টার্নওভার নেই।',exact=True).wait_for()
+  page.locator('#p8MenuButton').click()
+  turnover['items']=[{'source':'deposit','required':500,'completed':250}]
+  page.locator('#p8MenuQuick').get_by_role('button',name='উইথড্র',exact=True).click()
+  page.get_by_text('মোট বাকি ২৫০ কয়েন',exact=True).wait_for()
+  assert page.locator('#cloudSignedIn').get_attribute('data-section')=='turnover'
+  assert page.get_by_role('button',name='উইথড্র ফর্ম খুলুন').count()==0
+  turnover['withdrawal_guard_enabled']=False
+  page.get_by_role('button',name='হিসাব রিফ্রেশ করুন').click()
+  page.get_by_role('button',name='উইথড্র ফর্ম খুলুন').click()
+  assert page.locator('#cloudRequestKind').input_value()=='demo_debit'
+  turnover['withdrawal_guard_enabled']=True
+  page.get_by_role('button',name='অনুরোধ পাঠাও').click()
+  page.get_by_text('মোট বাকি ২৫০ কয়েন',exact=True).wait_for()
+  assert not page.locator('#play80ActionPin').is_visible()
+  turnover['items']=[]
+  page.locator('#p8MenuButton').click()
+  page.locator('#p8MenuQuick').get_by_role('button',name='ডিপোজিট',exact=True).click()
   page.locator('.p8-request-toolbar').get_by_role('button',name='উইথড্র',exact=True).click()
-  assert page.get_by_label('ট্রান্সেকশন নম্বর',exact=True).is_hidden()
+  page.get_by_label('ট্রান্সেকশন নম্বর',exact=True).wait_for(state='hidden')
   assert page.get_by_label('ডেমো সেন্ড মানি নম্বর').is_hidden()
   assert page.get_by_role('button',name='বিকাশ ডেমো',exact=True).is_visible()
   assert page.locator('#cloudRequestKind').input_value()=='demo_debit'
@@ -280,7 +326,7 @@ try:
   assert page.locator('#cloudAmount').input_value()=='500'
   assert page.locator('.p8-amount-grid [data-amount="500"]').get_attribute('aria-pressed')=='true'
   page.get_by_role('button',name='অনুরোধ পাঠাও').click()
-  assert page.locator('#play80ActionPin').is_visible()
+  page.locator('#play80ActionPin').wait_for(state='visible')
   page.locator('#play80ActionPin button[value="cancel"]').click()
   assert page.locator('#play80ActionPin').is_hidden()
   page.locator('.footerNav [data-p8-footer="wallet"]').first.click()

@@ -24,6 +24,7 @@ concurrency:
 permissions:
   contents: write
   actions: read
+  statuses: write
 
 env:
   PLAY80_SIGNER_SHA256: 'f12ff7399065778b45539ac30d319a85c413472e992b9157414b84e71ea57dd2'
@@ -77,6 +78,9 @@ jobs:
           done
           docker cp supabase/migrations/20261126193000_rewards_referrals_owner_support.sql play80-db-test:/tmp/play80-reward-migration.sql
           docker exec -i play80-db-test psql -h 127.0.0.1 -U postgres -v ON_ERROR_STOP=1 < tests/play80_rewards_support.sql
+          docker exec play80-db-test createdb -h 127.0.0.1 -U postgres play80_turnover_test
+          docker cp supabase/migrations/20261126222000_stage_coin_turnover.sql play80-db-test:/tmp/play80-turnover.sql
+          docker exec -i play80-db-test psql -h 127.0.0.1 -U postgres -d play80_turnover_test -v ON_ERROR_STOP=1 < tests/play80_turnover.sql
       - name: Run account and signup browser tests
         run: |
           pip install playwright==1.56.0
@@ -147,6 +151,9 @@ jobs:
           grep -Fq 'data-p8-footer="wallet"' "$RUNNER_TEMP/play80-opened-apk.html"
           grep -Fq 'function syncFooter()' "$RUNNER_TEMP/play80-opened-account.js"
           grep -Fq 'p8CreateAdmin' "$RUNNER_TEMP/play80-opened-account.js"
+          grep -Fq 'function openWithdraw()' "$RUNNER_TEMP/play80-opened-account.js"
+          grep -Fq 'class="homeGameGrid"' "$RUNNER_TEMP/play80-opened-apk.html"
+          if grep -Fq 'id="p8RealAccountCTA"' "$RUNNER_TEMP/play80-opened-apk.html"; then exit 1; fi
           if grep -Fq 'id="cloudStaffPinGate"' "$RUNNER_TEMP/play80-opened-apk.html"; then exit 1; fi
           echo "Verified menu and server coin header inside APK build $PLAY80_VERSION_CODE"
           "$TOOLS/apksigner" verify --verbose --min-sdk-version 28 ../PLAY80_V4_1_Practice_QA.apk
@@ -205,4 +212,13 @@ jobs:
           gh release view "$TAG" >/dev/null || { echo "::error::Protected latest release missing"; exit 1; }
           gh release upload "$TAG" dist/PLAY80_V5_2_GitHub_QA.apk --clobber
           gh release edit "$TAG" --title "PLAY80 Latest QA (one stable download link)"
-          echo "Updated the only latest APK asset: $TAG"
+          ASSET=PLAY80_V5_2_GitHub_QA.apk
+          EXPECTED="sha256:$(sha256sum "dist/$ASSET" | cut -d' ' -f1)"
+          META="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" --jq ".assets[] | select(.name == \"$ASSET\")")"
+          [[ "$(jq -r .digest <<< "$META")" == "$EXPECTED" ]]
+          DOWNLOAD="$(jq -r .browser_download_url <<< "$META")"
+          printf 'Published APK build %s\n%s\n%s\n' "$PLAY80_VERSION_CODE" "$DOWNLOAD" "$EXPECTED"
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+            -f state=success -f context='PLAY80 APK release' \
+            -f description="Published and verified APK build $PLAY80_VERSION_CODE" \
+            -f target_url="$DOWNLOAD" >/dev/null
