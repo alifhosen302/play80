@@ -214,7 +214,8 @@ try:
   home=page.locator('#screen-home')
   catalog=home.locator('.homeGameGrid')
   games=catalog.locator('.gameTile')
-  assert games.count()==15
+  assert games.count()==14
+  assert page.locator('#screen-bet .gameTile[data-game-id="ludo"]').count()==1
   assert home.locator('.hero, #p8RealAccountCTA').count()==0
   for width,height in [(360,720),(390,844)]:
    page.set_viewport_size({'width':width,'height':height})
@@ -225,15 +226,15 @@ try:
   home.get_by_role('button',name='PLAY80 টুর্নামেন্ট').click()
   page.locator('#screen-tournament').wait_for(state='visible')
   page.locator('[data-main-tab="home"]').click()
-  home.locator('#gameSearch').fill('ludo')
+  home.locator('#gameSearch').fill('dice')
   assert games.filter(visible=True).count()==1
   home.locator('#gameSearch').fill('')
-  catalog.locator('[data-favorite="ludo"]').click()
+  catalog.locator('[data-favorite="dice"]').click()
   home.locator('#favoritesOnly').click()
   assert games.filter(visible=True).count()==1
-  catalog.locator('[data-favorite="ludo"]').click()
+  catalog.locator('[data-favorite="dice"]').click()
   home.locator('#favoritesOnly').click()
-  assert games.filter(visible=True).count()==15
+  assert games.filter(visible=True).count()==14
   assert page.locator('#cloudOwnerEntry').is_hidden(),'Player must not access Owner panel'
   page.locator('#p8MenuButton').click()
   assert page.locator('#p8MenuQuick [data-panel="wallet"]').count()==0
