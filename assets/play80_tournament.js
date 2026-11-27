@@ -13,12 +13,13 @@
  const notice=(s,error=false)=>{const el=$('tourNotice');if(el){el.textContent=String(s);el.style.color=error?'#ffbcb7':'#ffe5a1'}};
  const memNotice=s=>setText('memNotice',s);
  function countdown(){
-   if(!tournament||!tournament.status){setText('tourCountdown','--:--:--');return;}
+   if(!tournament||!['registration_open','running'].includes(tournament.status)){setText('tourCountdown','--:--:--');return;}
    const end=tournament.status==='registration_open'?tournament.registration_ends_at:tournament.ends_at;
    const remaining=Math.max(0,Math.ceil((new Date(end).getTime()-(Date.now()+serverDelta))/1000));
    const d=Math.floor(remaining/86400),h=Math.floor((remaining%86400)/3600),m=Math.floor((remaining%3600)/60),s=remaining%60;
    const hh=(d?d+'d ':'')+String(h).padStart(2,'0');
    setText('tourCountdown',hh+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0'));
+   if(remaining===0&&Date.now()-lastSync>5000)void loadTournament();
  }
  function showTabs(destination){
    const tab=(destination==='tournament'||destination==='memory'||destination==='2048')?'tournament':
@@ -109,7 +110,7 @@
    const btn=e.currentTarget;if(btn.disabled||!tournament)return;
    btn.disabled=true;
    try{
-     const out=await call('play80_tournament_join',{p_tournament_id:tournament.id});
+     const out=await call(tournament.fee_mode==='per_round'?'play80_tournament_join_v2':'play80_tournament_join',{p_tournament_id:tournament.id});
      notice(out.already_joined?'Already registered. No second entry fee was charged.':out.fee_mode==='per_round'?'Registered for free. Each new round costs 500 demo coins.':'Joined successfully. 500 nonredeemable demo coins charged once.');
      await api().reloadAccount().catch(()=>{});await loadTournament();
    }catch(err){notice(err.message,true);btn.disabled=false;}
@@ -129,7 +130,9 @@
  async function beginRound(){
    try{
      if(!tournament||tournament.status!=='running'||!tournament.joined)throw Error('Join the active tournament first.');
-     const out=await call('play80_memory_start',{p_tournament_id:tournament.id});
+     const perRound=tournament.fee_mode==='per_round';
+     if(perRound&&!window.confirm('নতুন রাউন্ডে ৫০০ ডেমো কয়েন লাগবে। অসমাপ্ত রাউন্ড চালু থাকলে কোনো কয়েন কাটা হবে না। চালিয়ে যাবেন?'))return false;
+     const out=await call(perRound?'play80_memory_start_v2':'play80_memory_start',{p_tournament_id:tournament.id});
      if(out.charged)await api().reloadAccount().catch(()=>{});
      board={id:out.run_id,matched:new Map(),shown:new Map(),firstIndex:null,busy:false,finished:false};
      const state=await call('play80_memory_state',{p_run_id:board.id});

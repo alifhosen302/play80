@@ -25,7 +25,7 @@ BEGIN
   RETURN v_id;
 END$function$;
 
-CREATE OR REPLACE FUNCTION public.play80_tournament_join(p_tournament_id uuid)
+CREATE OR REPLACE FUNCTION public.play80_tournament_join_v2(p_tournament_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -60,7 +60,7 @@ BEGIN
  RETURN jsonb_build_object('joined',true,'already_joined',false,'charged',500,'balance',v_wallet);
 END$function$;
 
-CREATE OR REPLACE FUNCTION public.play80_memory_start(p_tournament_id uuid)
+CREATE OR REPLACE FUNCTION public.play80_memory_start_v2(p_tournament_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -264,7 +264,41 @@ grant execute on function public.play80_owner_ai_activity() to authenticated;
 revoke all on function private.play80_open_next_tournament() from public,anon,authenticated;
 revoke all on function private.play80_finalize_tournament(uuid) from public,anon,authenticated;
 revoke all on function private.play80_tournament_tick() from public,anon,authenticated;
-revoke all on function public.play80_memory_start(uuid) from public,anon;
-grant execute on function public.play80_memory_start(uuid) to authenticated;
+revoke all on function public.play80_memory_start_v2(uuid) from public,anon;
+grant execute on function public.play80_memory_start_v2(uuid) to authenticated;
+revoke all on function public.play80_tournament_join_v2(uuid) from public,anon;
+grant execute on function public.play80_tournament_join_v2(uuid) to authenticated;
+
+-- Legacy client endpoints cannot silently accept new round fees.
+create or replace function public.play80_tournament_join(p_tournament_id uuid)
+returns jsonb language plpgsql security definer set search_path='' as $$
+declare mode text;
+begin
+ select announced_rules->>'fee_mode' into mode from public.tournaments where id=p_tournament_id for update;
+ if mode='per_round' then raise exception 'Update PLAY80 to view and accept the new tournament rules'; end if;
+ return public.play80_tournament_join_v2(p_tournament_id);
+end $$;
+create or replace function public.play80_memory_start(p_tournament_id uuid)
+returns jsonb language plpgsql security definer set search_path='' as $$
+declare mode text;
+begin
+ select announced_rules->>'fee_mode' into mode from public.tournaments where id=p_tournament_id for update;
+ if mode='per_round' then raise exception 'Update PLAY80 to view the new round fee'; end if;
+ return public.play80_memory_start_v2(p_tournament_id);
+end $$;
 revoke all on function public.play80_tournament_join(uuid) from public,anon;
+revoke all on function public.play80_memory_start(uuid) from public,anon;
 grant execute on function public.play80_tournament_join(uuid) to authenticated;
+grant execute on function public.play80_memory_start(uuid) to authenticated;
+-- Switch only an empty, not-yet-started registration. Preserve its original
+-- three-hour clock. Never change the terms of an event with registrations.
+do $$
+begin
+ perform pg_catalog.pg_advisory_xact_lock(6020261124);
+ update public.tournaments t
+ set announced_rules=coalesce(t.announced_rules,'{}'::jsonb)||jsonb_build_object(
+ 'fee_mode','per_round','bots_minimum',15,'late_registration',false,
+ 'registration_hours',3,'play_hours',72,'demo_only',true,'ai_reward_to_company_virtual_ledger',true)
+ where t.game_code='memory' and t.status='registration_open'
+ and t.registration_ends_at>now() and not exists(select 1 from public.tournament_entries e where e.tournament_id=t.id);
+end $$;
