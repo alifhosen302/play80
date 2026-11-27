@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - 'assets/**'
+      - 'scripts/**'
       - 'supabase/migrations/**'
       - 'supabase/functions/play80-create-dsr/**'
       - 'tests/**'
@@ -14,6 +15,7 @@ on:
   pull_request:
     paths:
       - 'assets/**'
+      - 'scripts/**'
       - 'supabase/migrations/**'
       - 'supabase/functions/play80-create-dsr/**'
       - 'tests/**'
@@ -36,52 +38,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Verify full source is checked in
-        run: |
-          set -euo pipefail
-          for file in build_qa.py assets/index.html assets/play80_online.js assets/play80_tournament.js assets/play80_practice_2048.js tests/test_2048.js; do
-            if [[ ! -f "$file" ]]; then
-              echo "::error file=$file::Source import incomplete. Refusing to claim a valid build."
-              exit 1
-            fi
-          done
-      - name: Python syntax verification
-        run: python -m compileall -q build_qa.py release_check.py
-      - name: JavaScript syntax verification
-        run: |
-          node --check assets/play80_online.js
-          node --check assets/play80_tournament.js
-          node --check assets/play80_practice_2048.js
-          node --check assets/play80_chess.js
-          node --check assets/play80_bet_arena.js
-          node --check assets/play80_rules_gate.js
-          node --check assets/play80_tournament_menu.js
-      - name: Unit and UI asset tests
-        run: |
-          node --experimental-strip-types tests/test_dsr_creation.mjs
-          node tests/test_2048.js
-          node tests/test_chess.js
-          node tests/test_v44_ui.js
-          node tests/test_rules_gate.js
-          node tests/test_v46_ui.js
-      - name: Verify daily claim queue on isolated PostgreSQL
-        shell: bash
-        run: |
-          set -euo pipefail
-          trap 'docker rm -f play80-daily-test >/dev/null 2>&1 || true' EXIT
-          docker run --detach --name play80-daily-test -e POSTGRES_HOST_AUTH_METHOD=trust -v "$PWD:/work:ro" postgres:16
-          for attempt in {1..30}; do
-            docker exec play80-daily-test pg_isready -h 127.0.0.1 -U postgres && break
-            sleep 1
-          done
-          docker exec -i play80-daily-test psql -h 127.0.0.1 -U postgres -v ON_ERROR_STOP=1 -f /work/tests/play80_daily_claim.sql
-      - name: Scan committed files for signing secrets
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          banned={'.keystore','.jks','.p12','.pfx','.pem','.key'}
-          files=[str(f) for f in Path('.').rglob('*') if f.is_file() and '.git' not in f.parts and f.suffix.lower() in banned]
-          if files:
-              raise SystemExit('Signing or secret files may not be committed: '+str(files))
-          print('No signing key file extensions committed')
-          PY
+      - name: Source and unit checks
+        run: bash scripts/verify.sh source
+      - name: Isolated database regression checks
+        run: bash scripts/verify.sh database
