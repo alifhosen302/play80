@@ -674,6 +674,8 @@ body.play80PracticeActive .footerNav{display:none!important}
 .p8TourLogo{object-fit:contain;display:grid;place-items:center;width:112px;height:112px;max-width:95%;aspect-ratio:1/1;border-radius:22px;background:radial-gradient(circle at 30% 20%,#a565eb,#4c287a 58%,#181731);font-size:61px;text-shadow:0 4px 7px #0009;box-shadow:inset 0 0 0 2px #dbac68,0 5px 15px #000a}
 #p8TourBack{min-height:44px;margin:7px 0 15px}
 #p8TournamentDetail .tourRules{display:block!important;font-size:11px;margin:7px 0 0}
+#p8TournamentDetail .tourRules[hidden],#p8TournamentDetail [hidden]{display:none!important}
+#p8TourUpcoming button{width:100%;min-height:36px}
 .p8TourCompactHead{display:flex;align-items:center;gap:7px;margin:5px 0}
 .p8TourCompactHead h2{flex:1;min-width:0;font-size:16px;margin:0}
 #p8TourBack{font-size:24px;line-height:1;width:34px;padding:4px;margin:0;min-height:34px}
@@ -1048,14 +1050,14 @@ body.p8-auth-locked .app{max-width:560px}
   <button type="button" class="p8TourCard" data-tour-choice="2048"><img class="p8TourLogo" src="tournament_puzzle_premium.svg" alt="2048 tournament game icon"><strong>2048 Puzzle</strong><small>Practice available</small></button>
  </div></div><div id="p8TournamentDetail" class="hidden">
  <div class="p8TourCompactHead"><button type="button" id="p8TourBack" class="play80SecondaryBtn" aria-label="সব টুর্নামেন্ট">‹</button><h2 id="p8TourChosenTitle">Tournament</h2><button type="button" id="p8TourPrizeButton" class="play80SecondaryBtn" aria-expanded="false" aria-controls="p8TourPrizeBreakdown">🏆 পুরস্কার</button></div>
- <div id="p8TourUpcoming" class="play80Surface hidden"><div class="tourFact"><small>টুর্নামেন্টের অবস্থা</small><strong id="p8TourUpcomingState">এখনো চালু হয়নি</strong></div><p>এখন শুধু ফ্রি অনুশীলন করা যাবে।</p><button type="button" class="play80PrimaryBtn" id="p8TourPractice">অনুশীলন করুন</button></div>
+ 
  <div id="p8TourMemoryLive">
  <div class="play80Surface p8TourOverview">
   <div class="p8TourClock"><small id="tourClockLabel">খেলা শুরু হতে বাকি</small><strong id="tourCountdown">--:--:--</strong><span id="tourState">লোড হচ্ছে…</span></div>
   <div class="p8TourStats"><div><small>নিবন্ধিত</small><strong id="tourHumans">—</strong></div><div><small>AI</small><strong id="tourBots">—</strong></div><div><small>আমার স্কোর</small><strong id="tourMyScore">0</strong></div></div>
-  <div class="p8TourFeeLine"><span id="tourFeeMode">রাউন্ড ফি</span> · ৫০০ ডেমো কয়েন <span class="hidden" id="tourPool">—</span></div>
+  <div class="p8TourFeeLine"><span id="tourFeeMode">রাউন্ড ফি</span><span id="tourFeeAmount"> · ৫০০ ডেমো কয়েন</span><span class="hidden" id="tourPool">—</span></div>
   <div class="tourBtnRow"><button id="tourJoin" class="play80PrimaryBtn" type="button" disabled>নিবন্ধন করুন</button><button id="tourPlay" class="play80PrimaryBtn hidden" type="button" disabled>খেলুন</button><button id="tourRefresh" class="play80SecondaryBtn" type="button" aria-label="রিফ্রেশ">↻</button></div>
-  <div class="tourNotice" id="tourNotice" role="status">সার্ভারের তথ্য লোড হচ্ছে…</div>
+  <div id="p8TourUpcoming" class="hidden"><button type="button" class="play80PrimaryBtn" id="p8TourPractice">ফ্রি অনুশীলন করুন</button></div><div class="tourNotice" id="tourNotice" role="status">সার্ভারের তথ্য লোড হচ্ছে…</div>
   <details class="tourRules"><summary>খেলার নিয়ম</summary>
    <ul id="tourRulesList"><li>Entry fee: 500 non-redeemable Demo Coins, paid once per tournament. Repeat games require no further fee.</li>
    <li>Registration lasts three hours; 15 human players start early. If one to 14 humans register, bots join at the deadline. With zero humans the countdown restarts.</li>

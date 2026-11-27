@@ -65,6 +65,14 @@ try:
   page.locator('#p8TourBack').click()
   page.locator('[data-tour-choice="bubble"]').click()
   assert page.locator('#p8TourUpcoming').is_visible()
+  assert page.locator('.p8TourOverview').is_visible()
+  assert page.locator('#tourState').inner_text()=='এখনো চালু হয়নি'
+  assert page.locator('#tourCountdown').inner_text()=='—'
+  assert page.locator('#tourJoin').is_hidden()
+  page.locator('#p8TourPrizeButton').click()
+  assert page.locator('#p8TourPrizeBreakdown .p8PrizeRow').count()==8
+  assert 'এখনো' in page.locator('#p8PrizeInfo').inner_text()
+  page.locator('#p8TourPrizeButton').click()
   page.locator('#p8TourPractice').click()
   assert page.locator('#p8RulesOverlay').is_visible(),'Rules are before game'
   page.locator('#p8RulesAccept').click()

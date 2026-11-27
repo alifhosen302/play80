@@ -25,12 +25,27 @@ function choose(key){
  if(!games[key])return;
  current=key;pastList.replaceChildren();home.classList.add('hidden');detail.classList.remove('hidden');
  $('p8TourChosenTitle').textContent=games[key];
- card.hidden=true;prizeButton.setAttribute('aria-expanded','false');prizeButton.hidden=key!=='memory';
- live.classList.toggle('hidden',key!=='memory');upcoming.classList.toggle('hidden',key==='memory');
+ detail.dataset.game=key;
+ card.hidden=true;prizeButton.setAttribute('aria-expanded','false');prizeButton.hidden=false;
+ live.classList.remove('hidden');upcoming.classList.toggle('hidden',key==='memory');
+ for(const id of ['tourCountdown','tourHumans','tourBots','tourMyScore','tourPool'])$(id).textContent='—';
+ $('tourClockLabel').textContent='খেলা শুরু হতে বাকি';
+ $('tourState').textContent=key==='memory'?'লোড হচ্ছে…':'এখনো চালু হয়নি';
+ $('tourFeeMode').textContent=key==='memory'?'রাউন্ড ফি':'বর্তমানে ফ্রি অনুশীলন';
+ $('tourFeeAmount').hidden=key!=='memory';
+ $('tourJoin').disabled=true;$('tourJoin').classList.toggle('hidden',key!=='memory');
+ $('tourJoin').textContent='নিবন্ধন করুন';
+ $('tourPlay').disabled=true;$('tourPlay').classList.add('hidden');
+ $('tourRefresh').classList.toggle('hidden',key!=='memory');
+ $('tourRulesList').parentElement.hidden=key!=='memory';
+ $('tourListTitle').textContent='👥 নিবন্ধিত খেলোয়াড়';
+ $('tourLeaderboard').textContent=key==='memory'?'তালিকা লোড হচ্ছে…':'নিবন্ধন এখনো খোলা হয়নি।';
+ $('tourNotice').textContent=key==='memory'?'সার্ভারের তথ্য লোড হচ্ছে…':'';
+ $('p8PrizeInfo').textContent=key==='memory'?'তহবিলের তথ্য লোড হচ্ছে…':'পরিকল্পিত সর্বোচ্চ পুরস্কার। এই গেমে এখনো টুর্নামেন্ট বা পুরস্কার চালু হয়নি।';
  if(key==='memory')$('tourRefresh')?.click();
  window.scrollTo(0,0);
 }
-function back(){detail.classList.add('hidden');home.classList.remove('hidden');window.scrollTo(0,0);}
+function back(){delete detail.dataset.game;detail.classList.add('hidden');home.classList.remove('hidden');window.scrollTo(0,0);}
 home.querySelectorAll('[data-tour-choice]').forEach(el=>el.addEventListener('click',()=>choose(el.dataset.tourChoice)));
 $('p8TourBack').addEventListener('click',back);
 document.querySelectorAll('[data-main-tab="tournament"]').forEach(el=>el.addEventListener('click',back));

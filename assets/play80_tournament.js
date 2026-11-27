@@ -7,12 +7,14 @@
  const $=id=>document.getElementById(id);
  const api=()=>window.Play80Cloud;
  const active=()=>api()?.user();
+ const memorySelected=()=>$('p8TournamentDetail')?.dataset.game==='memory'&&!$('p8TournamentDetail').classList.contains('hidden');
  const fmt=n=>Number(n||0).toLocaleString('en-US');
  let tournament=null,serverDelta=0,board=null,lastSync=0,refreshing=false;
  const setText=(id,text)=>{const el=$(id);if(el)el.textContent=String(text)};
  const notice=(s,error=false)=>{const el=$('tourNotice');if(el){el.textContent=String(s);el.style.color=error?'#ffbcb7':'#ffe5a1'}};
  const memNotice=s=>setText('memNotice',s);
  function countdown(){
+   if(!memorySelected())return;
    if(!tournament||!['registration_open','running'].includes(tournament.status)){setText('tourCountdown','--:--:--');return;}
    const end=tournament.status==='registration_open'?tournament.registration_ends_at:tournament.ends_at;
    const remaining=Math.max(0,Math.ceil((new Date(end).getTime()-(Date.now()+serverDelta))/1000));
@@ -37,7 +39,7 @@
    return api().rpc(name,data);
  }
  async function loadTournament(){
-   if(refreshing)return;
+   if(refreshing||!memorySelected())return;
    refreshing=true;
    try{
      const signed=!!active();
@@ -48,6 +50,7 @@
        if(!res.ok)throw Error('Public tournament status currently unavailable');
        t=await res.json();
      }
+     if(!memorySelected())return;
      tournament=t;lastSync=Date.now();serverDelta=new Date(t.server_time).getTime()-Date.now();
      setText('tourState',({registration_open:'নিবন্ধন চলছে',running:'খেলা চলছে',finished:'শেষ হয়েছে',idle:'অপেক্ষমাণ'})[t.status]||'তথ্য নেই');
      setText('tourClockLabel',t.status==='running'?'খেলা শেষ হতে বাকি':'খেলা শুরু হতে বাকি');
@@ -75,7 +78,7 @@
       countdown();
       if(t.id)await loadLeaderboard(t.id,signed);
       else $('tourLeaderboard').textContent='No active tournament entries yet.';
-    }catch(e){notice('Server error: '+(e.message||e),true);setText('tourState','UNAVAILABLE');}
+    }catch(e){if(memorySelected()){notice('Server error: '+(e.message||e),true);setText('tourState','তথ্য পাওয়া যায়নি');}}
    finally{refreshing=false;}
  }
  async function loadLeaderboard(id,signed=!!active()){
@@ -89,7 +92,8 @@
         if(!response.ok)throw Error('Public leaderboard currently unavailable');
         ranks=await response.json();
       }
-   }catch(e){setText('tourLeaderboard','Leaderboard unavailable: '+e.message);return;}
+   }catch(e){if(memorySelected())setText('tourLeaderboard','Leaderboard unavailable: '+e.message);return;}
+   if(!memorySelected()||tournament?.id!==id)return;
    const list=$('tourLeaderboard');list.replaceChildren();
    if(!Array.isArray(ranks)||!ranks.length){list.textContent=tournament?.status==='registration_open'?'এখনো কেউ নিবন্ধন করেনি।':'এখনো কোনো স্কোর নেই।';return;}
    for(const p of ranks.slice(0,150)){
@@ -108,7 +112,7 @@
  }
  $('tourRefresh').addEventListener('click',loadTournament);
  $('tourJoin').addEventListener('click',async e=>{
-   const btn=e.currentTarget;if(btn.disabled||!tournament)return;
+   const btn=e.currentTarget;if(btn.disabled||!tournament||!memorySelected())return;
    btn.disabled=true;
    try{
      const out=await call(tournament.fee_mode==='per_round'?'play80_tournament_join_v2':'play80_tournament_join',{p_tournament_id:tournament.id});
