@@ -31,7 +31,7 @@ function choose(key){
  $('p8TourChosenTitle').textContent=games[key];
  detail.dataset.game=key;
  card.hidden=true;prizeButton.setAttribute('aria-expanded','false');prizeButton.hidden=false;
- live.classList.remove('hidden');upcoming.classList.toggle('hidden',key==='memory');
+ live.classList.remove('hidden');upcoming.classList.remove('hidden');
  for(const id of ['tourCountdown','tourHumans','tourBots','tourMyScore','tourPool'])$(id).textContent='—';
  $('tourClockLabel').textContent='খেলা শুরু হতে বাকি';
  $('tourState').textContent=key==='memory'?'লোড হচ্ছে…':'এখনো চালু হয়নি';
@@ -55,7 +55,7 @@ home.querySelectorAll('[data-tour-choice]').forEach(el=>el.addEventListener('cli
 $('p8TourBack').addEventListener('click',back);
 document.querySelectorAll('[data-main-tab="tournament"]').forEach(el=>el.addEventListener('click',back));
 const screen=document.createElement('section');screen.id='screen-p8-practice';screen.className='screen hidden';
-screen.innerHTML='<div class="play80Surface"><button id="p8PracticeBack" class="play80SecondaryBtn" type="button">‹</button><h2 id="p8PracticeName">Practice</h2><p id="p8PracticeDisclosure">Practice only. No server tournament fees, rankings or prizes for this game yet.</p><div id="p8PracticeScore">Score: 0</div><div id="p8PracticeGrid" role="grid" aria-label="Puzzle practice board"></div><div id="p8PracticeShapes"></div><div id="p8LocalMemoryGrid" class="memGrid hidden" aria-label="Memory test cards"></div><p id="p8BlockNotice" role="status"></p><button id="p8PracticeReset" class="play80PrimaryBtn">NEW PRACTICE</button></div>';
+screen.innerHTML='<div class="play80Surface"><button id="p8PracticeBack" class="play80SecondaryBtn" type="button">‹</button><h2 id="p8PracticeName">Practice</h2><p id="p8PracticeDisclosure">ফ্রি প্রিভিউ · কোনো কয়েন কাটা হবে না; স্কোর টুর্নামেন্টে যোগ হবে না।</p><div id="p8PracticeScore">Score: 0</div><div id="p8PracticeGrid" role="grid" aria-label="Puzzle practice board"></div><div id="p8PracticeShapes"></div><div id="p8LocalMemoryGrid" class="memGrid hidden" aria-label="Memory test cards"></div><p id="p8BlockNotice" role="status"></p><button id="p8PracticeReset" class="play80PrimaryBtn">NEW PRACTICE</button></div>';
 document.querySelector('main')?.append(screen);
 const style=document.createElement('style');style.textContent=[
 '#p8PracticeGrid{width:100%;max-width:410px;aspect-ratio:1;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(8,minmax(0,1fr));gap:3px;background:#272440;padding:5px;border-radius:12px;margin:12px auto}',
@@ -188,7 +188,7 @@ function place(i,row=Math.floor(i/8),col=i%8){
   if(blockOver)drawShapes();
 }
 function reset(){if(drag){drag.ghost.remove();drag=null;}blockOver=false;$('p8BlockNotice').textContent=current==='block'?'ব্লক টেনে বোর্ডে বসান; পূর্ণ সারি বা কলাম পরিষ্কার হবে।':'';score=0;if(current==='bubble'){grid=Array.from({length:64},(_,i)=>i<24?rand(colors.length):-1);selected=rand(colors.length);}else{grid=Array(64).fill(null);newShapes();}drawBoard();render();if(current==='bubble')bubbleChoice();}
-// Local owner QA uses no tournament RPC, wallet, or leaderboard.
+// Shared free preview and owner QA: no tournament RPC, wallet, or leaderboard.
 let memoryDeck=[],memoryMatched=new Set(),memoryShown=[],memoryAttempts=0,memoryEpoch=0,memoryBusy=false;
 function renderLocalMemory(){
  const root=$('p8LocalMemoryGrid');root.replaceChildren();
@@ -209,22 +209,22 @@ function resetLocalMemory(){
  memoryMatched=new Set();memoryShown=[];memoryAttempts=0;memoryBusy=false;score=0;renderLocalMemory();
 }
 function flipLocalMemory(i){
- if(!ownerTest()||current!=='memory'||memoryBusy||memoryMatched.has(i)||memoryShown.includes(i))return;
+ if(screen.classList.contains('hidden')||current!=='memory'||memoryBusy||memoryMatched.has(i)||memoryShown.includes(i))return;
  memoryShown.push(i);
  if(memoryShown.length===1){renderLocalMemory();return;}
  memoryAttempts++;const [a,b]=memoryShown;
  if(memoryDeck[a]===memoryDeck[b]){memoryMatched.add(a);memoryMatched.add(b);score+=100;memoryShown=[];renderLocalMemory();if(memoryMatched.size===16)$('p8PracticeScore').textContent+=' · Complete!';return;}
  memoryBusy=true;renderLocalMemory();const epoch=memoryEpoch;
- setTimeout(()=>{if(epoch!==memoryEpoch||!ownerTest()||current!=='memory')return;memoryShown=[];memoryBusy=false;renderLocalMemory();},800);
+ setTimeout(()=>{if(epoch!==memoryEpoch||screen.classList.contains('hidden')||current!=='memory')return;memoryShown=[];memoryBusy=false;renderLocalMemory();},800);
 }
 function practice(){
  const qa=ownerTest();
  if(current==='2048'){navigate('2048');return;}
- if(current!=='bubble'&&current!=='block'&&!(current==='memory'&&qa))return;
+ if(!['bubble','block','memory'].includes(current))return;
  navigate('p8-practice');
  screen.classList.toggle('p8-block-active',current==='block');
  $('p8PracticeDisclosure').hidden=qa;
- $('p8PracticeName').textContent=games[current]+(qa?'':' — PRACTICE');
+ $('p8PracticeName').textContent=games[current]+(qa?'':' — প্রিভিউ');
  $('p8PracticeReset').textContent=qa?'NEW GAME':'NEW PRACTICE';
  $('p8BlockNotice').hidden=current!=='block';
  const memory=current==='memory';
@@ -236,7 +236,7 @@ function practice(){
  window.scrollTo(0,0);
 }
 $('p8TourPractice').addEventListener('click',practice);
-$('p8PracticeReset').addEventListener('click',()=>{if(current==='memory'){if(ownerTest())resetLocalMemory();return;}reset();if(current==='bubble')window.Play80BubbleDeluxe?.reset();});
+$('p8PracticeReset').addEventListener('click',()=>{if(current==='memory'){if(!screen.classList.contains('hidden'))resetLocalMemory();return;}reset();if(current==='bubble')window.Play80BubbleDeluxe?.reset();});
 $('p8PracticeBack').addEventListener('click',()=>{if(drag){drag.ghost.remove();drag=null;}memoryEpoch++;window.Play80BubbleDeluxe?.hide();navigate('tournament');if(ownerTest())back();else choose(current);});
 window.Play80TournamentMenu=Object.freeze({games:Object.keys(games),selected:()=>current});
 })();

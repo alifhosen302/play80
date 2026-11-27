@@ -7,7 +7,7 @@
  const $=id=>document.getElementById(id);
  const api=()=>window.Play80Cloud;
  const active=()=>api()?.user();
- const memorySelected=()=>!['owner','admin'].includes(active()?.app_metadata?.role)&&$('p8TournamentDetail')?.dataset.game==='memory'&&!$('p8TournamentDetail').classList.contains('hidden');
+ const memorySelected=()=>!['owner','admin'].includes(active()?.app_metadata?.role)&&document.body.dataset.play80Screen==='tournament'&&$('p8TournamentDetail')?.dataset.game==='memory'&&!$('p8TournamentDetail').classList.contains('hidden');
  const fmt=n=>Number(n||0).toLocaleString('en-US');
  let tournament=null,serverDelta=0,board=null,lastSync=0,refreshing=false;
  const setText=(id,text)=>{const el=$(id);if(el)el.textContent=String(text)};
@@ -54,26 +54,30 @@
      tournament=t;lastSync=Date.now();serverDelta=new Date(t.server_time).getTime()-Date.now();
      setText('tourState',({registration_open:'নিবন্ধন চলছে',running:'খেলা চলছে',finished:'শেষ হয়েছে',idle:'অপেক্ষমাণ'})[t.status]||'তথ্য নেই');
      setText('tourClockLabel',t.status==='running'?'খেলা শেষ হতে বাকি':'খেলা শুরু হতে বাকি');
-     setText('tourListTitle',t.status==='registration_open'?'👥 নিবন্ধিত খেলোয়াড়':'🏅 লিডারবোর্ড');
+     setText('tourListTitle',t.status==='registration_open'?'👥 নিবন্ধিত খেলোয়াড়':'🏅 লাইভ লিডারবোর্ড');
      setText('tourHumans',fmt(t.human_count));setText('tourBots',fmt(t.bot_count));
      setText('tourPool',fmt(t.funded_pool));setText('tourMyScore',fmt(t.my_score));
      const roundMode=t.fee_mode==='per_round'||t.rules?.fee_mode==='per_round';
-     const join=$('tourJoin');join.disabled=!signed||t.joined||!(roundMode?t.status==='registration_open':['running','registration_open'].includes(t.status));
-     join.textContent=t.joined?'✓ নিবন্ধিত':roundMode?'নিবন্ধন করুন · ফ্রি':'নিবন্ধন · ৫০০ কয়েন';
+     const lateAllowed=!roundMode||t.rules?.late_registration===true;
+     const deadline=new Date(t.ends_at).getTime();
+     const canJoin=t.status==='registration_open'||(t.status==='running'&&lateAllowed&&Date.now()+serverDelta<deadline);
+     const join=$('tourJoin');join.disabled=!signed||t.joined||!canJoin;
+     join.textContent=t.joined?'✓ নিবন্ধিত':roundMode?(t.status==='running'?'এখনই যোগ দিন · ফ্রি':'নিবন্ধন করুন · ফ্রি'):'নিবন্ধন · ৫০০ কয়েন';
      join.classList.toggle('hidden',t.status==='running'&&t.joined);
      setText('tourFeeMode',roundMode?'প্রতি নতুন রাউন্ড':'একবারের ফি');
      setText('p8PrizeInfo','বর্তমান তহবিল: '+fmt(t.funded_pool)+' / ৭,৫০০ ডেমো কয়েন। প্রকৃত পুরস্কার তহবিল অনুযায়ী বণ্টিত হবে।');
      const rules=$('tourRulesList');
-     if(rules&&rules.dataset.mode!==(roundMode?'round':'once')){
+     const ruleMode=roundMode?(lateAllowed?'round-late':'round'):'once';
+     if(rules&&rules.dataset.mode!==ruleMode){
        if(!rules.dataset.original)rules.dataset.original=rules.innerHTML;
-       rules.dataset.mode=roundMode?'round':'once';
+       rules.dataset.mode=ruleMode;
        if(roundMode){
          rules.replaceChildren();
-         for(const rule of ['৩ ঘণ্টা নিবন্ধন; তারপর ৭২ ঘণ্টা প্রতিযোগিতা।','নিবন্ধন ফ্রি; প্রতিটি নতুন রাউন্ডে ৫০০ ডেমো কয়েন। অসমাপ্ত রাউন্ড আবার চালাতে কোনো ফি নেই।','সার্ভারে যাচাই করা মোট স্কোরে র‍্যাঙ্কিং।','১৫ জন চিহ্নিত AI প্রতিযোগী, দিনে সর্বোচ্চ ৮ ঘণ্টা এবং ইভেন্টে ২৪ ঘণ্টা।','সর্বোচ্চ পুরস্কার তহবিল ৭,৫০০ ডেমো কয়েন; প্রকৃত ফান্ড অনুযায়ী ঘোষিত র‍্যাঙ্কে বণ্টন। AI পুরস্কার কোম্পানির ডেমো লেজারে।','কোনো বাস্তব টাকা বা নগদে রূপান্তর নেই।']){const li=document.createElement('li');li.textContent=rule;rules.append(li);}
+         for(const rule of [lateAllowed?'৩ ঘণ্টা প্রাথমিক নিবন্ধন; তারপর ৭২ ঘণ্টা প্রতিযোগিতা। খেলা শেষ হওয়ার আগ পর্যন্ত যোগ দেওয়া যাবে।':'৩ ঘণ্টা নিবন্ধন; তারপর ৭২ ঘণ্টা প্রতিযোগিতা।','নিবন্ধন ফ্রি; প্রতিটি নতুন রাউন্ডে ৫০০ ডেমো কয়েন। অসমাপ্ত রাউন্ড আবার চালাতে কোনো ফি নেই।','সার্ভারে যাচাই করা মোট স্কোরে র‍্যাঙ্কিং।','১৫ জন চিহ্নিত AI প্রতিযোগী, দিনে সর্বোচ্চ ৮ ঘণ্টা এবং ইভেন্টে ২৪ ঘণ্টা।','সর্বোচ্চ পুরস্কার তহবিল ৭,৫০০ ডেমো কয়েন; প্রকৃত ফান্ড অনুযায়ী ঘোষিত র‍্যাঙ্কে বণ্টন। AI পুরস্কার কোম্পানির ডেমো লেজারে।','কোনো বাস্তব টাকা বা নগদে রূপান্তর নেই।']){const li=document.createElement('li');li.textContent=rule;rules.append(li);}
        }else rules.innerHTML=rules.dataset.original;
      }
      const play=$('tourPlay');play.disabled=!signed||!(t.joined&&t.status==='running'&&t.game==='memory');
-     play.classList.toggle('hidden',t.status!=='running');
+     play.classList.toggle('hidden',t.status!=='running'||!t.joined);
      notice(!signed?'নিবন্ধনের জন্য লগইন করুন।':t.status==='registration_open'?(t.joined?'আপনার নিবন্ধন সম্পন্ন।':''):'');
       countdown();
       if(t.id)await loadLeaderboard(t.id,signed);
@@ -96,7 +100,7 @@
    if(!memorySelected()||tournament?.id!==id)return;
    const list=$('tourLeaderboard');list.replaceChildren();
    if(!Array.isArray(ranks)||!ranks.length){list.textContent=tournament?.status==='registration_open'?'এখনো কেউ নিবন্ধন করেনি।':'এখনো কোনো স্কোর নেই।';return;}
-   for(const p of ranks.slice(0,150)){
+   for(const p of ranks){
      const item=document.createElement('div');item.className='tourLeader';
      if(active()?.id===p.user_id)item.classList.add('me');
      const rank=document.createElement('span');rank.className='tourRank';rank.textContent=tournament?.status==='registration_open'?'✓':(({1:'🥇',2:'🥈',3:'🥉'})[p.rank]||('#'+p.rank));

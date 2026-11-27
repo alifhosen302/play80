@@ -25,10 +25,11 @@ create table public.profiles(id uuid primary key,username text);
 create function private.play80_bot_memory_tick(uuid,uuid) returns void language sql as $$ select $$;
 create function private.play80_require_staff_read() returns void language plpgsql as $$ begin if not exists(select 1 from auth.users where id=auth.uid() and raw_app_meta_data->>'role'='owner') then raise exception 'staff only'; end if; end $$;
 \i /work/supabase/migrations/20261127210000_memory_tournament_round_policy.sql
+\i /work/supabase/migrations/20261127223000_tournament_late_registration.sql
 do $$
-declare u uuid:=gen_random_uuid();declare own uuid:=gen_random_uuid();declare event uuid;declare run uuid;declare out jsonb;declare denied boolean:=false;
+declare u uuid:=gen_random_uuid();declare own uuid:=gen_random_uuid();declare late uuid:=gen_random_uuid();declare after_end uuid:=gen_random_uuid();declare event uuid;declare run uuid;declare out jsonb;declare denied boolean:=false;
 begin
- insert into auth.users(id,email_confirmed_at) values(u,now());
+ insert into auth.users(id,email_confirmed_at) values(u,now()),(late,now()),(after_end,now());
  insert into auth.users(id,email_confirmed_at,raw_app_meta_data) values(own,now(),'{"role":"owner"}');
  insert into public.profiles values(u,'qa_player');
  insert into public.demo_wallets(user_id,balance) values(u,1500);
@@ -48,6 +49,14 @@ begin
  perform private.play80_tournament_tick();
  assert (select count(*) from public.computer_player_scores where tournament_id=event)=15;
  assert (select ends_at-starts_at from public.tournaments where id=event)=interval '72 hours';
+ assert (select announced_rules->>'late_registration' from public.tournaments where id=event)='true';
+ insert into public.demo_wallets(user_id,balance) values(late,500),(after_end,500);
+ perform set_config('test.uid',late::text,true);
+ out:=public.play80_tournament_join_v2(event);assert (out->>'charged')::bigint=0;
+ assert (select balance from public.demo_wallets where user_id=late)=500;
+ out:=public.play80_tournament_join_v2(event);assert (out->>'already_joined')::boolean;
+ assert (select count(*) from public.tournament_entries where tournament_id=event and user_id=late)=1;
+ perform set_config('test.uid',u::text,true);
  denied:=false;begin perform public.play80_memory_start(event); exception when others then denied:=true; end;assert denied,'Legacy client cannot trigger new fee';
  assert (select balance from public.demo_wallets where user_id=u)=1500;
  out:=public.play80_memory_start_v2(event);run:=(out->>'run_id')::uuid;assert (out->>'charged')::bigint=500;
@@ -63,6 +72,10 @@ begin
  perform set_config('test.uid',own::text,true);assert jsonb_array_length(public.play80_owner_ai_activity())=15;
  update public.computer_player_scores set total_score=1300,highest_score=800,games_played=2 where bot_id=(select id from public.computer_players order by username limit 1);
  update public.tournaments set ends_at=now()-interval '1 second' where id=event;
+ perform set_config('test.uid',after_end::text,true);
+ denied:=false;begin perform public.play80_tournament_join_v2(event); exception when others then denied:=true;end;assert denied,'No registration after deadline';
+ assert (select balance from public.demo_wallets where user_id=after_end)=500;
+ perform set_config('test.uid',own::text,true);
  perform private.play80_finalize_tournament(event);
  assert (select status from public.tournaments where id=event)='finished';
  assert (select count(*) from public.tournament_rewards where tournament_id=event)=2;

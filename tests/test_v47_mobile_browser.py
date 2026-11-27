@@ -50,7 +50,7 @@ try:
   page.locator('[data-main-tab="tournament"]').click()
   assert page.locator('#p8TournamentCatalog').is_visible(),'Tournament selector visible'
   assert page.locator('.p8TourCard').count()==4
-  event={'id':'mock-event','game':'memory','status':'registration_open','server_time':'2026-11-27T12:00:00Z','registration_ends_at':'2026-11-27T15:00:00Z','human_count':1,'bot_count':0,'funded_pool':0,'my_score':0,'fee_mode':'per_round','joined':True}
+  event={'id':'mock-event','game':'memory','status':'registration_open','server_time':'2026-11-27T12:00:00Z','registration_ends_at':'2026-11-27T15:00:00Z','human_count':1,'bot_count':0,'funded_pool':0,'my_score':0,'fee_mode':'per_round','joined':False,'rules':{'late_registration':True},'ends_at':'2026-11-30T15:00:00Z'}
   page.route('**/rest/v1/rpc/play80_tournament_public',lambda route:route.fulfill(json=event))
   page.route('**/rest/v1/rpc/play80_tournament_leaderboard',lambda route:route.fulfill(json=[{'rank':1,'username':'mock_registered','type':'human','total_score':0,'games_played':0}]))
   page.locator('[data-tour-choice="memory"]').click()
@@ -62,6 +62,23 @@ try:
   assert page.locator('#p8TourPrizeBreakdown').is_visible()
   page.locator('#p8TourPrizeButton').click()
   assert page.locator('#p8TourPrizeBreakdown').is_hidden()
+  preview_calls=[]
+  page.on('request',lambda req:preview_calls.append(req.url) if any(x in req.url for x in ['/rpc/play80_memory_start','/rpc/play80_tournament_join','/rpc/play80_memory_flip']) else None)
+  page.locator('#p8TourPractice').click()
+  page.locator('#p8RulesAccept').click()
+  assert page.locator('#p8LocalMemoryGrid button').count()==16
+  page.locator('#p8LocalMemoryGrid button').first.click()
+  assert page.locator('#p8LocalMemoryGrid .show').count()==1
+  page.locator('#p8PracticeBack').click()
+  assert page.locator('#p8TournamentDetail').is_visible()
+  assert preview_calls==[],'Preview must not join or debit a tournament'
+  event['status']='running'
+  page.locator('#tourRefresh').click()
+  page.wait_for_function("document.getElementById('tourState').textContent==='খেলা চলছে'")
+  assert page.locator('#tourJoin').is_enabled()
+  assert page.locator('#tourPlay').is_hidden()
+  assert page.locator('#tourLeaderboard').get_by_text('mock_registered',exact=True).is_visible()
+  assert page.locator('#p8TourPractice').is_visible()
   page.locator('#p8TourBack').click()
   page.locator('[data-tour-choice="bubble"]').click()
   assert page.locator('#p8TourUpcoming').is_visible()
