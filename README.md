@@ -2,6 +2,10 @@
 
 Private Android demo-gaming project. The single source of truth for application development is this GitHub repository.
 
+## Developer guide
+
+See [Development and release guide](docs/DEVELOPMENT.md) for the source map, integration status and single-APK release policy.
+
 ## Current baseline
 
 - Target source: **PLAY80 V4.1 QA** (existing verified archive `PLAY80_V4_1_QA_Source.zip`).
