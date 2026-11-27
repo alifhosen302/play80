@@ -434,6 +434,14 @@ body:has(#screen-arcade:not(.hidden)) .main{padding-bottom:24px!important}
 #arcadePlay:has(.royalTable){min-height:0}
 .royalTable{position:relative;width:100%;max-width:680px;aspect-ratio:540/345;border:1px solid #ac834e;border-radius:14px;overflow:hidden;background:#241024}
 .royalTable canvas{display:block;width:100%;height:100%}
+#screen-arcade.cup-focus>.center{display:none!important}
+#screen-arcade.cup-focus .arcadePanel{padding:0!important;margin:0!important;border:0!important;background:transparent!important;box-shadow:none!important}
+#screen-arcade.cup-focus .arcadeBar,#screen-arcade.cup-focus #arcadeHelp{display:none!important}
+#screen-arcade.cup-focus #arcadePlay{padding:0!important;margin:0!important;min-height:0!important}
+#screen-arcade.cup-focus .royalTable{max-width:none;border-radius:12px}
+#screen-arcade.cup-focus #arcadeStatus{background:none!important;border:0!important;box-shadow:none!important;min-height:0!important;margin:5px 0!important;padding:4px!important;text-align:center}
+#screen-arcade.cup-focus .gameHint{font-size:10px;margin:5px 0;text-align:center}
+#screen-arcade.cup-focus .arcadeActions{margin:5px 0}
 .royalTable button[data-cup]{position:absolute;transform:translate(-50%,-50%);width:21%;height:29%;min-height:44px;background:transparent!important;border:0!important;box-shadow:none!important;border-radius:40%;touch-action:manipulation}
 .royalTable button:focus-visible{outline:3px solid #ffdc86;outline-offset:-3px}
 
@@ -2182,11 +2190,11 @@ function arSetActions(...items){arActions.replaceChildren();items.forEach(x=>arA
 function arMarkup(html){arPlay.innerHTML=html}
 function arBegin(){if(arc.live){toast('Finish the current round first');return false}if(!debitCoins(arc.game==='plinko'?(arc.stake||10):10,ARCADE_GAMES[arc.game].name+' • play cost')){arHelp('Insufficient free-play coins. Request demo coins from your wallet.');return false}arc.live=true;arc.complete=false;arc.id=++arcCounter;return true}
 function arEnd(payout,explain){if(!arc.live||arc.complete)return;arc.complete=true;arc.live=false;arc.finished=true;if(payout>0){award(payout,ARCADE_GAMES[arc.game].name+' • '+explain)}else{state.games++;addGameEntry(0,ARCADE_GAMES[arc.game].name+' • '+explain)}arHelp(explain+' · '+(payout?'+'+arNum(payout):'0')+' coins returned.');arSetActions(arButton('PLAY AGAIN • '+(arc.game==='plinko'?(arc.stake||10):10)+' COINS','reset'));}
-function arOpen(game){if(!ARCADE_GAMES[game])return;arc={game,live:false,finished:false,id:++arcCounter,stake:10};$('arcadeStakeLabel').textContent=game==='plinko'?'10 / 20 / 50 COINS':'10 COINS / ROUND';$('arcadeHero').textContent=ARCADE_GAMES[game].symbol;$('arcadeTitle').textContent=ARCADE_GAMES[game].name;$('arcadeDescription').textContent=ARCADE_GAMES[game].desc;$('arcadeHelp').textContent=ARCADE_GAMES[game].help;go('arcade');arRender()}
+function arOpen(game){if(!ARCADE_GAMES[game])return;$('screen-arcade').classList.toggle('cup-focus',game==='cups');arc={game,live:false,finished:false,id:++arcCounter,stake:10};$('arcadeStakeLabel').textContent=game==='plinko'?'10 / 20 / 50 COINS':'10 COINS / ROUND';$('arcadeHero').textContent=ARCADE_GAMES[game].symbol;$('arcadeTitle').textContent=ARCADE_GAMES[game].name;$('arcadeDescription').textContent=ARCADE_GAMES[game].desc;$('arcadeHelp').textContent=ARCADE_GAMES[game].help;go('arcade');arRender()}
 function arRender(){const g=arc.game;arPlay.classList.remove('forestArena');arActions.replaceChildren();if(g==='carnival'){arMarkup('<div class="arcadeWheel" id="arcWheel"><span>🎁</span></div>');arHelp('Spin the carnival wheel for a random virtual-coin prize.');arSetActions(arButton('SPIN • 10 COINS','spin'))}
 else if(g==='cups'){
   arc.table=createCupTable(arPlay);
-  arHelp('Watch the red ball, then follow its cup.');
+  arHelp('লাল বলটি অনুসরণ করুন।');
   arSetActions(arButton('START SHUFFLE • 10 COINS','start'));
 }
 else if(g==='apples'){arPlay.classList.add('forestArena');arMarkup('<div class="arcadeGrid" style="grid-template-columns:repeat(3,1fr)" id="appleGrid">'+Array.from({length:15},(_,i)=>'<button type="button" data-apple="'+i+'" disabled>✦</button>').join('')+'</div>');arHelp('Start and reveal apples row by row, or cash out to collect.');arSetActions(arButton('START APPLE TREE • 10','start'))}
@@ -2205,9 +2213,9 @@ else if(g==='cups'&&name==='start'){
   arc.ball=arPick(3);
   arc.pickable=false;
   arSetActions();
-  arHelp('Follow the cup covering the red ball.');
+  arHelp('বলটি যে কাপের নিচে আছে, অনুসরণ করুন।');
   arc.table.shuffle(arc.ball,()=>arc.id===id,arPick).then(done=>{
-    if(done&&arc.id===id){arc.pickable=true;arHelp('Pick the cup hiding the ball.');}
+    if(done&&arc.id===id){arc.pickable=true;arHelp('একটি কাপ বেছে নিন।');}
   });
 }
 else if(g==='apples'&&name==='start'){if(!arBegin())return;arc.row=0;arc.rotten=Array.from({length:5},()=>arPick(3));arHelp('Row 1: pick an apple');document.querySelectorAll('[data-apple]').forEach(b=>b.disabled=false);arSetActions(arButton('CASH OUT AFTER APPLES','cash',true,true))}

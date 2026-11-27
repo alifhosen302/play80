@@ -55,11 +55,14 @@ const style=document.createElement('style');style.textContent=[
 @keyframes p8BlockClear{0%{background:#fff2b1;box-shadow:0 0 13px #ffdf74}100%{background:#242443;box-shadow:none}}
 #p8PracticeShapes{align-items:center;justify-content:space-between;gap:8px;min-height:72px}
 #p8PracticeShapes button{flex:1;min-width:0;min-height:68px;padding:6px;display:grid;place-items:center;touch-action:none;user-select:none}
-.p8-block-mini{display:grid;gap:2px;width:max-content;pointer-events:none}
-.p8-block-mini i{display:block;width:clamp(10px,3.6vw,17px);aspect-ratio:1;border-radius:3px;box-shadow:inset 1px 1px 2px #fff9,inset -1px -2px 3px #0006;border:1px solid #ffffff35}
+.p8-block-mini{--tile:clamp(10px,3.6vw,17px);display:grid!important;gap:2px!important;width:max-content!important;height:max-content!important;grid-template-columns:repeat(var(--cols),var(--tile));grid-template-rows:repeat(var(--rows),var(--tile));align-content:start;justify-content:start;pointer-events:none}
+.p8-block-mini i{display:block!important;box-sizing:border-box;width:var(--tile)!important;height:var(--tile)!important;min-width:0;min-height:0;max-width:none;max-height:none;margin:0!important;padding:0!important;position:static!important;border-radius:3px;box-shadow:inset 1px 1px 2px #fff9,inset -1px -2px 3px #0006;border:1px solid #ffffff35}
 .p8-block-mini i.empty{visibility:hidden}
 .p8-block-ghost{position:fixed;z-index:9999;pointer-events:none;opacity:.88;filter:drop-shadow(0 4px 5px #0008)}
-.p8-block-ghost .p8-block-mini i{width:var(--ghost-cell);border-radius:5px}
+.p8-block-ghost .p8-block-mini{--tile:var(--ghost-cell)}
+.p8-block-ghost .p8-block-mini i{border-radius:5px}
+#p8PracticeShapes>button{height:84px!important;min-height:84px!important;max-height:84px;align-self:stretch;overflow:hidden}
+#p8PracticeShapes>button>.p8-block-mini{place-self:center}
 #p8BlockNotice{margin:4px 0 8px;color:#ffe3a4;font-size:.85rem;min-height:20px}
 #screen-p8-practice.p8-block-active>.play80Surface{padding:9px}
 #screen-p8-practice.p8-block-active h2{font-size:1.1rem;margin:5px 0}
@@ -91,7 +94,7 @@ function newShapes(){pieces=blockRules.makePieces();selected=0;drawShapes();}
 function mini(piece){
   const holder=document.createElement('div');holder.className='p8-block-mini';
   const rows=Math.max(...piece.shape.map(([r])=>r))+1,cols=Math.max(...piece.shape.map(([,c])=>c))+1;
-  holder.style.gridTemplateColumns='repeat('+cols+',auto)';
+  holder.style.setProperty('--cols',String(cols));holder.style.setProperty('--rows',String(rows));
   const occupied=new Set(piece.shape.map(([r,c])=>r+','+c));
   for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
     const tile=document.createElement('i');if(occupied.has(r+','+c))tile.style.background=piece.color;else tile.className='empty';holder.append(tile);

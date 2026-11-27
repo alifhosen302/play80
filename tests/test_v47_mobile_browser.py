@@ -84,6 +84,9 @@ try:
   page.locator('#p8RulesAccept').click()
   assert page.locator('#p8PracticeShapes .p8-block-mini').count()==3
   assert page.locator('#p8PracticeShapes .p8-block-mini i').count()>=3
+  assert page.locator('#p8PracticeShapes button').evaluate_all('(buttons)=>buttons.every(b=>Math.abs(b.getBoundingClientRect().height-buttons[0].getBoundingClientRect().height)<1)')
+  assert page.locator('#p8PracticeShapes .p8-block-mini i').evaluate_all('(tiles)=>tiles.every(t=>{const r=t.getBoundingClientRect();return Math.abs(r.width-r.height)<1&&r.width<=18})'),'Mini tiles are square and fixed-size'
+  assert page.locator('#p8PracticeShapes .p8-block-mini').evaluate_all('(items)=>items.every(el=>{const a=[...el.children],n=Number(el.style.getPropertyValue("--cols")),w=a[0].getBoundingClientRect().width;return a.every((t,i)=>{const r=t.getBoundingClientRect(),o=a[0].getBoundingClientRect();return Math.abs(r.left-o.left-(i%n)*(w+2))<1&&Math.abs(r.top-o.top-Math.floor(i/n)*(w+2))<1})})'),'Shape geometry must match the fixed grid'
   piece=page.locator('#p8PracticeShapes button').first
   piece.evaluate("(el)=>el.scrollIntoView({block:'center',inline:'center'})")
   page.wait_for_timeout(150)
