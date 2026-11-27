@@ -88,7 +88,7 @@
       dailyStatus.textContent='';nextRewardCheck=0;renderDailyClaim();
       $('p8MyMessages').replaceChildren();$('p8OwnerInboxList').replaceChildren();
       $('p8SupportText').value='';supportReceipt.hidden=true;
-      if(supportTopic)chooseSupportTopic(supportTopic);
+      supportSignature='';activeOwnerThread=null;
     }
     if(on){$('cloudEmail').textContent=session.user?.email||'Signed in';$('cloudRole').textContent=isOwner()?'Owner':(isStaff()?'Admin':isDsr()?'DSR':'Player');}
     else {$('cloudBalance').textContent='—';$('cloudRequests').replaceChildren();}
@@ -691,57 +691,72 @@
   const accountSupport=document.createElement('div');
   accountSupport.className='play80Surface';
   accountSupport.style.marginTop='12px';
-  accountSupport.innerHTML=`<h3>💬 সাপোর্ট</h3><p>কী সমস্যা? আমাদেরকে বলতে পারেন।</p>
-    <div class="p8-support-topics"><button class="action secondary" id="p8DepositSupport" type="button" aria-pressed="false">ডিপোজিট সমস্যা</button>
-    <button class="action secondary" id="p8WithdrawSupport" type="button" aria-pressed="false">উইথড্র সমস্যা</button></div>
-    <p id="p8SupportPrompt" hidden></p>
-    <label for="p8SupportText">ওনারকে মেসেজ লিখুন</label>
-    <textarea id="p8SupportText" rows="4" maxlength="950" placeholder="সমস্যার বিস্তারিত"></textarea>
-    <div class="cloudActions"><button class="action" type="button" id="p8SendMessage">মেসেজ পাঠান</button>
-    <button class="action secondary" type="button" id="p8MyMessagesRefresh">কথোপকথন রিফ্রেশ</button></div>
-    <p id="p8SupportReceipt" role="status" hidden></p><div id="p8MyMessages" class="cloudList"></div>
-    <button class="action secondary" type="button" id="p8RequestDeletion">অ্যাকাউন্ট মুছতে অনুরোধ</button>`;
+  accountSupport.classList.add('p8-chat');
+  accountSupport.innerHTML=`<h3>💬 সাপোর্ট</h3><small>স্বয়ংক্রিয় সহায়তা ও ওনারের উত্তর</small>
+    <div id="p8MyMessages" class="p8-chat-log" role="log" aria-label="সাপোর্ট কথোপকথন"></div>
+    <form id="p8ChatForm" class="p8-chat-composer"><textarea id="p8SupportText" rows="2" maxlength="950" aria-label="মেসেজ লিখুন" placeholder="মেসেজ লিখুন"></textarea>
+    <button class="action" type="submit" id="p8SendMessage">পাঠান</button></form>
+    <p id="p8SupportReceipt" role="status" hidden></p>
+    <button class="smallAction" type="button" id="p8MyMessagesRefresh">রিফ্রেশ</button>
+    <button class="smallAction" type="button" id="p8RequestDeletion">অ্যাকাউন্ট মুছতে অনুরোধ</button>`;
   $('cloudRequests').parentElement.append(accountSupport);
-  let supportTopic='';
-  function chooseSupportTopic(topic){
-    supportTopic=supportTopic===topic?'':topic;
-    $('p8DepositSupport').setAttribute('aria-pressed',String(supportTopic==='ডিপোজিট'));
-    $('p8WithdrawSupport').setAttribute('aria-pressed',String(supportTopic==='উইথড্র'));
-    const prompt=$('p8SupportPrompt');
-    prompt.hidden=!supportTopic;
-    prompt.textContent=supportTopic?'ডেমো · কখন '+supportTopic+' করেছেন, কী মাধ্যমে করেছেন এবং ডেমো নম্বর বা রেফারেন্স নম্বরসহ সমস্যার বিস্তারিত লিখুন। PIN বা OTP পাঠাবেন না।':'';
-  }
-  $('p8DepositSupport').addEventListener('click',()=>chooseSupportTopic('ডিপোজিট'));
-  $('p8WithdrawSupport').addEventListener('click',()=>chooseSupportTopic('উইথড্র'));
-  function supportMessage(sender,at,body){
-    const card=document.createElement('div');card.className='cloudRequestItem';
-    card.append(createText('strong',sender+' · '+escDate(at)),createText('p',body,'p8-support-body'));
+  let supportSignature='',supportLoading=false, supportSending=false,activeOwnerThread=null;
+  const supportReceipt=$('p8SupportReceipt');
+  function supportMessage(sender,at,body,outgoing=false){
+    const card=document.createElement('div');card.className='p8-chat-bubble'+(outgoing?' p8-chat-outgoing':'');
+    card.append(createText('small',sender+' · '+escDate(at)),createText('p',body,'p8-support-body'));
     return card;
   }
-  async function loadMyMessages(){
-    if(!verifiedAuth||isStaff())return;
+  async function sendChatMessage(body){
+    if(!verifiedAuth||supportSending)return;
     const viewer=session.user.id;
-    const rows=await db('rpc/play80_my_support_messages','POST',{});
-    if(!verifiedAuth||session?.user?.id!==viewer)return;
-    const list=$('p8MyMessages');list.replaceChildren();
-    if(!rows?.length)list.textContent='এখনও কোনো মেসেজ নেই।';
-    for(const r of [...(rows||[])].reverse()){
-      list.append(supportMessage(r.sender==='owner'?'ওনার':'আপনি',r.at,r.body));
-    }
-  }
-  const supportReceipt=$('p8SupportReceipt');
-  $('p8SendMessage').addEventListener('click',e=>busy(e.currentTarget,async()=>{
     const field=$('p8SupportText');
-    const body=field.value.trim();
-    if(!body)throw Error('মেসেজ লিখুন।');
-    const topic=supportTopic;
-    supportReceipt.hidden=true;
-    await db('rpc/play80_send_support_message','POST',{p_body:topic?'[ডেমো '+topic+' সমস্যা]\n'+body:body,p_category:'general'});
-    if(field.value.trim()===body)field.value='';
-    supportReceipt.textContent='আপনার মেসেজ সংরক্ষণ করা হয়েছে। ওনার যাচাই করে আপনাকে জানাবেন।';
-    supportReceipt.hidden=false;
-    await loadMyMessages();
-  }));
+    const button=$('p8SendMessage');
+    body=String(body).trim();
+    if(!body)return;
+    supportSending=true;button.disabled=true;supportReceipt.hidden=true;
+    try{
+      await db('rpc/play80_send_support_message','POST',{p_body:body,p_category:'general'});
+      if(!verifiedAuth||session?.user?.id!==viewer)return;
+      if(field.value.trim()===body)field.value='';
+      supportSignature='';
+      await loadMyMessages();
+    }catch(e){supportReceipt.textContent=e.message;supportReceipt.hidden=false;}
+    finally{supportSending=false;button.disabled=false;}
+  }
+  async function loadMyMessages(){
+    if(!verifiedAuth||isStaff()||supportLoading)return;
+    const viewer=session.user.id;
+    supportLoading=true;
+    try{
+      const rows=await db('rpc/play80_my_support_messages','POST',{});
+      if(!verifiedAuth||session?.user?.id!==viewer)return;
+      const list=$('p8MyMessages');
+      const ordered=[...(rows||[])].reverse();
+      const signature=JSON.stringify(ordered);
+      if(supportSignature===signature)return;
+      supportSignature=signature;
+      const nearBottom=list.scrollHeight-list.scrollTop-list.clientHeight<80;
+      const first=!list.children.length;
+      list.replaceChildren();
+      if(!ordered.length)list.append(createText('p','হ্যালো বা যেকোনো মেসেজ লিখে কথোপকথন শুরু করুন।'));
+      for(const r of ordered){
+        const bubble=supportMessage(r.sender==='owner'?(r.automatic_step?'ওনার · স্বয়ংক্রিয় উত্তর':'ওনার'):'আপনি',r.at,r.body,r.sender==='player');
+        if(r===ordered.at(-1)&&r.automatic_step==='choose'){
+          const options=createText('div','','p8-chat-options');
+          for(const topic of ['ডিপোজিট সমস্যা','উইথড্র সমস্যা']){
+            const option=makeButton(topic,()=>sendChatMessage(topic),true);
+            options.append(option);
+          }
+          bubble.append(options);
+        }
+        list.append(bubble);
+      }
+      if(first||nearBottom||supportSending)list.scrollTop=list.scrollHeight;
+    }finally{supportLoading=false;}
+  }
+  $('p8ChatForm').addEventListener('submit',e=>{e.preventDefault();void sendChatMessage($('p8SupportText').value);});
+  $('p8SupportText').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();void sendChatMessage(e.currentTarget.value);}});
   $('p8RequestDeletion').addEventListener('click',e=>busy(e.currentTarget,async()=>{
     const body=$('p8SupportText').value.trim()||'আমার PLAY80 অ্যাকাউন্ট মুছে দেওয়ার অনুরোধ করছি।';
     const pin=await askLoginPin('অ্যাকাউন্ট মুছতে সাপোর্ট রিকোয়েস্ট পাঠান');
@@ -761,6 +776,7 @@
     return db('rpc/play80_owner_threads','POST',{p_search:search});
   }
   async function loadOwnerInbox(){
+    activeOwnerThread=null;
     const rows=await getOwnerThreads($('p8InboxSearch').value.trim());
     const list=$('p8OwnerInboxList');list.replaceChildren();
     if(!rows.length)list.textContent='কোনো কথোপকথন নেই।';
@@ -776,6 +792,7 @@
   }
   async function openOwnerThread(thread){
     const {user_id,username}=thread;
+    activeOwnerThread=thread;
     const viewer=session.user.id;
     const messages=await db('rpc/play80_owner_open_thread','POST',{p_user:user_id});
     const latest=messages.at(-1)?.id;
@@ -784,8 +801,10 @@
     const list=$('p8OwnerInboxList');list.replaceChildren();
     list.append(makeButton('← সব কথোপকথন',loadOwnerInbox,true),
       createText('h4',username?'@'+username:'ইউজার'),createText('small','আইডি '+user_id));
-    for(const r of messages)list.append(supportMessage(r.sender_role==='owner'?'ওনার':'প্লেয়ার',r.created_at,r.body));
-    const reply=document.createElement('textarea');reply.maxLength=1000;reply.rows=3;
+    const chat=createText('div','','p8-chat-log');chat.id='p8OwnerChatLog';
+    for(const r of messages)chat.append(supportMessage(r.sender_role==='owner'?(r.automatic_step?'ওনার · স্বয়ংক্রিয় উত্তর':'ওনার'):'প্লেয়ার',r.created_at,r.body,r.sender_role==='owner'));
+    list.append(chat);chat.scrollTop=chat.scrollHeight;
+    const reply=document.createElement('textarea');reply.maxLength=1000;reply.rows=2;
     reply.placeholder='প্লেয়ারকে উত্তর লিখুন';reply.setAttribute('aria-label',reply.placeholder);
     list.append(reply,makeButton('উত্তর পাঠান',async()=>{
       if(!reply.value.trim())throw Error('উত্তর লিখুন।');
@@ -1089,17 +1108,17 @@
   amountInput.addEventListener('input',updatePresetSelection);
   renderWalletKind();
   const daily=document.createElement('div');daily.className='play80Surface p8-daily-reward';
-  daily.style.cssText='margin-top:16px;border:1px solid #cba65e;box-shadow:0 0 18px #d8ad5326;background:linear-gradient(155deg,#28203e,#171b35)';
+  daily.style.cssText='margin-top:0;padding:6px 10px;min-height:0;border:1px solid #cba65e;box-shadow:0 0 12px #d8ad5326;background:linear-gradient(155deg,#28203e,#171b35);max-width:100%';
   const countdown=createText('output','—','p8-countdown');
-  countdown.style.cssText='padding:12px;text-align:center;font-size:2.25rem;font-weight:800;border:1px solid #ad8d4e;border-radius:14px;background:#100e25;color:#ffe29c';
+  countdown.style.cssText='display:block;padding:3px 8px;line-height:1.15;text-align:center;font-size:1.65rem;font-weight:800;border:0;background:transparent;color:#ffe29c';
   const dailyList=createText('div','','p8-daily-list');
   dailyList.style.cssText='display:grid;gap:8px;margin-top:10px';
   const dailyStatus=createText('p','');dailyStatus.setAttribute('role','status');
-  daily.append(createText('h3','প্রতি ২৪ ঘণ্টায় ৫০ ভার্চুয়াল কয়েন'),
-    createText('small','পরবর্তী বোনাস পর্যন্ত সময়'),countdown,
-    dailyList,dailyStatus);
+  const dailyTitle=createText('h3','প্রতি ২৪ ঘণ্টায় ৫০ ভার্চুয়াল কয়েন');dailyTitle.style.cssText='margin:14px 0 6px;font-size:1rem';
+  daily.append(countdown);
+  dailyStatus.style.cssText='margin:0;font-size:.85rem';
   const claim=createText('p','৫,০০০ কয়েন · ক্লেম —','p8-claim');
-  bonusCard.append(claim);ownBonus.append(bonusCard,daily);
+  bonusCard.append(claim);ownBonus.append(bonusCard,dailyTitle,daily,dailyList,dailyStatus);
   const referralLink=document.createElement('input');referralLink.readOnly=true;
   referralLink.setAttribute('aria-label','PLAY80 আমন্ত্রণ লিংক');
   const copyNote=createText('p','');copyNote.setAttribute('role','status');
@@ -1424,6 +1443,30 @@
   $('p8MenuButton').addEventListener('click',()=>{renderMenu();renderIdentity();void loadAccount();});
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)void refreshMenuCounts();});
   setInterval(()=>{if(!document.hidden)void refreshMenuCounts();},20000);
+  // Refresh only the visible conversation. Never replace the owner's typed draft.
+  let ownerPollPending=false;
+  setInterval(async()=>{
+    if(document.hidden||!verifiedAuth)return;
+    if(!isStaff()&&signedIn.dataset.section==='support'&&document.body.dataset.play80Screen==='account'){
+      await loadMyMessages().catch(()=>{});return;
+    }
+    if(!isStaff()||inbox.classList.contains('hidden')||ownerPollPending||document.body.dataset.play80Screen!=='remote-owner')return;
+    ownerPollPending=true;
+    try{
+      if(activeOwnerThread){
+        const thread=activeOwnerThread,viewer=session.user.id;
+        const chat=$('p8OwnerChatLog');if(!chat)return;
+        const messages=await db('rpc/play80_owner_open_thread','POST',{p_user:thread.user_id});
+        if(!verifiedAuth||session?.user?.id!==viewer||activeOwnerThread!==thread||$('p8OwnerChatLog')!==chat)return;
+        const signature=JSON.stringify(messages);
+        if(chat.dataset.signature!==signature){
+          const nearBottom=chat.scrollHeight-chat.scrollTop-chat.clientHeight<80;
+          chat.replaceChildren(...messages.map(r=>supportMessage(r.sender_role==='owner'?(r.automatic_step?'ওনার · স্বয়ংক্রিয় উত্তর':'ওনার'):'প্লেয়ার',r.created_at,r.body,r.sender_role==='owner')));
+          chat.dataset.signature=signature;if(nearBottom)chat.scrollTop=chat.scrollHeight;
+        }
+      }else if(document.activeElement!==$('p8InboxSearch'))await loadOwnerInbox();
+    }catch(_){}finally{ownerPollPending=false;}
+  },5000);
   menuReady=true;
   async function verifySavedSession(){
     if(!session)return;

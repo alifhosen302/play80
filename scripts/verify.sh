@@ -34,6 +34,8 @@ database_checks() (
   docker exec -i "$db" psql -h 127.0.0.1 -U postgres -d play80_turnover_test -v ON_ERROR_STOP=1 -f /work/tests/play80_turnover.sql
   docker exec "$db" createdb -h 127.0.0.1 -U postgres play80_daily_claim_test
   docker exec -i "$db" psql -h 127.0.0.1 -U postgres -d play80_daily_claim_test -v ON_ERROR_STOP=1 -f /work/tests/play80_daily_claim.sql
+  docker exec "$db" createdb -h 127.0.0.1 -U postgres play80_support_chat_test
+  docker exec -i "$db" psql -h 127.0.0.1 -U postgres -d play80_support_chat_test -v ON_ERROR_STOP=1 -f /work/tests/play80_support_messenger.sql
 )
 browser_checks() {
   local file

@@ -279,20 +279,30 @@ try:
   assert rows.locator('button').evaluate_all("(buttons)=>buttons.map(b=>b.dataset.dueAt)")==pending_periods
   assert page.locator('.p8-countdown').inner_text().startswith('23:59:')
   sent=[]
+  conversation=[]
   def capture_support(route):
-   sent.append(route.request.post_data_json)
+   message=route.request.post_data_json
+   sent.append(message)
+   conversation.insert(0,{'id':str(len(conversation)+1),'sender':'player','body':message['p_body'],'at':'2026-11-27T12:00:00Z'})
+   steps={'হ্যালো':('choose','হ্যালো! আপনার কী সমস্যা?'),'ডিপোজিট সমস্যা':('deposit','ডেমো ডিপোজিট কখন করেছেন?'),'Demo reference 101':('received','আপনার তথ্য সংরক্ষণ হয়েছে।')}
+   step,body=steps[message['p_body']]
+   conversation.insert(0,{'id':str(len(conversation)+1),'sender':'owner','body':body,'at':'2026-11-27T12:00:01Z','automatic_step':step})
    route.fulfill(json={'ok':True})
+  page.route('**/rest/v1/rpc/play80_my_support_messages',lambda route:route.fulfill(json=conversation))
   page.route('**/rest/v1/rpc/play80_send_support_message',capture_support)
   page.locator('#p8MenuButton').click()
   page.locator('.footerNav [data-p8-footer="support"]').click()
-  page.locator('#p8WithdrawSupport').click()
-  assert 'উইথড্র' in page.locator('#p8SupportPrompt').inner_text()
-  page.locator('#p8DepositSupport').click()
-  assert 'ডেমো' in page.locator('#p8SupportPrompt').inner_text()
+  assert page.get_by_role('button',name='ডিপোজিট সমস্যা',exact=True).count()==0
+  page.locator('#p8SupportText').fill('হ্যালো')
+  page.locator('#p8SendMessage').click()
+  page.get_by_role('button',name='ডিপোজিট সমস্যা',exact=True).click()
+  page.get_by_text('ডেমো ডিপোজিট কখন করেছেন?',exact=True).wait_for()
+  assert page.get_by_role('button',name='ডিপোজিট সমস্যা',exact=True).count()==0
   page.locator('#p8SupportText').fill('Demo reference 101')
   page.locator('#p8SendMessage').click()
-  page.locator('#p8SupportReceipt').wait_for(state='visible')
-  assert sent[0]['p_body']=='[ডেমো ডিপোজিট সমস্যা]\nDemo reference 101'
+  page.get_by_text('আপনার তথ্য সংরক্ষণ হয়েছে।',exact=True).wait_for()
+  assert [r['p_body'] for r in sent]==['হ্যালো','ডিপোজিট সমস্যা','Demo reference 101']
+  assert not page.locator('#play80ActionPin').is_visible()
   page.locator('#p8MenuButton').click()
   page.locator('#p8MenuQuick').get_by_role('button',name='ডিপোজিট',exact=True).click()
   page.locator('#p8FirstCreditOffer').wait_for(state='visible')

@@ -771,6 +771,19 @@ body.p8-auth-locked .app{max-width:560px}
 .homeGameCount:empty{display:none}
 @media(max-width:310px){.homeGameGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
+<style>
+.p8-chat{padding:12px!important}
+.p8-chat-log{display:flex;flex-direction:column;gap:8px;height:min(48vh,420px);min-height:180px;overflow-y:auto;overscroll-behavior:contain;padding:8px 2px;margin:8px 0}
+.p8-chat-bubble{max-width:88%;align-self:flex-start;background:#242b45;border:1px solid #414b6a;border-radius:14px 14px 14px 4px;padding:8px 10px;overflow-wrap:anywhere}
+.p8-chat-bubble.p8-chat-outgoing{align-self:flex-end;background:#4b3286;border-color:#7960b4;border-radius:14px 14px 4px 14px}
+.p8-chat-bubble small{font-size:.7rem;opacity:.8}
+.p8-chat-bubble p{margin:4px 0 0;white-space:pre-wrap}
+.p8-chat-options{display:grid;gap:6px;margin-top:8px}
+.p8-chat-options button{font-size:.85rem;padding:7px;min-height:34px}
+.p8-chat-composer{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end}
+.p8-chat-composer textarea{width:100%;min-height:42px;resize:vertical}
+.p8-chat-composer button{width:auto;padding:10px 12px}
+</style>
 </head>
 <body class="p8-auth-locked">
 <div class="app">
