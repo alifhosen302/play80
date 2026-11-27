@@ -198,6 +198,8 @@ try:
   page.reload()
   assert page.locator('.play80TopTabs').is_hidden(),'Logout lock must persist after reload'
   current_role[0]='player'
+  turnover={'withdrawal_guard_enabled':True,'items':[]}
+  page.route('**/rest/v1/rpc/play80_my_turnover',lambda route:route.fulfill(json=turnover))
   approved_credits=[]
   page.route('**/rest/v1/demo_wallet_requests?*status=eq.approved*',
              lambda route:route.fulfill(json=approved_credits))
@@ -270,8 +272,30 @@ try:
   approved_credits.append({'id':'already-approved'})
   page.locator('#cloudRefresh').click()
   page.locator('#p8FirstCreditOffer').wait_for(state='hidden')
+  page.locator('#p8MenuButton').click()
+  page.get_by_role('button',name='ডাউনলোড',exact=True).click()
+  download=page.get_by_role('link',name='Android APK ডাউনলোড',exact=True)
+  download.wait_for()
+  assert download.get_attribute('href').endswith('/PLAY80_V5_2_GitHub_QA.apk')
+  page.locator('#p8MenuButton').click()
+  turnover['items']=[{'source':'deposit','required':500,'completed':250}]
+  page.locator('#p8MenuQuick').get_by_role('button',name='উইথড্র',exact=True).click()
+  page.get_by_text('মোট বাকি ২৫০ কয়েন',exact=True).wait_for()
+  assert page.locator('#cloudSignedIn').get_attribute('data-section')=='turnover'
+  assert page.get_by_role('button',name='উইথড্র ফর্ম খুলুন').count()==0
+  turnover['withdrawal_guard_enabled']=False
+  page.get_by_role('button',name='হিসাব রিফ্রেশ করুন').click()
+  page.get_by_role('button',name='উইথড্র ফর্ম খুলুন').click()
+  assert page.locator('#cloudRequestKind').input_value()=='demo_debit'
+  turnover['withdrawal_guard_enabled']=True
+  page.get_by_role('button',name='অনুরোধ পাঠাও').click()
+  page.get_by_text('মোট বাকি ২৫০ কয়েন',exact=True).wait_for()
+  assert not page.locator('#play80ActionPin').is_visible()
+  turnover['items']=[]
+  page.locator('#p8MenuButton').click()
+  page.locator('#p8MenuQuick').get_by_role('button',name='ডিপোজিট',exact=True).click()
   page.locator('.p8-request-toolbar').get_by_role('button',name='উইথড্র',exact=True).click()
-  assert page.get_by_label('ট্রান্সেকশন নম্বর',exact=True).is_hidden()
+  page.get_by_label('ট্রান্সেকশন নম্বর',exact=True).wait_for(state='hidden')
   assert page.get_by_label('ডেমো সেন্ড মানি নম্বর').is_hidden()
   assert page.get_by_role('button',name='বিকাশ ডেমো',exact=True).is_visible()
   assert page.locator('#cloudRequestKind').input_value()=='demo_debit'
@@ -280,7 +304,7 @@ try:
   assert page.locator('#cloudAmount').input_value()=='500'
   assert page.locator('.p8-amount-grid [data-amount="500"]').get_attribute('aria-pressed')=='true'
   page.get_by_role('button',name='অনুরোধ পাঠাও').click()
-  assert page.locator('#play80ActionPin').is_visible()
+  page.locator('#play80ActionPin').wait_for(state='visible')
   page.locator('#play80ActionPin button[value="cancel"]').click()
   assert page.locator('#play80ActionPin').is_hidden()
   page.locator('.footerNav [data-p8-footer="wallet"]').first.click()
