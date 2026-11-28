@@ -66,3 +66,14 @@ context.cwPending={finished:false};delayed.shift()();assert.equal(calls,0,'Stale
 run('cwGuardedDelay(mark,100)');delayed.shift()();assert.equal(calls,1,'Current result runs once');
 run('cwAutoRunning=true;cwStartSelection()');context.document.hidden=true;run('cwTick()');assert.equal(intervals.size,0,'Background clock stops');
 console.log('PASS: Simulated clock, pause, hidden tab and stale callbacks');
+
+assert(html.includes('p8GameInteriorDesign'),'Premium game interior styling');
+for(const marker of ['p8DiceHigh','p8DiceSeven','p8DiceLow','diceRenderHistory','diceCancel','diceGroup(sum)','dicePractice.history.slice(0,12)'])assert(html.includes(marker),marker);
+const diceLogic=html.slice(html.indexOf('// Avatar Dice is a free probability practice'),html.indexOf('// Demo-only virtual point requests.'));
+assert(!/award\(|debitCoins\(|state\.points|\.rpc\(/.test(diceLogic),'Free dice practice cannot alter wallet');
+const groupSource=html.match(/function diceGroup\(sum\)\{[^}]+\}/)[0];
+const group=vm.runInNewContext(groupSource+';diceGroup');
+const outcomes=[0,0,0,0];
+for(let a=1;a<=6;a++)for(let b=1;b<=6;b++)outcomes[group(a+b)]++;
+assert.deepEqual(outcomes,[0,15,6,15],'All 36 possible dice sums correctly classified');
+console.log('PASS: Avatar Dice sum grouping, wallet isolation and visual controls');

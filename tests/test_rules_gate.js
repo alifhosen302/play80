@@ -15,3 +15,6 @@ assert(html.includes('মূল ওয়ালেট বা টার্নও�
 const online=fs.readFileSync('assets/play80_online.js','utf8');
 for(const marker of ['applyServerWallet','walletReadVersion','walletOwner===account.id','refreshServerWallet'])assert(online.includes(marker),marker);
 assert(!online.includes('balance=wallets?.[0]||{balance:0,held_balance:0}'),'No fabricated zero wallet');
+
+assert(src.includes('"crazyshow":["Crazy Wheel Show","crazyshow"'),'Crazy show must not reuse Carnival icon');
+assert(fs.statSync('assets/play80_crazyshow_premium.svg').size>1000,'Original distinct show icon');

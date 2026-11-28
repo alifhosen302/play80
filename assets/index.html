@@ -966,6 +966,38 @@ body.p8-local-practice .screen:not(.hidden)>.p8-practice-marker{display:block}
 .cwActions{margin-top:6px}.cwActions button{min-height:34px;font-size:11px}.cwRoundMessage{min-height:0;margin-top:5px;padding:5px}
 @media(prefers-reduced-motion:reduce){.cwWheelZone,.cwHostZone{transition:none}.cwHostZone img,.cwTopSlot.highlight{animation:none}}
 </style>
+<style id="p8GameInteriorDesign">
+.p8-dice-studio .p8DiceHeader{display:flex;align-items:center;justify-content:space-between;gap:6px;margin:4px 0 8px}
+.p8DiceHeader h1{font-size:22px;margin:2px 0;color:#ffe8a9}.p8DiceHeader small,.p8DiceHeader>span{font-size:10px;letter-spacing:.8px;color:#d9bf8f;font-weight:750}
+.p8DiceStage{position:relative;display:grid;grid-template-columns:1fr 1.25fr;align-items:center;min-height:195px;overflow:hidden;border:1px solid #d7a95e;border-radius:15px;background:radial-gradient(ellipse at 35% 5%,#f7c16b55,transparent 55%),linear-gradient(125deg,#522b32,#171c32 70%);padding:6px 6px 30px}
+.p8DiceHost{position:relative;height:170px;text-align:center}.p8DiceHost img{height:100%;width:100%;object-fit:contain;object-position:bottom;filter:drop-shadow(0 5px 7px #0009)}
+.p8DiceHost>div{position:absolute;bottom:0;left:0;right:0;font-size:10px;background:#251b24dc;padding:3px}.p8DiceHost small{display:block;font-size:9px;color:#e5cda3}
+.p8DiceTray{border:5px solid #ba9558;border-radius:50%;background:radial-gradient(circle,#34664b,#102b26);box-shadow:inset 0 0 20px #0008,0 4px 10px #0007;aspect-ratio:1;display:grid;place-items:center;overflow:hidden}
+.p8DiceTray .diceArt{margin:0;min-height:0;padding:0;gap:22px;transform:scale(.58);transform-origin:center;justify-content:center}
+#dicePhase{position:absolute;left:0;right:0;bottom:0;padding:5px 8px;text-align:center;background:#152b2b;color:#f1e3b5;font-size:12px;font-weight:800}
+.p8DiceBoard{display:grid;grid-template-columns:1fr;grid-template-rows:76px 72px 76px;position:relative;gap:3px;margin:9px 0}
+.p8DiceBoard .choice{width:100%;height:100%;border:2px solid #cfa35b;border-radius:20px;background:radial-gradient(ellipse at 50% 30%,#864b49,#4b272c);color:#f8db91;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1;box-shadow:inset 0 0 14px #150a1c88}
+.p8DiceBoard .choice strong{font-family:Georgia,serif;font-size:29px}.p8DiceBoard .choice small{font-size:10px;letter-spacing:1px}
+.p8DiceBoard .p8DiceSeven{width:105px;height:105px;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);border-radius:50%;z-index:1;box-shadow:0 0 0 4px #48272c,0 0 0 6px #cfa35b}
+.p8DiceBoard .p8DiceHigh{grid-row:1/2;align-items:center;justify-content:flex-start;padding-top:9px}.p8DiceBoard .p8DiceLow{grid-row:3/4;justify-content:flex-end;padding-bottom:9px}
+.p8DiceBoard .choice.selected{outline:2px solid #90d3bb;outline-offset:-5px;background:radial-gradient(ellipse,#477d65,#203d36)}.p8DiceBoard .choice:disabled{opacity:.7}
+.p8DiceBoard .choice[data-result-match=true]{box-shadow:inset 0 0 0 3px #9de1ab}
+.p8DiceStats{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin:8px 0}
+.p8DiceStats>div,.p8DiceHistory{padding:7px;border:1px solid #b2956555;border-radius:10px;background:#25202c;text-align:center}
+.p8DiceStats small,.p8DiceHistory small{display:block;font-size:10px;color:#c9bda9}.p8DiceStats b{font-size:18px;color:#ffe3a5}
+.p8DiceHistory>div:first-child{display:flex;justify-content:space-between;align-items:center;gap:5px;font-size:12px}
+#diceHistory{display:flex;gap:4px;overflow:auto;margin-top:7px;min-height:40px}#diceHistory span{flex:0 0 32px;border:1px solid #ad906a66;background:#171820;padding:3px;border-radius:6px;text-align:center;color:#f6e7d3;font-size:12px}
+#diceHistory small{font-size:15px;color:#fff}
+.p8PracticeNotice{font-size:11px;color:#bdb9c9;text-align:center}
+#screen-dice .result{min-height:32px;margin:7px 0;font-size:12px;padding:8px}
+#screen-dice .action{min-height:40px}
+#screen-arcade .arcadeHero{margin:0 auto 4px;text-shadow:0 4px 14px #cfa35b55}
+#screen-arcade .panel,#screen-wheel .panel,#screen-flight .panel{border-color:#ad956866;box-shadow:0 10px 25px #0005,inset 0 1px 0 #ffe3b21a;background:linear-gradient(145deg,#282437,#141a29)}
+#screen-arcade .bigTitle,#screen-wheel .bigTitle,#screen-flight .bigTitle{color:#ffe6b1;font-size:21px}
+#screen-arcade .arcadeChoice button,#screen-arcade .arcadeGrid button{border-color:#c3a26a77}
+#screen-arcade .arcadeCardFace{box-shadow:0 4px 10px #0006}
+@media(prefers-reduced-motion:reduce){#screen-dice .diceCube{transition:none}#screen-dice .diceRolling{animation:none}}
+</style>
 </head>
 <body class="p8-auth-locked">
 <div class="app">
@@ -1035,7 +1067,14 @@ body.p8-local-practice .screen:not(.hidden)>.p8-practice-marker{display:block}
   <div class="panel arcadePanel"><div class="arcadeBar"><span>🎟 FREE PLAY ONLY</span><b id="arcadeStakeLabel">10 COINS / ROUND</b></div><div class="arcadeHelp" id="arcadeHelp"></div><div id="arcadePlay" class="arcadePlay"></div><div id="arcadeStatus" class="result arcadeStatus" role="status" aria-live="polite">Select an action to play.</div><div id="arcadeActions" class="arcadeActions"></div><p class="gameHint">Demo coins only. No money, purchases, real-world prizes or cash-outs. Results are random and never adjusted to ensure a house profit.</p></div>
   </section>
   <section id="screen-wheel" class="screen hidden"><button class="back" data-open="home">❮ All Games</button><div class="center"><h1 class="bigTitle">🎡 Spin Time</h1><p class="sub">Choose a free-play coin board. Your spin costs the selected virtual coins.</p></div><div class="panel"><div class="eyebrow center">CHOOSE SPIN BOARD · COINS</div><div class="boardPicker" id="boardPicker"><button type="button" class="boardBtn selected" data-stake="1">1</button><button type="button" class="boardBtn" data-stake="5">5</button><button type="button" class="boardBtn" data-stake="50">50</button><button type="button" class="boardBtn" data-stake="1000">1,000</button></div><div class="ruleStats"><span>💣 <strong>40%</strong> Bomb</span><span>⭐ <strong>30%</strong> 5×</span><span>🪙 <strong>30%</strong> 1×</span></div><div class="pointer"></div><div class="wheelWrap"><div class="wheelRot" id="wheelRot"><canvas id="wheelCanvas" width="680" height="680"></canvas></div><div class="wheelCenter">SPIN</div></div><div class="result" id="wheelResult">Choose a board and spin. Bomb pays 0.</div><button class="action" id="spinBtn">SPIN — 1 COIN</button><p class="gameHint">Bomb: lose the spin cost · 5× or 1×: win the amount shown<br>Virtual coins only • No cash value or withdrawal</p></div></section>
-  <section id="screen-dice" class="screen hidden"><button class="back" data-open="home">❮ All Games</button><div class="center"><h1 class="bigTitle">🎲 Avatar Dice</h1><p class="sub">Pick a number. Roll two dice and see if it matches.</p></div><div class="panel"><div class="center"><div class="diceArt" id="diceArt"><div class="diceCube" id="dieOne" aria-label="First die"></div><div class="diceCube" id="dieTwo" aria-label="Second die"></div></div><div style="color:#bac6dc;font-size:13px">Your chosen number</div></div><div class="choiceRow" id="choices"><button class="choice" data-choice="1">⚀</button><button class="choice" data-choice="2">⚁</button><button class="choice" data-choice="3">⚂</button><button class="choice" data-choice="4">⚃</button><button class="choice" data-choice="5">⚄</button><button class="choice" data-choice="6">⚅</button></div><div class="result" id="diceResult">Select a number to start</div><button class="action" id="rollBtn" disabled>ROLL DICE 🎲</button><div class="pill">100 points for a match • 10 points otherwise</div></div></section>
+  <section id="screen-dice" class="screen hidden p8-dice-studio"><button class="back" data-open="home">❮ All Games</button>
+<div class="p8DiceHeader"><div><small>PLAY80 · PRACTICE STUDIO</small><h1>Avatar Dice</h1></div><span id="diceRoundLabel">ROUND 01</span></div>
+<div class="p8DiceStage"><div class="p8DiceHost"><img src="crazy_host_mira.webp" alt="Fictional host"><div><b>Mira</b><small>কাল্পনিক হোস্ট</small></div></div><div class="p8DiceTray"><div class="diceArt" id="diceArt"><div class="diceCube" id="dieOne" aria-label="First die"></div><div class="diceCube" id="dieTwo" aria-label="Second die"></div></div></div><div id="dicePhase" role="status">একটি ফল অনুমান করুন</div></div>
+<div class="p8DiceBoard" id="choices"><button class="choice p8DiceHigh" data-choice="3" type="button"><strong>8–12</strong><small>HIGH</small></button><button class="choice p8DiceSeven" data-choice="2" type="button"><strong>7</strong><small>SEVEN</small></button><button class="choice p8DiceLow" data-choice="1" type="button"><strong>2–6</strong><small>LOW</small></button></div>
+<div class="result" id="diceResult" aria-live="polite">দুইটি ডাইসের যোগফল অনুমান করুন।</div><button class="action" id="rollBtn" disabled type="button">ROLL DICE</button>
+<div class="p8DiceStats"><div><small>সঠিক অনুমান</small><b id="diceCorrect">0</b></div><div><small>মোট রাউন্ড</small><b id="diceCount">0</b></div><div><small>শেষ যোগফল</small><b id="diceLast">—</b></div></div>
+<div class="p8DiceHistory"><div><b>সাম্প্রতিক ফল</b><small>এই সেশনের ফলাফল</small></div><div id="diceHistory"></div></div>
+<p class="p8PracticeNotice">বিনামূল্যের অনুশীলন। কোনো কয়েন বাজি, জমা, উত্তোলন বা Wallet পরিবর্তন নেই।</p></section>
   <section id="screen-flight" class="screen hidden"><button class="back" data-open="home">❮ All Games</button><div class="center"><h1 class="bigTitle">✈ Sky Flight</h1><p class="sub">Join the countdown, watch the multiplier and cash out before the crash.</p></div><div class="flightAudioRow"><span>✦ SKY FLIGHT • LIVE DEMO</span><button id="flightMusicToggle" type="button" class="flightMusicToggle" aria-pressed="true">🔊 Music On</button></div><div class="panel"><div class="flightStage" id="flightStage"><div class="flightStars"></div><div class="flightAtmosphere" aria-hidden="true"><i></i><i></i><i></i></div><svg class="flightSvg" viewBox="0 0 350 270" preserveAspectRatio="none" aria-hidden="true"><path id="flightCurve" d="M12 248 L12 248" fill="none" stroke="#eb80ff" stroke-width="4" stroke-linecap="round" /></svg><div id="planeIcon" class="planeIcon" aria-hidden="true"><span class="jetTrail"></span><svg class="jetSvg" viewBox="0 0 210 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><linearGradient id="jetBody" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff9d0"/><stop offset=".36" stop-color="#ffcf62"/><stop offset=".72" stop-color="#ab65e9"/><stop offset="1" stop-color="#4c2d97"/></linearGradient><linearGradient id="jetWing" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#f1dbff"/><stop offset=".45" stop-color="#be8fff"/><stop offset="1" stop-color="#603a9b"/></linearGradient><linearGradient id="jetWindow" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#b8f9ff"/><stop offset="1" stop-color="#3279f1"/></linearGradient></defs><ellipse cx="106" cy="84" rx="74" ry="4" fill="#c778ff" opacity=".22"/><path d="M18 49 L7 28 L22 21 L46 45 L123 44 Q155 42 180 48 L202 55 L180 64 Q128 70 64 65 L27 68 Z" fill="url(#jetBody)" stroke="#fff0c6" stroke-width="2"/><path d="M88 48 L113 7 L137 8 L131 51 L125 58 Z" fill="url(#jetWing)" stroke="#fbeaff" stroke-width="2"/><path d="M79 58 L119 95 L146 91 L129 60 Z" fill="url(#jetWing)" stroke="#fbeaff" stroke-width="2"/><path d="M23 51 L11 34 L11 20 L34 42" fill="#ce80ff" stroke="#fff4cc" stroke-width="2"/><path d="M131 44 Q153 41 176 49 L159 53 L133 52 Z" fill="url(#jetWindow)" stroke="#fffbe7" stroke-width="2"/><path d="M42 65 L57 65 L52 75 L30 73 Z" fill="#5e397c"/><path d="M8 49 L25 48 L28 61 L8 63 Z" fill="#2e2558"/><path d="M8 51 L21 53 L19 59 L7 59 Z" fill="#57eeff" opacity=".95"/><path d="M140 58 L180 60" stroke="#ffe5a2" stroke-width="2.5" stroke-linecap="round"/></svg></div><div class="flightMeter" id="flightMeter">1.00×</div><div class="flightPhase" id="flightPhase">READY TO TAKE OFF</div><div class="flightMountains"></div></div><div class="statGrid"><div class="stat"><small>Best Flight</small><strong id="flightBest">1.00×</strong></div><div class="stat"><small>Last Flight</small><strong id="flightLast">—</strong></div></div><div class="flightCountdown" id="flightCountdown">6 seconds to take off</div><div class="flightLiveBalance">AVAILABLE FREE COINS <strong id="flightBalance">0</strong></div><div class="flightControls"><div><label for="flightStake">PLAY COINS</label><input type="number" inputmode="numeric" id="flightStake" min="10" step="1" value="10" aria-label="Coins to play"></div><div><label for="flightAuto">AUTO CASH OUT (×)</label><input type="number" inputmode="decimal" id="flightAuto" min="1.15" max="50" step="0.01" value="1.50" aria-label="Auto cash out multiplier"></div></div><div class="flightPresets" id="flightPresets"><button class="flightPreset selected" data-flight-stake="10">10</button><button class="flightPreset" data-flight-stake="20">20</button><button class="flightPreset" data-flight-stake="50">50</button><button class="flightPreset" data-flight-stake="100">100</button><button class="flightPreset" data-flight-stake="1000">1,000</button><button class="flightPreset" data-flight-stake="5000">5,000</button></div><label class="flightAutoRow"><input type="checkbox" id="flightAutoToggle" checked><span><strong>Auto Cash Out</strong> — claim your play coins automatically at the chosen multiplier, if the plane has not crashed.</span></label><div id="flightStatus" class="result">No coins committed. Start a round to play.</div><button id="flightStart" class="action">▶ START 6s ROUND</button><div class="adminBtns" style="margin-top:10px"><button id="flightPlace" class="action secondary" disabled>PLACE COINS</button><button id="flightRecord" class="action secondary" disabled>✓ CASH OUT</button></div><p class="flightPlayNote">Offline free-play simulation. Crash result is chosen randomly per round, independently of the coins played. Coins have no monetary value.</p></div></section>
 <section id="screen-ludo" class="screen hidden">
  <button class="back" data-open="home">❮ All Games</button>
@@ -1522,8 +1561,50 @@ async function spin(){
  }finally{spinning=false;btn.disabled=false;}
 }
 function randomUnit(){try{if(window.crypto?.getRandomValues){const u=new Uint32Array(1);window.crypto.getRandomValues(u);return u[0]/4294967296}}catch(e){}return Math.random()}
-function setChoice(number){if(rolling)return;choice=number;document.querySelectorAll('.choice').forEach(el=>el.classList.toggle('selected',Number(el.dataset.choice)===number));$('rollBtn').disabled=false;$('diceResult').textContent='Now roll the dice!'}
-function roll(){if(rolling||!choice)return;rolling=true;$('rollBtn').disabled=true;$('diceArt').classList.add('diceRolling');$('diceResult').className='result';$('diceResult').textContent='Rolling the dice...';const a=Math.floor(Math.random()*6)+1,b=Math.floor(Math.random()*6)+1;let updates=0;const timer=setInterval(()=>{if(updates%3===0){show3dDice(0,1+Math.floor(Math.random()*6));show3dDice(1,1+Math.floor(Math.random()*6))}updates++;if(updates>=10){clearInterval(timer);show3dDice(0,a);show3dDice(1,b);$('diceArt').classList.remove('diceRolling');const matched=a===choice||b===choice;const reward=matched?100:10;award(reward,'Avatar Dice');$('diceResult').textContent=matched?'✨ Match! +100 points':'🎉 Nice roll! +10 points';$('diceResult').className='result win';rolling=false;$('rollBtn').disabled=false;}},100)}
+// Avatar Dice is a free probability practice; no wallet transaction.
+const dicePractice={count:0,correct:0,history:[],timer:null,serial:0};
+function diceGroup(sum){return sum<7?1:sum===7?2:3}
+function diceFace(){return 1+Math.floor(randomUnit()*6)}
+function diceSetControls(){
+ document.querySelectorAll('#choices [data-choice]').forEach(b=>{b.disabled=rolling;b.classList.toggle('selected',Number(b.dataset.choice)===choice)});
+ $('rollBtn').disabled=rolling||!choice;
+}
+function setChoice(number){
+ if(rolling||![1,2,3].includes(number))return;
+ choice=number;document.querySelectorAll('#choices [data-choice]').forEach(b=>b.removeAttribute('data-result-match'));
+ diceSetControls();$('dicePhase').textContent='অনুমান প্রস্তুত';$('diceResult').textContent='ROLL DICE চাপুন।';
+}
+function diceRenderHistory(){
+ $('diceCorrect').textContent=String(dicePractice.correct);$('diceCount').textContent=String(dicePractice.count);
+ $('diceLast').textContent=dicePractice.history[0]?.sum??'—';
+ $('diceRoundLabel').textContent='ROUND '+String(dicePractice.count+1).padStart(2,'0');
+ $('diceHistory').replaceChildren(...dicePractice.history.map(r=>{const e=document.createElement('span');e.textContent=String(r.sum);const pair=document.createElement('small');pair.textContent=String.fromCodePoint(0x267f+r.a,0x267f+r.b);e.append(pair);return e;}));
+}
+function diceCancel(){
+ dicePractice.serial++;if(dicePractice.timer!==null)clearInterval(dicePractice.timer);dicePractice.timer=null;
+ rolling=false;choice=0;$('diceArt').classList.remove('diceRolling');diceSetControls();$('dicePhase').textContent='একটি ফল অনুমান করুন';$('diceResult').textContent='দুইটি ডাইসের যোগফল অনুমান করুন।';
+}
+function roll(){
+ if(rolling||!choice||screen!=='dice')return;
+ const selected=choice,serial=++dicePractice.serial,a=diceFace(),b=diceFace();
+ rolling=true;diceSetControls();$('diceArt').classList.add('diceRolling');$('dicePhase').textContent='ROLLING…';$('diceResult').textContent='ডাইস ঘুরছে…';
+ let updates=0;dicePractice.timer=setInterval(()=>{
+  if(serial!==dicePractice.serial||screen!=='dice'||document.hidden){diceCancel();return;}
+  if(updates%3===0){show3dDice(0,diceFace());show3dDice(1,diceFace());}
+  if(++updates<10)return;
+  clearInterval(dicePractice.timer);dicePractice.timer=null;
+  show3dDice(0,a);show3dDice(1,b);$('diceArt').classList.remove('diceRolling');
+  const sum=a+b,group=diceGroup(sum),matched=group===selected;
+  dicePractice.count++;if(matched)dicePractice.correct++;
+  dicePractice.history.unshift({a,b,sum});dicePractice.history=dicePractice.history.slice(0,12);diceRenderHistory();
+  document.querySelectorAll('#choices [data-choice]').forEach(btn=>btn.toggleAttribute('data-result-match',Number(btn.dataset.choice)===group));
+  $('diceResult').className=matched?'result win':'result';
+  $('diceResult').textContent=a+' + '+b+' = '+sum+' · '+(matched?'সঠিক অনুমান':'অনুমান মেলেনি');
+  $('dicePhase').textContent='ফলাফল প্রকাশিত';rolling=false;choice=0;diceSetControls();
+ },100);
+}
+document.addEventListener('play80:screen-changed',e=>{if(e.detail!=='dice'&&rolling)diceCancel();});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&rolling)diceCancel();});
 
 // Demo-only virtual point requests. No real-money transaction processing.
 function pendingHeld(){return state.requests.reduce((sum,r)=>sum+(r.type==='withdraw'&&r.status==='pending'&&Number.isSafeInteger(r.amount)&&r.amount>0?r.amount:0),0)}
