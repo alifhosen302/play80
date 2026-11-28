@@ -287,6 +287,28 @@ try:
   catalog.locator('[data-favorite="dice"]').click()
   home.locator('#favoritesOnly').click()
   assert games.filter(visible=True).count()==14
+  # Distinct premium game art and the free dice-sum practice flow.
+  crazy_icon=catalog.locator('[data-game-id="crazyshow"] .p8PremiumIcon')
+  carnival_icon=catalog.locator('[data-game-id="carnival"] .p8PremiumIcon')
+  assert 'play80_crazyshow_premium.svg' in crazy_icon.evaluate('(el)=>getComputedStyle(el).backgroundImage')
+  assert crazy_icon.evaluate('(el)=>getComputedStyle(el).backgroundImage')!=carnival_icon.evaluate('(el)=>getComputedStyle(el).backgroundImage')
+  wallet_before=page.locator('#headerCoins').inner_text()
+  catalog.locator('[data-open="dice"]').click()
+  page.locator('#p8RulesAccept').click()
+  page.locator('#screen-dice').wait_for(state='visible')
+  assert page.locator('#choices [data-choice]').count()==3
+  page.locator('#choices [data-choice="2"]').click()
+  page.locator('#rollBtn').click()
+  page.wait_for_function("document.getElementById('diceCount').textContent==='1'")
+  assert page.locator('#diceHistory span').count()==1
+  assert page.locator('#choices [data-result-match]').count()==1
+  assert page.locator('#headerCoins').inner_text()==wallet_before,'Practice must not change server wallet'
+  page.locator('#choices [data-choice="2"]').click()
+  page.locator('#rollBtn').click()
+  page.locator('#screen-dice .back').click()
+  page.wait_for_timeout(1200)
+  assert page.locator('#diceCount').inner_text()=='1','Leaving an animation must cancel the pending practice round'
+  assert page.locator('#screen-home').is_visible()
   assert page.locator('#cloudOwnerEntry').is_hidden(),'Player must not access Owner panel'
   page.locator('#p8MenuButton').click()
   assert page.locator('#p8MenuQuick [data-panel="wallet"]').count()==0
