@@ -40,6 +40,8 @@ database_checks() (
   docker exec -i "$db" psql -h 127.0.0.1 -U postgres -d play80_tournament_policy_test -v ON_ERROR_STOP=1 -f /work/tests/play80_tournament_policy.sql
   docker exec "$db" createdb -h 127.0.0.1 -U postgres play80_instant_demo_credit_test
   docker exec -i "$db" psql -h 127.0.0.1 -U postgres -d play80_instant_demo_credit_test -v ON_ERROR_STOP=1 -f /work/tests/play80_instant_demo_credit.sql
+  docker exec "$db" createdb -h 127.0.0.1 -U postgres play80_wallet_audit_test
+  docker exec -i "$db" psql -h 127.0.0.1 -U postgres -d play80_wallet_audit_test -v ON_ERROR_STOP=1 -f /work/tests/play80_wallet_audit.sql
 )
 browser_checks() {
   local file
