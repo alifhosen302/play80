@@ -1393,21 +1393,31 @@
     legacy:'আগের হিসাব',deposit:'ডিপোজিট',first_deposit_bonus:'প্রথম ডিপোজিট + বোনাস',
     daily_bonus:'২৪ ঘণ্টার বোনাস',referral_bonus:'রেফার বোনাস'
   };
+  // Treat account totals as server data; reject malformed or incomplete snapshots.
+  function validateTurnoverSnapshot(data){
+    if(!Array.isArray(data?.items)||typeof data.withdrawal_guard_enabled!=='boolean')return null;
+    const integer=value=>typeof value==='number'&&Number.isSafeInteger(value)&&value>=0;
+    if(!integer(data.withdrawable_coins))return null;
+    if(data.items.some(item=>!item||!integer(item.required)||!integer(item.completed)||item.completed>item.required||typeof item.source!=='string'))return null;
+    const items=data.items.filter(item=>item.completed<item.required);
+    const remaining=items.reduce((total,item)=>total+item.required-item.completed,0);
+    if(!integer(remaining))return null;
+    return {...data,items,remaining,withdrawable:data.withdrawable_coins};
+  }
   async function readTurnover(){
+    const viewer=session?.user?.id;
+    if(!verifiedAuth||!viewer)return null;
     try{
       const data=await db('rpc/play80_my_turnover','POST',{});
-      if(!Array.isArray(data?.items)||typeof data.withdrawal_guard_enabled!=='boolean')return null;
-      const items=data.items.filter(item=>Number(item.completed)<Number(item.required));
-      const remaining=items.reduce((total,item)=>total+Math.max(0,Number(item.required)-Number(item.completed)),0);
-      const withdrawable=Number(data.withdrawable_coins??(remaining?0:Math.max(0,Number(balance?.balance||0)-Number(balance?.held_balance||0))));
-      return Number.isSafeInteger(remaining)&&Number.isSafeInteger(withdrawable)&&withdrawable>=0?{...data,items,remaining,withdrawable}:null;
+      return verifiedAuth&&session?.user?.id===viewer?validateTurnoverSnapshot(data):null;
     }catch(_){return null;}
   }
+  let turnoverReadVersion=0;
   async function refreshTurnover(){
-    const viewer=session?.user?.id;
+    const viewer=session?.user?.id,version=++turnoverReadVersion;
     turnoverList.replaceChildren(createText('p','টার্নওভারের হিসাব দেখা হচ্ছে…'));
     const record=await readTurnover();
-    if(verifiedAuth&&session?.user?.id===viewer&&signedIn.dataset.section==='turnover'
+    if(version===turnoverReadVersion&&verifiedAuth&&session?.user?.id===viewer&&signedIn.dataset.section==='turnover'
       &&document.body.dataset.play80Screen==='account')showTurnover(record);
   }
   function showTurnover(record){

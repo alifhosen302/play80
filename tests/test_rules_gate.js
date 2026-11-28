@@ -18,3 +18,14 @@ assert(!online.includes('balance=wallets?.[0]||{balance:0,held_balance:0}'),'No 
 
 assert(src.includes('"crazyshow":["Crazy Wheel Show","crazyshow"'),'Crazy show must not reuse Carnival icon');
 assert(fs.statSync('assets/play80_crazyshow_premium.svg').size>1000,'Original distinct show icon');
+
+const vm=require('node:vm');
+const vStart=online.indexOf('function validateTurnoverSnapshot(data)');
+const vEnd=online.indexOf('  async function readTurnover()',vStart);
+assert(vStart>=0&&vEnd>vStart);
+const validate=vm.runInNewContext(online.slice(vStart,vEnd)+';validateTurnoverSnapshot');
+const sample={items:[{source:'deposit',required:50,completed:20},{source:'daily_bonus',required:20,completed:20}],withdrawal_guard_enabled:true,withdrawable_coins:0};
+assert.equal(validate(sample).remaining,30);assert.equal(validate(sample).items.length,1);
+for(const bad of [{...sample,withdrawable_coins:undefined},{...sample,withdrawable_coins:'0'},{...sample,items:[{source:'deposit',required:-1,completed:0}]},{...sample,items:[{source:'deposit',required:1,completed:2}]},{...sample,items:[null]}])assert.equal(validate(bad),null);
+assert(online.includes('version===turnoverReadVersion'),'Reject stale read results');
+console.log('PASS server snapshot validation and stale-response guard');
