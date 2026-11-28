@@ -49,7 +49,19 @@ try:
    raise AssertionError('Game tabs unavailable after session restore: '+str(startup_errors)) from error
   page.locator('[data-main-tab="tournament"]').click()
   assert page.locator('#p8TournamentCatalog').is_visible(),'Tournament selector visible'
-  assert page.locator('.p8TourCard').count()==8
+  assert page.locator('#p8TournamentCatalog .p8TourCard').count()==8
+  for game in ['temple','candy','subway','coinrun']:
+   page.locator('[data-tour-choice="'+game+'"]').click()
+   assert page.locator('#p8TourDetail' if False else '#p8TournamentDetail').is_visible()
+   assert page.locator('#tourJoin').is_hidden()
+   page.locator('#p8TourPractice').click()
+   page.locator('#screen-skill-preview').wait_for(state='visible')
+   page.locator('#p8SkillStart').click()
+   if game=='candy': assert page.locator('#p8SkillCandy button').count()==49
+   else: assert page.locator('#p8SkillCanvas').is_visible()
+   page.locator('#p8SkillBack').click()
+   page.locator('#p8TournamentDetail').wait_for(state='visible')
+   page.locator('#p8TourBack').click()
   event={'id':'mock-event','game':'memory','status':'registration_open','server_time':'2026-11-27T12:00:00Z','registration_ends_at':'2026-11-27T15:00:00Z','human_count':1,'bot_count':0,'funded_pool':0,'my_score':0,'fee_mode':'per_round','joined':False,'rules':{'late_registration':True},'ends_at':'2026-11-30T15:00:00Z'}
   page.route('**/rest/v1/rpc/play80_tournament_public',lambda route:route.fulfill(json=event))
   page.route('**/rest/v1/rpc/play80_tournament_leaderboard',lambda route:route.fulfill(json=[{'rank':1,'username':'mock_registered','type':'human','total_score':0,'games_played':0}]))

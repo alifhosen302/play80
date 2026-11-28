@@ -91,3 +91,8 @@ assert(html.includes('if(!cwClaimBonusAction())return;goBtn.disabled=true;'),'Bo
 assert(html.includes("if(screen!=='flight'||document.hidden){flightPause();return;}"),'Background flight is paused');
 assert(html.includes("if(screen!=='arcade')return;const g=arc.game;"),'Hidden controls cannot start round');
 console.log('PASS: game-only settings, flight lifecycle and bonus one-shot guards');
+
+const skill=fs.readFileSync('assets/play80_skill_preview.js','utf8');
+for(const key of ['temple','candy','subway','coinrun'])assert(html.includes('data-tour-choice="'+key+'"'),key);
+assert(!/\.rpc\(|state\.points|localStorage|fetch\(/.test(skill),'Free preview must not mutate account or standings');
+assert(html.includes("'p8-practice','skill-preview'"),'Preview route enabled');
