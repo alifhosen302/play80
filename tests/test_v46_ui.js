@@ -84,3 +84,10 @@ const pipMap=JSON.parse(pipSource);
 for(let face=1;face<=6;face++){assert.equal(pipMap[face].length,face);assert.equal(new Set(pipMap[face]).size,face);assert(pipMap[face].every(p=>p>=0&&p<=8));}
 assert.deepEqual(pipMap[1],[4]);assert(html.includes('p8DiceMiniPip')&&html.includes('diceMiniFace(r.a),diceMiniFace(r.b)'));
 console.log('PASS: six accurate 3D-styled red-pip miniature dice faces');
+
+// Game-only quality/break controls, lifecycle and one-shot bonus choice.
+for(const marker of ['p8GraphicsQuality','p8PlayTime','p8BreakMinutes','p8GamePerformance','flightPause','flightResume','flightDeadline=performance.now()+6000','cwRoundCounter','cwBonusTimer','cwClaimBonusAction','cwStopBonusClock'])assert(html.includes(marker),marker);
+assert(html.includes('if(!cwClaimBonusAction())return;goBtn.disabled=true;'),'Bonus timer and click cannot both act');
+assert(html.includes("if(screen!=='flight'||document.hidden){flightPause();return;}"),'Background flight is paused');
+assert(html.includes("if(screen!=='arcade')return;const g=arc.game;"),'Hidden controls cannot start round');
+console.log('PASS: game-only settings, flight lifecycle and bonus one-shot guards');

@@ -1006,6 +1006,18 @@ body.p8-local-practice .screen:not(.hidden)>.p8-practice-marker{display:block}
 #screen-arcade .arcadeCardFace{box-shadow:0 4px 10px #0006}
 @media(prefers-reduced-motion:reduce){#screen-dice .diceCube{transition:none}#screen-dice .diceRolling{animation:none}}
 </style>
+<style id="p8GamePerformance">
+.p8GamePreferences{border:1px solid #9f865c66;border-radius:10px;padding:8px 10px;margin:8px 0;background:#211d2e;color:#eee7db;font-size:12px}
+.p8GamePreferences summary{font-weight:750;cursor:pointer}.p8PreferenceRow{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px}
+.p8PreferenceRow select{background:#161924;color:#fff;border:1px solid #9f865c77;border-radius:6px;padding:5px;font-size:12px}
+.p8PreferenceNote{font-size:10px;color:#bfb8c6;margin:7px 0 0}.p8RoundCounter{position:absolute;left:9px;top:9px;z-index:9;font-size:10px;font-weight:800;color:#f9dfaa;background:#171b25cc;padding:4px 6px;border-radius:5px}
+#cwBonusTimer{font-size:11px;color:#f2dda7;font-variant-numeric:tabular-nums}
+body[data-p8-graphics="low"] :is(#screen-crazyshow,#screen-dice,#screen-wheel,#screen-flight,#screen-arcade) :is(.cwHostZone img,.cwTopSlot,.cwCurtains,.p8DiceHost img){animation:none!important;filter:none!important;box-shadow:none!important}
+body[data-p8-graphics="low"] :is(#screen-crazyshow,#screen-dice,#screen-wheel,#screen-flight,#screen-arcade) :is(.cwScene,.cwBetChoice,.arcadeCardFace,.p8DiceStage,.p8DiceTray,.panel){box-shadow:none!important;text-shadow:none!important}
+body[data-p8-graphics="medium"] :is(#screen-crazyshow,#screen-dice,#screen-arcade) :is(.cwHostZone img,.cwCurtains,.p8DiceHost img){filter:none!important}
+.p8BreakDialog{max-width:290px;width:calc(100% - 40px);border:1px solid #d4bb8c;background:#252030;color:#fff;border-radius:12px;padding:16px}
+.p8BreakDialog::backdrop{background:#1119}.p8BreakDialog button{width:100%;margin-top:8px;min-height:38px;border-radius:7px;border:1px solid #b9996f;background:#38334a;color:#fff}
+</style>
 </head>
 <body class="p8-auth-locked">
 <div class="app">
@@ -1047,12 +1059,13 @@ body.p8-local-practice .screen:not(.hidden)>.p8-practice-marker{display:block}
     </div>
     <p id="gameSearchCount" class="homeGameCount" role="status"></p>
     <div id="gameSearchEmpty" class="searchEmpty hidden">এই নামে কোনো গেম পাওয়া যায়নি।</div>
+    <details class="p8GamePreferences"><summary>গেম সেটিংস</summary><div class="p8PreferenceRow"><label for="p8GraphicsQuality">গ্রাফিক্স</label><select id="p8GraphicsQuality"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div><div class="p8PreferenceRow"><span>এই সেশনে খেলার সময়</span><strong id="p8PlayTime">00:00</strong></div><div class="p8PreferenceRow"><label for="p8BreakMinutes">বিরতির স্মরণিকা</label><select id="p8BreakMinutes"><option value="0">বন্ধ</option><option value="15">১৫ মিনিট</option><option value="30">৩০ মিনিট</option><option value="60">৬০ মিনিট</option></select></div><p class="p8PreferenceNote">গ্রাফিক্স সেটিংস শুধু দৃশ্যমান প্রভাব বদলায়; গেমের ফল বা অ্যাকাউন্টের হিসাব নয়।</p></details>
     <p class="homeDemoNote">গেমের কয়েন ভার্চুয়াল। নগদে রূপান্তর করা যায় না।</p>
   </section>
 <section id="screen-crazyshow" class="screen hidden crazyShowScreen">
  <button class="back" data-open="home">❮ All Games</button>
  <div class="cwHeader"><div><span class="cwKicker">PLAY80 • AI GAME SHOW • OFFLINE</span><h1>✦ Crazy Wheel Show</h1><p>Original demo inspired by wheel game shows • no real money</p></div><button type="button" id="cwAudioBtn" class="cwAudioBtn" aria-pressed="true">🔊 Sound On</button></div>
- <div class="cwScene" id="cwScene" data-phase="paused"><div class="cwRoundClock" id="cwRoundClock" aria-label="Round countdown">—</div>
+ <div class="cwScene" id="cwScene" data-phase="paused"><span id="cwRoundCounter" class="p8RoundCounter">ROUND 0</span><div class="cwRoundClock" id="cwRoundClock" aria-label="Round countdown">—</div>
    <div class="cwCurtains" aria-hidden="true"></div>
    <div class="cwTopSlot" id="cwTopSlot"><small>★ TOP SLOT ★</small><strong id="cwSlotTarget">BONUS ?</strong><b id="cwSlotMultiplier">×?</b></div>
    <div class="cwShowFloor"><div class="cwWheelZone"><div class="cwPointer">▼</div><div class="cwWheelShell"><canvas id="cwWheelCanvas" width="620" height="620" aria-label="54-segment spinning show wheel"></canvas><div class="cwWheelCenter"><b>PLAY80</b><small>WHEEL SHOW</small></div></div></div>
@@ -1067,7 +1080,7 @@ body.p8-local-practice .screen:not(.hidden)>.p8-practice-marker{display:block}
    <div class="cwActions"><button id="cwClear" class="cwClear" type="button">↶ CLEAR</button><button id="cwSpin" class="cwSpin" type="button">▶ START SHOW</button></div>
    <div id="cwRoundMessage" class="cwRoundMessage" role="status">Demo game. Spin outcomes are random. No real-money prizes.</div>
  </div>
- <div id="cwBonus" class="cwBonus hidden" role="region" aria-label="Bonus round"><div class="cwBonusHeading"><strong id="cwBonusTitle">BONUS ROUND</strong><span>✦ DEMO REWARDS</span></div><div id="cwBonusGame" class="cwBonusGame"></div></div>
+ <div id="cwBonus" class="cwBonus hidden" role="region" aria-label="Bonus round"><div class="cwBonusHeading"><strong id="cwBonusTitle">BONUS ROUND</strong><span id="cwBonusTimer" aria-live="polite">—</span></div><div id="cwBonusGame" class="cwBonusGame"></div></div>
  <p class="cwDisclaimer">Fictional AI hosts and audience. Every coin is virtual and non-redeemable. This is an original offline entertainment simulation, not an Evolution product or a live casino.</p>
 </section>
   <section id="screen-arcade" class="screen hidden"><button type="button" class="back" data-open="home">❮ All Games</button>
@@ -1726,13 +1739,17 @@ function flightDraw(p){const plane=$('planeIcon');plane.style.left=(10+65*p)+'%'
 function flightSetStatus(msg,win=false){$('flightStatus').className=win?'result win':'result';$('flightStatus').textContent=msg}
 function flightUpdateButtons(){let phase=flightRound.phase; $('flightStart').disabled=true;$('flightPlace').disabled=phase!=='betting'||flightRound.wager>0;$('flightRecord').disabled=phase!=='flying'||flightRound.wager<=0||flightRound.cashed;$('flightStake').disabled=phase!=='idle'&&phase!=='betting';$('flightAuto').disabled=phase==='flying';$('flightAutoToggle').disabled=phase==='flying';document.querySelectorAll('[data-flight-stake]').forEach(b=>b.disabled=phase==='flying')}
 function flightRandomCrash(){const u=randomUnit();return Math.max(1.01,Math.min(50,Math.round((1/Math.max(.00001,1-u))*100)/100))}
-let flightRestartTimeout=null;
-function flightStart(){if(flightRound.phase!=='idle'&&flightRound.phase!=='crashed')return;if(flightRestartTimeout){clearTimeout(flightRestartTimeout);flightRestartTimeout=null;}clearInterval(flightTimer);cancelAnimationFrame(flightFrame);flightRound={phase:'betting',wager:0,crashAt:flightRandomCrash(),cashed:false,auto:1.5,autoEnabled:true,seconds:6};$('flightStage').classList.remove('crashed');flightScore=1;flightDraw(0);$('flightPhase').textContent='JOIN THE ROUND';$('flightCountdown').textContent='6 seconds to take off';flightSetStatus('Select coins and place your stake before the countdown ends.');flightUpdateButtons();flightTimer=setInterval(()=>{flightRound.seconds--;$('flightCountdown').textContent=flightRound.seconds+' seconds to take off';if(flightRound.seconds<=0){clearInterval(flightTimer);flightTimer=null;flightLiftOff()}},1000)}
+let flightRestartTimeout=null,flightDeadline=0,flightPauseAt=null;
+function flightStopClock(){clearInterval(flightTimer);flightTimer=null;cancelAnimationFrame(flightFrame);flightFrame=0;if(flightRestartTimeout!==null)clearTimeout(flightRestartTimeout);flightRestartTimeout=null;}
+function flightPause(){if(flightPauseAt===null)flightPauseAt=performance.now();flightStopClock();}
+function flightCountdownTick(){if(screen!=='flight'||document.hidden){flightPause();return;}flightRound.seconds=Math.max(0,Math.ceil((flightDeadline-performance.now())/1000));$('flightCountdown').textContent=flightRound.seconds+' seconds to take off';if(!flightRound.seconds){clearInterval(flightTimer);flightTimer=null;flightLiftOff();}}
+function flightResume(){if(screen!=='flight'||document.hidden)return;if(flightPauseAt!==null){const offset=performance.now()-flightPauseAt;flightDeadline+=offset;flightStartTime+=offset;flightPauseAt=null;}if(flightRound.phase==='idle'||flightRound.phase==='crashed'){flightStart();return;}if(flightRound.phase==='betting'&&flightTimer===null){flightCountdownTick();if(flightRound.phase==='betting')flightTimer=setInterval(flightCountdownTick,200);}else if(flightRound.phase==='flying'&&!flightFrame)flightFrame=requestAnimationFrame(flightTick);}
+function flightStart(){if(screen!=='flight'||document.hidden||flightRound.phase!=='idle'&&flightRound.phase!=='crashed')return;flightPauseAt=null;if(flightRestartTimeout){clearTimeout(flightRestartTimeout);flightRestartTimeout=null;}clearInterval(flightTimer);cancelAnimationFrame(flightFrame);flightRound={phase:'betting',wager:0,crashAt:flightRandomCrash(),cashed:false,auto:1.5,autoEnabled:true,seconds:6};$('flightStage').classList.remove('crashed');flightScore=1;flightDraw(0);$('flightPhase').textContent='JOIN THE ROUND';$('flightCountdown').textContent='6 seconds to take off';flightSetStatus('Select coins and place your stake before the countdown ends.');flightUpdateButtons();flightDeadline=performance.now()+6000;flightTimer=setInterval(flightCountdownTick,200)}
 function flightPlaceCoins(){if(flightRound.phase!=='betting'||flightRound.wager)return;const stake=Number($('flightStake').value);if(!Number.isSafeInteger(stake)||stake<10){toast('Enter at least 10 whole demo coins');return}const auto=Number($('flightAuto').value),enabled=$('flightAutoToggle').checked;if(enabled&&(!Number.isFinite(auto)||auto<1.15||auto>50)){toast('Auto cash out must be 1.15×–50.00×');return}if(!debitCoins(stake,'Sky Flight — '+stake+' demo coins committed')){toast('Insufficient demo coins');return}flightRound.wager=stake;flightRound.auto=enabled?auto:1.5;flightRound.autoEnabled=enabled;state.games++;save();$('flightBalance').textContent=available().toLocaleString('en-US');flightSetStatus(stake.toLocaleString('en-US')+' coins locked for this round'+(enabled?' • Auto cash out '+auto.toFixed(2)+'×':' • Manual cash out')+'.');flightUpdateButtons()}
 function flightLiftOff(){if(flightRound.phase!=='betting')return;flightRound.phase='flying';flightStartTime=performance.now();flightScore=1;$('flightPhase').textContent='FLIGHT IN PROGRESS';$('flightCountdown').textContent='Plane in the air — cash out before the crash';if(!flightRound.wager)flightSetStatus('Spectator round — no coins at risk.');else flightSetStatus('Flying • '+flightRound.wager.toLocaleString('en-US')+' coins at risk.');flightUpdateButtons();flightFrame=requestAnimationFrame(flightTick)}
 function flightCashOut(mode){if(flightRound.phase!=='flying'||flightRound.cashed||!flightRound.wager)return false;if(flightScore>=flightRound.crashAt)return false;flightRound.cashed=true;const gross=Math.floor(flightRound.wager*flightScore);state.points+=gross;state.earned+=gross;addGameEntry(gross,'Sky Flight — '+(mode==='auto'?'Auto':'Manual')+' cash out at '+flightScore.toFixed(2)+'×');$('flightBalance').textContent=available().toLocaleString('en-US');flightSetStatus('✓ '+(mode==='auto'?'Auto':'Manual')+' cash out • +'+gross.toLocaleString('en-US')+' coins at '+flightScore.toFixed(2)+'× • flight continues.',true);flightUpdateButtons();return true}
-function flightCrash(){flightRound.phase='crashed';cancelAnimationFrame(flightFrame);flightFrame=0;flightScore=flightRound.crashAt;state.lastFlight=flightScore;state.bestFlight=Math.max(state.bestFlight,flightScore);save();flightDisplay();$('flightStage').classList.add('crashed');$('flightPhase').textContent='💥 CRASH';$('flightCountdown').textContent='Round ended at '+flightScore.toFixed(2)+'×';flightSetStatus(flightRound.wager?(flightRound.cashed?'You cashed out before the crash!':'💥 CRASHED — lost '+flightRound.wager.toLocaleString('en-US')+' demo coins.'):'Plane crashed at '+flightScore.toFixed(2)+'× • No coins played.',flightRound.cashed);flightUpdateButtons();flightRestartTimeout=setTimeout(()=>{if(flightRound.phase==='crashed')flightStart()},1200)}
-function flightTick(){if(flightRound.phase!=='flying')return;const elapsed=performance.now()-flightStartTime;const next=Math.min(50,Math.exp(elapsed/2450));const threshold=flightRound.auto; // an auto claim succeeds only if its threshold precedes the crash
+function flightCrash(){flightRound.phase='crashed';cancelAnimationFrame(flightFrame);flightFrame=0;flightScore=flightRound.crashAt;state.lastFlight=flightScore;state.bestFlight=Math.max(state.bestFlight,flightScore);save();flightDisplay();$('flightStage').classList.add('crashed');$('flightPhase').textContent='💥 CRASH';$('flightCountdown').textContent='Round ended at '+flightScore.toFixed(2)+'×';flightSetStatus(flightRound.wager?(flightRound.cashed?'You cashed out before the crash!':'💥 CRASHED — lost '+flightRound.wager.toLocaleString('en-US')+' demo coins.'):'Plane crashed at '+flightScore.toFixed(2)+'× • No coins played.',flightRound.cashed);flightUpdateButtons();flightRestartTimeout=setTimeout(()=>{flightRestartTimeout=null;if(screen==='flight'&&!document.hidden&&flightRound.phase==='crashed')flightStart()},1200)}
+function flightTick(){flightFrame=0;if(screen!=='flight'||document.hidden){flightPause();return;}if(flightRound.phase!=='flying')return;const elapsed=performance.now()-flightStartTime;const next=Math.min(50,Math.exp(elapsed/2450));const threshold=flightRound.auto; // an auto claim succeeds only if its threshold precedes the crash
 if(flightRound.wager&&!flightRound.cashed&&flightRound.autoEnabled&&threshold<=next&&threshold<flightRound.crashAt){flightScore=threshold;flightCashOut('auto')}
 if(next>=flightRound.crashAt){flightCrash();return}
 flightScore=next;const p=Math.min(1,Math.log(Math.max(1,flightScore))/Math.log(50));flightDraw(p);flightFrame=requestAnimationFrame(flightTick)}
@@ -2470,13 +2487,12 @@ $('flightMusicToggle').addEventListener('click',()=>{
   renderFlightMusic();if(flightMusicEnabled)startFlightMusic();else stopFlightMusic();
 });
 $('screen-flight').addEventListener('pointerdown',()=>{if(flightMusicEnabled&&flightAmbient.paused)startFlightMusic()},{passive:true});
-document.addEventListener('visibilitychange',()=>{if(document.hidden)stopFlightMusic();else if(screen==='flight')startFlightMusic()});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){stopFlightMusic();if(screen==='flight')flightPause();}else if(screen==='flight'){startFlightMusic();flightResume();}});
 renderFlightMusic();
 // Start continuous demo flight rounds automatically when the screen is opened.
 const play80GoWithBack=go;
-go=function(next){if(next!=='flight')stopFlightMusic();play80GoWithBack(next);if(next==='flight'){startFlightMusic();
- $('flightBalance').textContent=available().toLocaleString('en-US');
- if(flightRound.phase==='idle'||flightRound.phase==='crashed')flightStart();
+go=function(next){if(next!=='flight'){stopFlightMusic();if(screen==='flight')flightPause();}play80GoWithBack(next);if(screen==='flight'){startFlightMusic();
+ $('flightBalance').textContent=available().toLocaleString('en-US');flightResume();
  }};
 
 // v2.7 local simulation. Not authenticated. Do not use for production money or users.
@@ -2551,7 +2567,7 @@ let arcadePendingBusy=false;
 async function arServerRound(){
  const account=window.Play80Cloud?.user?.(),view=arc;
  if(!account){arHelp('আগে অ্যাকাউন্টে লগইন করুন।');return;}
- if(arcadePendingBusy||view.live)return;
+ if(arcadePendingBusy||view.live){arHelp('আগের রাউন্ডের ফল যাচাই হচ্ছে।');return;}
  if(view.game==='keno'&&view.selected.length!==4){arHelp('চারটি নম্বর বেছে নিন।');return;}
  const key='p8.demo.arcade.pending:'+account.id+':'+view.game;
  let pending=null;
@@ -2605,7 +2621,7 @@ async function arServerRound(){
   if(arc===view){arHelp('সার্ভার ফলাফল নিশ্চিত হয়নি। '+error.message);arSetActions(arButton('আবার চেষ্টা করুন',action));}
  }finally{view.live=false;arcadePendingBusy=false;}
 }
-function arAction(name){const g=arc.game;if(name==='reset'){arRender();return}
+function arAction(name){if(screen!=='arcade')return;const g=arc.game;if(name==='reset'){if(arc.live)return;arc.id=++arcCounter;arc.complete=false;arc.finished=false;arRender();return}
 if(serverArcadeGames.has(g)){void arServerRound();return;}
 if(g==='carnival'&&name==='spin'){if(!arBegin())return;const id=arc.id;arSetActions();const opts=[0,10,20,50,0,30,10,20];const ix=arPick(opts.length);const prize=opts[ix];$('arcWheel').style.transform='rotate('+(1440+360*ix/8)+'deg)';arHelp('Wheel spinning...');setTimeout(()=>{if(arc.id!==id)return;$('arcWheel').querySelector('span').textContent=prize===0?'💣':prize+' 🪙';arEnd(prize,prize?'Prize '+prize:'No prize this round')},1450)}
 else if(g==='cups'&&name==='start'){
@@ -2644,7 +2660,7 @@ function arCard(){return 1+arPick(13)}
 function arScore(hand){let total=hand.reduce((n,c)=>n+(c===1?11:Math.min(10,c)),0);for(const c of hand)if(c===1&&total>21)total-=10;return total}
 function arFace(c){return (['','A','2','3','4','5','6','7','8','9','10','J','Q','K'][c])+'♠'}
 function arBjShow(open){$('bjDealer').innerHTML=arc.dealer.map((c,i)=>'<span class="arcadeCardFace">'+(!open&&i===1?'🂠':arFace(c))+'</span>').join('');$('bjPlayer').innerHTML=arc.player.map(c=>'<span class="arcadeCardFace">'+arFace(c)+'</span>').join('');$('bjScores').textContent='Player '+arScore(arc.player)+(open?' • Dealer '+arScore(arc.dealer):' • Dealer ?')}
-function arPickInGame(e){let el=e.target.closest('[data-ar-color],[data-ar-stake],[data-cup],[data-apple],[data-mine],[data-keno],[data-scratch]');if(!el||!arc.game)return;
+function arPickInGame(e){if(screen!=='arcade')return;let el=e.target.closest('[data-ar-color],[data-ar-stake],[data-cup],[data-apple],[data-mine],[data-keno],[data-scratch]');if(!el||!arc.game)return;
 if(el.hasAttribute('data-ar-stake')&&arc.game==='plinko'&&!arc.live){arc.stake=Number(el.dataset.arStake);$('arcadeStakeLabel').textContent=arc.stake+' COINS / BALL';document.querySelectorAll('[data-ar-stake]').forEach(b=>b.classList.toggle('selected',b===el));arSetActions(arButton('DROP • '+arc.stake+' COINS','start'));return}
 if(el.hasAttribute('data-ar-color')&&arc.game==='roulette'&&!arc.live){arc.bet=el.dataset.arColor;document.querySelectorAll('[data-ar-color]').forEach(b=>b.classList.toggle('selected',b===el));return}
 if(el.hasAttribute('data-cup')&&arc.game==='cups'&&arc.live&&arc.pickable){
@@ -2827,21 +2843,24 @@ function cwFinish(multiplier,description){
    state.entries=state.entries.slice(0,100);save();
    cwSetRoundMessage(chosen?(payout?'🎉 '+description+'! +'+payout+' demo coins (includes stake)':'No prize this round.'):'Show finished: '+description+' — no matching demo spot selected.',payout>0);
  }
- cwAutoFinish&&clearTimeout(cwAutoFinish);cwAutoFinish=null;
+ cwAutoFinish&&clearTimeout(cwAutoFinish);cwAutoFinish=null;cwStopBonusClock();$('cwBonusTimer').textContent='—';
  $('cwLast').textContent=cwTitle(picked);$('cwBonus').classList.add('hidden');
  cwBusy=false;cwBets={};cwPending=null;cwRemember(picked);cwSetPhase('result');cwRefresh();
  cwSpeak('ফলাফল: '+cwTitle(picked));
  if(cwAutoRunning&&screen==='crazyshow'&&!document.hidden){cwDeadline=Date.now()+4000;cwStopClock();cwTickTimer=setInterval(cwTick,200);}else{cwSetPhase('paused');}
 }
+let cwBonusClock=null,cwBonusDeadline=0;
+function cwStopBonusClock(){if(cwBonusClock!==null)clearInterval(cwBonusClock);cwBonusClock=null;}
+function cwClaimBonusAction(){if(!cwPending||cwPending.finished||cwPending.bonusAction)return false;cwPending.bonusAction=true;if(cwAutoFinish!==null)clearTimeout(cwAutoFinish);cwAutoFinish=null;cwStopBonusClock();$('cwBonusTimer').textContent='ফলাফল…';return true;}
 function cwFinishBonus(mult,what){if(!cwPending||cwPending.finished)return;cwFinish(mult,what)}
-function cwAutoBonus(){if(!cwPending||cwPending.finished)return;const out=cwPending.outcome;cwFinishBonus(out==='mega'?cwPick([5,10,15,20]):cwPick([2,3,5,8,10]),cwTitle(out)+' auto-finished')}
-function cwBonusReady(){cwAutoFinish&&clearTimeout(cwAutoFinish);cwAutoFinish=cwGuardedDelay(cwAutoBonus,18000)}
+function cwAutoBonus(){if(!cwClaimBonusAction())return;const out=cwPending.outcome;cwFinishBonus(out==='mega'?cwPick([5,10,15,20]):cwPick([2,3,5,8,10]),cwTitle(out)+' auto-finished')}
+function cwBonusReady(){cwAutoFinish&&clearTimeout(cwAutoFinish);cwStopBonusClock();cwBonusDeadline=Date.now()+18000;const round=cwPending;const update=()=>{if(!round||cwPending!==round||round.finished||round.bonusAction){cwStopBonusClock();return;}$('cwBonusTimer').textContent=Math.max(0,Math.ceil((cwBonusDeadline-Date.now())/1000))+'s';};update();cwBonusClock=setInterval(update,200);cwAutoFinish=cwGuardedDelay(cwAutoBonus,18000)}
 function cwShowCoin(){
  $('cwBonusTitle').textContent='🪙 COIN FLIP BONUS';const stage=$('cwBonusGame');stage.replaceChildren();
  const coin=document.createElement('div');coin.className='cwCoin';coin.textContent='?';
  const desc=document.createElement('p');desc.textContent='A fictional host flips a golden virtual coin. The two faces have randomly assigned demo multipliers.';
  const goBtn=document.createElement('button');goBtn.textContent='🪙 FLIP THE COIN';goBtn.onclick=()=>{
-  if(!cwPending||cwPending.finished)return;goBtn.disabled=true;
+  if(!cwClaimBonusAction())return;goBtn.disabled=true;
   const a=cwPick([2,3,5,8,10]),b=cwPick([2,4,6,10,15]);const side=cwRand(2),value=side?b:a;
   coin.classList.add('flipping');cwSpeak('Let’s flip the coin! Gold '+a+' times, purple '+b+' times!');
   cwGuardedDelay(()=>{coin.classList.remove('flipping');coin.textContent=value+'×';desc.textContent='Gold '+a+'× • Purple '+b+'× • Winning side: '+(side?'Purple':'Gold');cwFinishBonus(value,'Coin Flip '+value+'×')},1550);
@@ -2853,7 +2872,7 @@ function cwShowHunt(){
  const grid=document.createElement('div');grid.className='cwBonusGrid';
  const arr=Array.from({length:20},()=>cwPick([2,3,4,5,8,10,15,20]));
  arr.forEach((value,i)=>{const btn=document.createElement('button');btn.type='button';btn.textContent=['⭐','💎','🍀','🎈','🌟'][i%5];btn.setAttribute('aria-label','Mystery badge '+(i+1));btn.onclick=()=>{
-  if(!cwPending||cwPending.finished)return;
+  if(!cwClaimBonusAction())return;
   Array.from(grid.children).forEach((b,j)=>{b.disabled=true;b.textContent=arr[j]+'×'});
   btn.style.background='#ffdd86';btn.style.color='#351854';info.textContent='Badge '+(i+1)+' revealed '+value+'×.';
   cwSpeak('Your target reveals '+value+' times!');cwGuardedDelay(()=>cwFinishBonus(value,'Cash Hunt '+value+'×'),750);
@@ -2866,7 +2885,7 @@ function cwShowPachinko(){
  const values=[2,3,5,8,10,5,15,3];const stops=document.createElement('div');stops.className='cwPachinkoStops';values.forEach(v=>{const x=document.createElement('span');x.textContent=v+'×';stops.append(x)});
  const ball=document.createElement('div');ball.className='cwPachinkoBall';board.append(peg,stops,ball);
  const button=document.createElement('button');button.textContent='🔵 DROP THE PUCK';button.onclick=()=>{
-  if(!cwPending||cwPending.finished)return;button.disabled=true;
+  if(!cwClaimBonusAction())return;button.disabled=true;
   const landing=cwRand(8),value=values[landing];ball.style.left=((landing+.5)/8*100)+'%';ball.style.top='175px';
   cwSpeak('And the ball drops through our lucky pegs!');cwGuardedDelay(()=>{stops.children[landing].style.background='#edc15b';info.textContent='The puck landed on '+value+'×.';cwFinishBonus(value,'Pachinko '+value+'×')},1850);
  };stage.append(info,board,button);cwBonusReady();
@@ -2879,7 +2898,7 @@ function cwShowMega(){
  ['green','blue','gold'].forEach(color=>{
   const b=document.createElement('button');b.type='button';b.dataset.cwFlapper=color;b.textContent=color.toUpperCase();
   b.onclick=()=>{
-   if(!cwPending||cwPending.finished)return;
+   if(!cwClaimBonusAction())return;
    Array.from(colors.children).forEach(x=>x.disabled=true);wheel.classList.add('spinning');
    cwSpeak('You selected '+color+'! Watch the mega wheel spin!');
    const value=cwPick([3,5,8,10,12,15,20,30]);
@@ -2893,7 +2912,7 @@ function cwShowBonus(outcome){
  cwSetRoundMessage('🎉 Bonus round unlocked: '+cwTitle(outcome)+'! Pick an action below.');
  cwSpeak('Welcome to the '+cwTitle(outcome)+' bonus round!');
  // Visual remains in view; preserve controls for replay only after settling.
- $('cwBonus').scrollIntoView({behavior:'smooth',block:'nearest'});
+ if(screen==='crazyshow'&&!document.hidden)$('cwBonus').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 function cwAfterSpin(){
  if(!cwPending||cwPending.finished)return;
@@ -2907,7 +2926,7 @@ function cwSpinRound(){
  if(total>available()){cwBets={};cwStartSelection();return}
  const pickedIndex=cwRand(cwRoundChoices.length),outcome=cwRoundChoices[pickedIndex];
  const boostKey=cwPick(cwSpots).key,boostValue=cwPick([1,1,1,2,3,5]);
- cwBusy=true;cwSetPhase('spin');cwRoundNum++;
+ cwBusy=true;cwSetPhase('spin');cwRoundNum++;$('cwRoundCounter').textContent='ROUND '+cwRoundNum;
  cwPending={bets:{...cwBets},total,outcome,boostKey,boostValue,finished:false};
  // All wager state, pending state, and debit persist in one atomic localStorage value.
  if(total>0){state.points-=total;state.cwOpen={stake:total,started:new Date().toISOString()};state.entries.unshift({points:-total,title:'Crazy Wheel Show • '+total+' offline demo coins',date:new Date().toISOString()});state.entries=state.entries.slice(0,100);save();}cwRefresh();cwSwitchHost();cwAudienceUpdate();
@@ -2931,6 +2950,33 @@ function cwOnOpen(){
 const cwBaseGo=go;
 go=function(destination){if(destination!=='crazyshow'){cwSoundStop();cwPauseShow();}cwBaseGo(destination);document.body.classList.toggle('crazy-demo-screen',destination==='crazyshow');if(destination==='crazyshow')cwOnOpen()};
 cwBuildSpots();cwDraw();cwRenderAudio();cwRefresh();
+
+// Game-only preferences and break timer; no account data is stored.
+(function(){
+ const quality=$('p8GraphicsQuality'),minutes=$('p8BreakMinutes');
+ const read=(k,d)=>{try{return localStorage.getItem(k)||d}catch(_){return d}};
+ const write=(k,v)=>{try{localStorage.setItem(k,v)}catch(_){}};
+ const apply=()=>{document.body.dataset.p8Graphics=['low','medium','high'].includes(quality.value)?quality.value:'medium';write('p8.graphics',quality.value)};
+ const stored=read('p8.graphics',window.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'low':'medium');
+ quality.value=['low','medium','high'].includes(stored)?stored:'medium';apply();quality.addEventListener('change',apply);
+ const storedBreak=read('p8.break.minutes','30');minutes.value=['0','15','30','60'].includes(storedBreak)?storedBreak:'30';
+ const gameScreens=new Set(['wheel','dice','flight','ludo','crazyshow','arcade','bet','chess','2048','memory','p8-practice']);
+ let elapsed=0,sinceBreak=0,last=performance.now(),previous=screen;
+ const dialog=document.createElement('dialog');dialog.className='p8BreakDialog';dialog.innerHTML='<strong>একটু বিরতি নিন</strong><p>খেলার সময়ের স্মরণিকা। চাইলে এখন হোমে ফিরতে পারেন।</p><button type="button" data-break-home>হোমে ফিরুন</button><button type="button" data-break-close>বন্ধ করুন</button>';
+ document.body.append(dialog);
+ dialog.querySelector('[data-break-home]').onclick=()=>{dialog.close();go('home')};dialog.querySelector('[data-break-close]').onclick=()=>dialog.close();
+ minutes.addEventListener('change',()=>{write('p8.break.minutes',minutes.value);sinceBreak=0});
+ function tick(){const now=performance.now(),delta=Math.max(0,Math.min(2000,now-last));last=now;
+  if(!document.hidden&&gameScreens.has(previous)&&!dialog.open){elapsed+=delta;sinceBreak+=delta;}
+  const sec=Math.floor(elapsed/1000);$('p8PlayTime').textContent=String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0');
+  const limit=Number(minutes.value)*60000;if(limit>0&&sinceBreak>=limit&&gameScreens.has(screen)&&!dialog.open&&!document.hidden){sinceBreak=0;if(typeof dialog.showModal==='function')dialog.showModal();}
+  previous=screen;
+ }
+ document.addEventListener('play80:screen-changed',()=>{tick();previous=screen;});
+ document.addEventListener('visibilitychange',()=>{last=performance.now();previous=screen;});
+ setInterval(tick,1000);
+})();
+
 
 document.querySelectorAll('[data-open]').forEach(el=>el.addEventListener('click',()=>go(el.dataset.open)));document.querySelectorAll('[data-choice]').forEach(el=>el.addEventListener('click',()=>setChoice(Number(el.dataset.choice))));document.querySelectorAll('[data-stake]').forEach(b=>b.addEventListener('click',()=>setWheelStake(Number(b.dataset.stake))));$('spinBtn').addEventListener('click',spin);$('rollBtn').addEventListener('click',roll);$('gift100').addEventListener('click',()=>gift(100));$('gift500').addEventListener('click',()=>gift(500));window.addEventListener('popstate',play80Back);window.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();play80Back()}});drawWheel();render();go('home');
 window.Play80LudoView={

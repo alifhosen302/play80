@@ -35,3 +35,9 @@ Scope: inspected repository inventory, targeted game engines and lifecycle, acco
 ## Release gates
 Source and database fixture tests + mobile browser tests + Android signed APK install + actual account/device restore smoke test. Existing passing tests do not establish full game correctness.
 Separate practice points from account totals. Keep actual money, cash withdrawal, real-payment references and conversion of virtual points out of demo. Do not use real-money operator payout schedules as a demo implementation template. Prefer free games, clearly disclosed nonredeemable points, no simulated player balance claims or pressure to continue. No payout/turnover formula changes in this audit.
+
+## Follow-up improvements
+- Game-only Low/Medium/High visual preference and session-time/break controls. No wallet UI changes.
+- Flight countdown uses a monotonic deadline and stops while off-screen or backgrounded; resumes same local practice round.
+- Crazy Wheel: visible round counter, bonus countdown, single-action lock prevents timeout and user action from settling the same bonus.
+- Arcade: inactive-screen action guard and reset lifecycle. No new payout formula or payment integration.
