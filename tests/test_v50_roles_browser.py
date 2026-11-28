@@ -300,12 +300,20 @@ try:
   page.locator('#choices [data-choice="2"]').click()
   page.locator('#rollBtn').click()
   page.wait_for_function("document.getElementById('diceCount').textContent==='1'")
-  assert page.locator('#diceHistory span').count()==1
+  assert page.locator('#diceHistory > .p8DiceHistoryRound').count()==1
+  mini=page.locator('#diceHistory .p8DiceMini')
+  assert mini.count()==2,'Two miniature dice for every result'
+  values=[int(mini.nth(i).get_attribute('data-face')) for i in range(2)]
+  assert sum(values)==int(page.locator('#diceHistory > .p8DiceHistoryRound').get_attribute('data-sum'))
+  for i,value in enumerate(values):
+   assert mini.nth(i).locator('.p8DiceMiniPip').count()==value
+   assert mini.nth(i).evaluate('(el)=>getComputedStyle(el).boxShadow')!='none'
+   assert 'radial-gradient' in mini.nth(i).locator('.p8DiceMiniPip').first.evaluate('(el)=>getComputedStyle(el).backgroundImage')
   assert page.locator('#choices [data-result-match]').count()==1
   assert page.locator('#headerCoins').inner_text()==wallet_before,'Practice must not change server wallet'
   page.locator('#choices [data-choice="2"]').click()
   page.locator('#rollBtn').click()
-  page.locator('#screen-dice .back').click()
+  page.locator('#screen-dice > button.back[data-open="home"]').click()
   page.wait_for_timeout(1200)
   assert page.locator('#diceCount').inner_text()=='1','Leaving an animation must cancel the pending practice round'
   assert page.locator('#screen-home').is_visible()

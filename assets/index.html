@@ -986,8 +986,16 @@ body.p8-local-practice .screen:not(.hidden)>.p8-practice-marker{display:block}
 .p8DiceStats>div,.p8DiceHistory{padding:7px;border:1px solid #b2956555;border-radius:10px;background:#25202c;text-align:center}
 .p8DiceStats small,.p8DiceHistory small{display:block;font-size:10px;color:#c9bda9}.p8DiceStats b{font-size:18px;color:#ffe3a5}
 .p8DiceHistory>div:first-child{display:flex;justify-content:space-between;align-items:center;gap:5px;font-size:12px}
-#diceHistory{display:flex;gap:4px;overflow:auto;margin-top:7px;min-height:40px}#diceHistory span{flex:0 0 32px;border:1px solid #ad906a66;background:#171820;padding:3px;border-radius:6px;text-align:center;color:#f6e7d3;font-size:12px}
-#diceHistory small{font-size:15px;color:#fff}
+#diceHistory{display:flex;gap:5px;overflow-x:auto;overflow-y:hidden;margin-top:7px;min-height:90px;padding:4px 2px 7px;scroll-snap-type:x proximity}
+#diceHistory>.p8DiceHistoryRound{flex:0 0 38px;border:1px solid #ad906a66;background:#171820;padding:4px 3px 6px;border-radius:8px;text-align:center;color:#f6e7d3;font-size:12px;font-weight:800;scroll-snap-align:start;box-sizing:border-box}
+#diceHistory>.p8DiceHistoryRound:first-child{background:linear-gradient(160deg,#305b49,#1c302b);border-color:#83bf97}
+#diceHistory .p8DiceMiniPair{display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:4px}
+.p8DiceMini{display:grid;position:relative;isolation:isolate;width:25px;height:25px;box-sizing:border-box;border:1px solid #fff;border-radius:6px;background:linear-gradient(140deg,#fff 0%,#faf9f4 35%,#e0dfd9 100%);box-shadow:2px 3px 0 #95938d,3px 4px 0 #575650,3px 5px 5px #0009,inset 0 1px 1px #fff,inset -1px -1px 2px #b9b8b1;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:1px;padding:3px;transform:rotate(-5deg);font-style:normal}
+.p8DiceMini:nth-child(2){transform:rotate(4deg)}
+.p8DiceMini .p8DiceMiniPip{display:block;align-self:center;justify-self:center;width:4.4px;height:4.4px;border-radius:50%;background:radial-gradient(circle at 35% 32%,#ff7674 0%,#e22f33 38%,#a10e17 78%,#790811 100%);box-shadow:inset 0 .5px 1px #65030c88,0 .5px 0 #fff8;padding:0;margin:0}
+.p8DiceMini[data-face="1"] .p8DiceMiniPip{width:7px;height:7px}
+@media(max-width:360px){#diceHistory>.p8DiceHistoryRound{flex-basis:35px}.p8DiceMini{width:23px;height:23px}}
+
 .p8PracticeNotice{font-size:11px;color:#bdb9c9;text-align:center}
 #screen-dice .result{min-height:32px;margin:7px 0;font-size:12px;padding:8px}
 #screen-dice .action{min-height:40px}
@@ -1574,11 +1582,22 @@ function setChoice(number){
  choice=number;document.querySelectorAll('#choices [data-choice]').forEach(b=>b.removeAttribute('data-result-match'));
  diceSetControls();$('dicePhase').textContent='অনুমান প্রস্তুত';$('diceResult').textContent='ROLL DICE চাপুন।';
 }
+// Explicit pip positions: each miniature depicts the exact settled die face.
+const diceMiniPositions=Object.freeze([[],[4],[0,8],[0,4,8],[0,2,6,8],[0,2,4,6,8],[0,2,3,5,6,8]]);
+function diceMiniFace(value){
+ if(!Number.isInteger(value)||value<1||value>6)throw new RangeError('Invalid dice face');
+ const face=document.createElement('i');face.className='p8DiceMini';face.dataset.face=String(value);
+ face.setAttribute('role','img');face.setAttribute('aria-label','Dice '+value);
+ for(const p of diceMiniPositions[value]){
+  const pip=document.createElement('b');pip.className='p8DiceMiniPip';pip.style.gridRow=String(Math.floor(p/3)+1);pip.style.gridColumn=String(p%3+1);pip.setAttribute('aria-hidden','true');face.append(pip);
+ }
+ return face;
+}
 function diceRenderHistory(){
  $('diceCorrect').textContent=String(dicePractice.correct);$('diceCount').textContent=String(dicePractice.count);
  $('diceLast').textContent=dicePractice.history[0]?.sum??'—';
  $('diceRoundLabel').textContent='ROUND '+String(dicePractice.count+1).padStart(2,'0');
- $('diceHistory').replaceChildren(...dicePractice.history.map(r=>{const e=document.createElement('span');e.textContent=String(r.sum);const pair=document.createElement('small');pair.textContent=String.fromCodePoint(0x267f+r.a,0x267f+r.b);e.append(pair);return e;}));
+ $('diceHistory').replaceChildren(...dicePractice.history.map(r=>{const e=document.createElement('span');e.className='p8DiceHistoryRound';e.dataset.sum=String(r.sum);e.textContent=String(r.sum);const pair=document.createElement('small');pair.className='p8DiceMiniPair';pair.append(diceMiniFace(r.a),diceMiniFace(r.b));e.append(pair);return e;}));
 }
 function diceCancel(){
  dicePractice.serial++;if(dicePractice.timer!==null)clearInterval(dicePractice.timer);dicePractice.timer=null;

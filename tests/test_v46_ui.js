@@ -77,3 +77,10 @@ const outcomes=[0,0,0,0];
 for(let a=1;a<=6;a++)for(let b=1;b<=6;b++)outcomes[group(a+b)]++;
 assert.deepEqual(outcomes,[0,15,6,15],'All 36 possible dice sums correctly classified');
 console.log('PASS: Avatar Dice sum grouping, wallet isolation and visual controls');
+
+// Every red pip face must be faithful to the actual die value.
+const pipSource=html.match(/const diceMiniPositions=Object\.freeze\((\[[^\n]+\])\);/)[1];
+const pipMap=JSON.parse(pipSource);
+for(let face=1;face<=6;face++){assert.equal(pipMap[face].length,face);assert.equal(new Set(pipMap[face]).size,face);assert(pipMap[face].every(p=>p>=0&&p<=8));}
+assert.deepEqual(pipMap[1],[4]);assert(html.includes('p8DiceMiniPip')&&html.includes('diceMiniFace(r.a),diceMiniFace(r.b)'));
+console.log('PASS: six accurate 3D-styled red-pip miniature dice faces');
