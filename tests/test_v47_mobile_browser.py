@@ -160,7 +160,7 @@ try:
   page.locator('#screen-chess').wait_for(state='visible')
   assert page.locator('#p8ChessBoard button').count()==64
   page.locator('#p8ChessLeave').click()
-  page.locator('#arenaNotice').get_by_text('বেট ফেরত নেই।',exact=False).wait_for()
+  page.wait_for_function("document.getElementById('arenaNotice').textContent.includes('বেট ফেরত নেই।')")
   assert calls==['terms','start','forfeit'],calls
   assert not errors,'Uncaught JS errors: '+str(errors)
   print('PASS: account-first PIN registration, no blank gap, authenticated-game gate, Bubble cannon/swap/bomb, 4 tournaments, computer bet entry and forfeit')

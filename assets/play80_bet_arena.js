@@ -38,6 +38,8 @@
  #screen-chess .p8ChessOptions button:disabled{opacity:.5}
   `;
  document.head.append(style);
+ const homeLudo= document.querySelector('#screen-home .gameTile[data-game-id="ludo"]');
+ if(homeLudo){const icon=homeLudo.querySelector('img');if(icon)el('p8OpenBotLudo').prepend(icon.cloneNode());homeLudo.hidden=true;homeLudo.classList.remove('gameTile');}
  const logo=document.createElement('img');
  logo.className='p8ChessBrand';logo.src='play80_chess_logo_premium.webp';logo.alt='PLAY80 Chess';
  el('p8OpenChess').parentElement.prepend(logo);
