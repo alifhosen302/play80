@@ -2560,6 +2560,12 @@ go=function(destination){if(destination!=='crazyshow')cwSoundStop();cwBaseGo(des
 cwBuildSpots();cwDraw();cwRenderAudio();cwRefresh();
 
 document.querySelectorAll('[data-open]').forEach(el=>el.addEventListener('click',()=>go(el.dataset.open)));document.querySelectorAll('[data-choice]').forEach(el=>el.addEventListener('click',()=>setChoice(Number(el.dataset.choice))));document.querySelectorAll('[data-stake]').forEach(b=>b.addEventListener('click',()=>setWheelStake(Number(b.dataset.stake))));$('spinBtn').addEventListener('click',spin);$('rollBtn').addEventListener('click',roll);$('gift100').addEventListener('click',()=>gift(100));$('gift500').addEventListener('click',()=>gift(500));window.addEventListener('popstate',play80Back);window.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();play80Back()}});drawWheel();render();go('home');
+window.Play80LudoView={
+ state:()=>ludo,sound:()=>ludoSfxEnabled,$,ludoColor,ludoLabel,ludoActions,ludoPos,turnPlayer,moveLudoPawn,ludoRoll,LUDO_DICE_PIP_POS,LUDO_LANES,
+ open(){go('ludo');newLudo('bot');ludo.arenaBot=true;beginLudoMatch();},
+ update(s,completed){ludo.pawns=s.pawns.map(a=>a.slice());ludo.turn=s.turn===2?1:0;ludo.die=s.die;ludo.complete=completed;ludo.serverLast=s.last;ludoDraw();},
+ backToBet(){go('bet');}
+};
 })();
 </script>
 <script src="play80_ludo_reference.js"></script>

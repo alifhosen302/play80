@@ -58,14 +58,13 @@
   const s=match.state;
   if(match.game==='chess'){chess=s;selected=-1;renderChess();}
   else{
-   ludo.pawns=s.pawns.map(a=>a.slice());ludo.turn=s.turn===2?1:0;ludo.die=s.die;
-   ludo.complete=match.status!=='active';ludo.serverLast=s.last;ludoDraw();
+   window.Play80LudoView.update(s,match.status!=='active');
   }
   clearTimeout(waitingBot);
   if(match.status!=='active'){
    const info=match.status==='won'?'জিতেছ। জমা '+match.win_amount+' কয়েন।':match.status==='draw'?'ড্র। জমা '+match.draw_amount+' কয়েন।':'ম্যাচ হেরেছ। বেট ফেরত নেই।';
    localStorage.removeItem(key());match=null;window.Play80Cloud.reloadAccount().catch(()=>{});
-   document.body.classList.remove('ludo-playing');go('bet');message(info);return;
+   document.body.classList.remove('ludo-playing');window.Play80LudoView.backToBet();message(info);return;
   }
   if(match.game==='chess'?chess.turn==='b':s.turn===2)waitingBot=setTimeout(()=>turn('bot'),650);
  }
@@ -105,7 +104,7 @@
    match=await window.Play80Cloud.botArena({action:'start',id:mid,game,stake,terms});
    if(match.status!=='active'){renderMatch();return;}
    if(game==='ludo'){
-    go('ludo');newLudo('bot');ludo.arenaBot=true;beginLudoMatch();
+    window.Play80LudoView.open();
    }else{document.querySelectorAll('.screen').forEach(x=>x.classList.add('hidden'));chessSection.classList.remove('hidden');window.scrollTo(0,0);}
    window.Play80Cloud.reloadAccount().catch(()=>{});message('');renderMatch();
   }catch(e){message(e.message||'বেট ম্যাচ শুরু হয়নি।');}

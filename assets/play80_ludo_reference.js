@@ -1,5 +1,8 @@
 // Coordinates use the approved portrait artwork. Match state supplies all movable pieces.
 (() => {
+  const api=window.Play80LudoView;
+  const {$,ludoColor,ludoLabel,ludoActions,ludoPos,turnPlayer,moveLudoPawn,ludoRoll,LUDO_DICE_PIP_POS,LUDO_LANES}=api;
+  let ludo;
   const game = document.getElementById('ludoGameplay');
   const stage = document.createElement('div');
   stage.id = 'ludoReference';
@@ -144,6 +147,7 @@
     hit(ludoLabel(seat)+' roll dice',x,y,w,h,()=>ludoRoll(),!active||!!ludo.die||ludo.moving||(ludo.mode==='bot'&&seat===2));
   }
   function paint() {
+    ludo=api.state();
     if(!art.naturalWidth||game.classList.contains('hidden'))return;
     if(lastMatch!==ludo){lastMatch=ludo;shownDice=[5,5,4,4];}
     if(ludo.serverLast)shownDice[ludo.serverLast.p]=ludo.serverLast.d;
@@ -169,7 +173,7 @@
       dice(seat,top);
     }
     hit('Sound',356,335,117,50,()=>$('ludoSfxToggle').click());
-    if(!ludoSfxEnabled){ctx.fillStyle='#442056';ctx.fillRect(373,345,88,29);label('Muted',416,360,85,17);}
+    if(!api.sound()){ctx.fillStyle='#442056';ctx.fillRect(373,345,88,29);label('Muted',416,360,85,17);}
     hit('Quick rules',485,335,53,50,()=>$('ludoRulesBtn').click());
     hit('Exit',549,335,105,50,()=>$('ludoExit').click());
     patch(425,1198,42,45,100,1198,421,45);
