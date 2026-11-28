@@ -1,6 +1,6 @@
 -- Free-play points only. Close exhausted turnover without deleting historical rows.
 create or replace function private.play80_close_zero_balance_turnover()
-returns trigger language plpgsql security definer set search_path='' as $
+returns trigger language plpgsql security definer set search_path='' as $$
 begin
   if new.balance<=1 and new.held_balance=0 and new.balance<old.balance then
     update private.play80_turnover_items set voided_at=clock_timestamp()
@@ -9,7 +9,7 @@ begin
       where user_id=new.user_id and closed_at is null;
   end if;
   return new;
-end $;
+end $$;
 
 create or replace function private.play80_turnover_on_entry()
 returns trigger language plpgsql security definer set search_path='' as $$
