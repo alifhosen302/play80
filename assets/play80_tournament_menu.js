@@ -12,7 +12,7 @@ const list=document.createElement('div');
 rankRewards.forEach((amount,i)=>{const item=document.createElement('div');item.className='p8PrizeRow';const rank=document.createElement('span'),reward=document.createElement('strong');rank.textContent=(['🥇','🥈','🥉'][i]||'🏅')+' '+(i+1)+' নম্বর';reward.textContent=amount.toLocaleString('bn-BD')+' কয়েন পর্যন্ত';item.append(rank,reward);list.append(item);});
 card.append(list);detail.querySelector('.p8TourCompactHead').after(card);
 prizeButton.addEventListener('click',()=>{card.hidden=!card.hidden;prizeButton.setAttribute('aria-expanded',String(!card.hidden));});
-const games={bubble:'Bubble Shooter',block:'Block Puzzle',memory:'Memory Puzzle','2048':'2048 Puzzle'};
+const games={bubble:'Bubble Shooter',block:'Block Puzzle',memory:'Memory Puzzle','2048':'2048 Puzzle',temple:'Temple Trail',candy:'Candy Match',subway:'Metro Dash',coinrun:'Coin Quest'};
 const serverGames={bubble:'bubbles',block:'blockpuzzle',memory:'memory','2048':'game2048'};
 const ownerTest=()=>['owner','admin'].includes(window.Play80Cloud?.user()?.app_metadata?.role);
 const navigate=name=>document.dispatchEvent(new CustomEvent('play80:menu-navigate',{detail:name}));
@@ -27,7 +27,7 @@ function choose(key){
  if(!games[key])return;
  current=key;
  if(ownerTest()){delete detail.dataset.game;detail.classList.add('hidden');home.classList.remove('hidden');practice();return;}
- pastList.replaceChildren();home.classList.add('hidden');detail.classList.remove('hidden');
+ pastList.replaceChildren();pastButton.hidden=!serverGames[key];home.classList.add('hidden');detail.classList.remove('hidden');
  $('p8TourChosenTitle').textContent=games[key];
  detail.dataset.game=key;
  card.hidden=true;prizeButton.setAttribute('aria-expanded','false');prizeButton.hidden=false;
@@ -219,6 +219,7 @@ function flipLocalMemory(i){
 }
 function practice(){
  const qa=ownerTest();
+ if(window.Play80SkillPreview?.has(current)){window.Play80SkillPreview.open(current);return;}
  if(current==='2048'){navigate('2048');return;}
  if(!['bubble','block','memory'].includes(current))return;
  navigate('p8-practice');
