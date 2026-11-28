@@ -907,6 +907,29 @@ body:not(.p8-auth-locked) #cloudSignedIn:not(.hidden)[data-section]>.p8-menu-sec
 .p8-number-controls .action{width:auto;min-height:44px;padding:6px 11px;margin:0;font-size:12px;border-radius:9px;white-space:nowrap}
 .p8-number-status{margin:0;padding:5px;font-size:12px;overflow-wrap:anywhere}
 </style>
+<style id="p8CompactWithdrawal">
+.p8-wallet-form.p8-withdraw-view{gap:6px!important;padding-top:0!important}
+.p8-withdraw-view>h2{margin:0 0 2px!important;font-size:18px}
+.p8-withdraw-fields{display:grid;gap:5px;margin:0}
+.p8-withdraw-fields[hidden],.p8-wallet-form>.hubStat[hidden]{display:none!important}
+.p8-withdraw-fields label{font-size:12px;font-weight:700;margin:0}
+#p8WithdrawNumber{box-sizing:border-box;width:100%;min-width:0;min-height:42px;padding:7px 9px;border:1px solid #514b6a;border-radius:9px;background:#101528;color:#eef1ff;font-size:14px!important}
+#p8WithdrawNumber::placeholder{font-size:11px;white-space:nowrap;text-overflow:ellipsis}
+.p8-withdraw-view .p8-request-toolbar,.p8-withdraw-view .p8-amount-grid{gap:5px;margin:0}
+.p8-withdraw-view .p8-request-toolbar button,.p8-withdraw-view .p8-amount-grid button{min-height:36px;padding:4px 5px;font-size:12px}
+.p8-withdraw-view .p8-payment-icon{width:24px;height:22px}
+.p8-withdraw-view .formGroup{margin:0!important;gap:3px!important}
+.p8-withdraw-view .formGroup input{min-height:42px;padding:7px 9px}
+.p8-withdraw-view .formGroup small{font-size:11px;margin:0}
+.p8-withdraw-view>.action{min-height:40px;padding:7px 9px;margin:0;font-size:13px}
+.p8-withdraw-view>p{margin:0;font-size:12px}
+#p8WithdrawalNotice{box-sizing:border-box;max-width:min(320px,90vw);border:1px solid #695582;border-radius:14px;background:#191a30;color:#fff;padding:14px}
+#p8WithdrawalNotice::backdrop{background:#0009}
+#p8WithdrawalNotice h3{font-size:16px;margin:0 0 6px}
+#p8WithdrawalNotice p{font-size:14px;line-height:1.5;margin:0 0 10px}
+#p8WithdrawalNotice .action{min-height:40px;padding:6px;margin:0}
+.p8-compact-turnover .cloudRequestItem{margin:0!important}
+</style>
 </head>
 <body class="p8-auth-locked">
 <div class="app">

@@ -289,8 +289,8 @@
       const viewer=session?.user?.id;
       const record=await readTurnover();
       if(!verifiedAuth||session?.user?.id!==viewer||signedIn.dataset.section!=='wallet')return;
-      if(!record||record.withdrawal_guard_enabled&&amount>record.withdrawable){
-        showTurnover(record);
+      if(!record||record.remaining>0||amount>record.withdrawable){
+        showWithdrawalNotice(record&&record.remaining?'আপনার টার্নওভার এখনো পূর্ণ হয়নি। টার্নওভারে গিয়ে চেক করুন।':record?'পর্যাপ্ত উইথড্রযোগ্য ডেমো কয়েন নেই।':'টার্নওভারের হিসাব এখন পাওয়া যাচ্ছে না। আবার চেষ্টা করুন।');
         return;
       }
     }
@@ -300,17 +300,20 @@
         const result=await db('rpc/play80_submit_demo_credit','POST',{p_amount:amount,p_reference:reference});
         requirePinSuccess(result);instantCredit=result?.instant_credited===true;
       }else{
+        const destination=withdrawNumber.value.trim().replace(/[০-৯]/g,d=>String('০১২৩৪৫৬৭৮৯'.indexOf(d)));
+        if(!/^01[0-9]{9}$/.test(destination))throw Error('১১ সংখ্যার নম্বর লিখুন।');
+        const demoNote='ডেমো অপসারণ · '+providers[withdrawProvider]+' · '+destination;
         const pin=await askLoginPin('উইথড্র রিকোয়েস্ট · '+amount+' ভার্চুয়াল কয়েন');
         if(pin===null)return;
-        requirePinSuccess(await db('rpc/play80_confirm_wallet_request','POST',{p_pin:pin,p_kind:type,p_amount:amount,p_note:null}));
+        requirePinSuccess(await db('rpc/play80_confirm_wallet_request','POST',{p_pin:pin,p_kind:type,p_amount:amount,p_note:demoNote}));
       }
     }catch(error){
       if(type==='demo_debit'&&error.message.includes('PLAY80_UNVERIFIED_DEMO_CREDIT'))throw Error('অযাচাইকৃত ডেমো কয়েন বা ফেরত কাটার বাকি হিসাব থাকলে কয়েন অপসারণ করা যায় না।');
       if(type!=='demo_debit'||!error.message.includes('PLAY80_TURNOVER_PENDING'))throw error;
-      await openAccountPage('turnover');
+      showWithdrawalNotice('আপনার টার্নওভার এখনো পূর্ণ হয়নি। টার্নওভারে গিয়ে চেক করুন।');
       return;
     }
-    $('cloudNote').value='';await loadAccount();
+    $('cloudNote').value='';if(type==='demo_debit')withdrawNumber.value='';await loadAccount();
     showWalletResponse(instantCredit?'ডেমো কয়েন যোগ হয়েছে। যাচাইয়ে বাতিল হলে কয়েন ফেরত কাটা হবে।':type==='demo_debit'?'কয়েন সংরক্ষিত হয়েছে। উইথড্র রিকোয়েস্ট অপেক্ষমাণ।':'রিকোয়েস্ট পাঠানো হয়েছে। সিদ্ধান্ত রিকোয়েস্টের ইতিহাসে দেখাবে।');
   },showWalletResponse));
   $('cloudRefresh').addEventListener('click',e=>busy(e.currentTarget,loadAccount));
@@ -1137,12 +1140,29 @@
     walletResponse.style.color=error?'#ffb8b8':'#a7e8c0';
   }
   const requestList=$('cloudRequests');
+  const withdrawalFields=createText('section','','p8-withdraw-fields');
+  let withdrawProvider='bkash';
+  const withdrawProviders=createText('div','','p8-request-toolbar');
+  for(const [key,label] of Object.entries(providers)){
+    const b=createText('button',label,'p8-provider-option');b.type='button';b.dataset.key=key;
+    b.prepend(paymentProviderIcon(key));b.setAttribute('aria-pressed',String(key===withdrawProvider));
+    b.addEventListener('click',()=>{withdrawProvider=key;for(const item of withdrawProviders.children)item.setAttribute('aria-pressed',String(item.dataset.key===key));});
+    withdrawProviders.append(b);
+  }
+  const withdrawNumber=document.createElement('input');
+  withdrawNumber.id='p8WithdrawNumber';withdrawNumber.type='tel';withdrawNumber.inputMode='numeric';withdrawNumber.maxLength=11;
+  withdrawNumber.placeholder='যে নম্বরে উত্তোলন করবেন, সেটি লিখুন';
+  const withdrawLabel=createText('label','উত্তোলনের নম্বর');withdrawLabel.htmlFor=withdrawNumber.id;
+  withdrawalFields.append(withdrawProviders,withdrawLabel,withdrawNumber);
+  const walletBalanceCard=$('cloudBalance').closest('.hubStat');
   ownWallet.classList.add('p8-wallet-form');
-  ownWallet.append(walletHeading,$('cloudBalance').closest('.hubStat'),requestToolbar,walletControls,paymentMethod,firstCreditOffer,...requestFields,$('cloudRefresh'));
+  ownWallet.append(walletHeading,walletBalanceCard,requestToolbar,walletControls,paymentMethod,withdrawalFields,firstCreditOffer,...requestFields);
+  walletBalanceCard.hidden=true;
+  for(const field of requestFields)if(field.classList.contains('sectionTitle'))field.hidden=true;
   ownWallet.querySelector('#cloudSubmit').after(walletResponse);
   const historyPage=document.createElement('section');
-  historyPage.append(createText('h2','রিকোয়েস্টের ইতিহাস'),requestList,
-    makeButton('ইতিহাস রিফ্রেশ',loadAccount,true));
+  $('cloudRefresh').textContent='ইতিহাস রিফ্রেশ';
+  historyPage.append(createText('h2','রিকোয়েস্টের ইতিহাস'),requestList,$('cloudRefresh'));
   requestTitle.hidden=true;
   kindField.closest('.formGroup').hidden=true;
   amountInput.closest('.formGroup').before(amountGrid);
@@ -1158,6 +1178,9 @@
     amountInput.max=debit?'1000000':'20000';
     walletHeading.textContent='কয়েন '+label;
     ownWallet.classList.toggle('p8-deposit-view',!debit);
+    ownWallet.classList.toggle('p8-withdraw-view',debit);
+    withdrawalFields.hidden=!debit;
+    withdrawNumber.required=debit;
     requestToolbar.hidden=debit;paymentMethod.hidden=debit;drawNumber();
     showWalletResponse('');
     referenceField.hidden=debit;
@@ -1382,23 +1405,19 @@
       if(record.remaining&&!record.withdrawal_guard_enabled){
         turnoverList.append(createText('p','উইথড্রের টার্নওভার লক এখনো চালু হয়নি।'));
       }
-      if(record.withdrawable>=200||!record.remaining||!record.withdrawal_guard_enabled){
-        turnoverList.append(makeButton('উইথড্র ফর্ম খুলুন',()=>openAccountPage('wallet','demo_debit'),true));
-      }
-    }
-    if(verifiedAuth&&(turnoverPage.hidden||document.body.dataset.play80Screen!=='account')){
-      selectAccountSection('turnover');
-      document.dispatchEvent(new CustomEvent('play80:menu-navigate',{detail:'account'}));
+
     }
   }
+  const withdrawalNotice=document.createElement('dialog');
+  withdrawalNotice.id='p8WithdrawalNotice';withdrawalNotice.setAttribute('aria-labelledby','p8WithdrawalNoticeTitle');
+  const noticeTitle=createText('h3','উইথড্র');noticeTitle.id='p8WithdrawalNoticeTitle';
+  const noticeText=createText('p','');
+  const closeNotice=createText('button','ঠিক আছে','action');closeNotice.type='button';closeNotice.onclick=()=>withdrawalNotice.close();
+  withdrawalNotice.append(noticeTitle,noticeText,closeNotice);document.body.append(withdrawalNotice);
+  function showWithdrawalNotice(message){noticeText.textContent=message;if(!withdrawalNotice.open)withdrawalNotice.showModal();}
   async function openWithdraw(){
-    const viewer=session?.user?.id;
-    const fromScreen=document.body.dataset.play80Screen, fromSection=signedIn.dataset.section;
-    const record=await readTurnover();
-    if(!verifiedAuth||session?.user?.id!==viewer||document.body.dataset.play80Screen!==fromScreen
-      ||signedIn.dataset.section!==fromSection)return;
-    if(!record||record.remaining>0&&record.withdrawable<200)showTurnover(record);
-    else if(fromScreen==='account'&&fromSection==='wallet')selectWalletKind('demo_debit');
+    if(!verifiedAuth)return;
+    if(document.body.dataset.play80Screen==='account'&&signedIn.dataset.section==='wallet')selectWalletKind('demo_debit');
     else await openAccountPage('wallet','demo_debit');
   }
 

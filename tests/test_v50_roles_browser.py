@@ -402,7 +402,7 @@ try:
   assert deposit_requests==[{'p_amount':100,'p_reference':'DEMO-1001'}]
   assert not page.locator('#play80ActionPin').is_visible()
   approved_credits.append({'id':'already-approved'})
-  page.locator('#cloudRefresh').click()
+  page.evaluate('window.Play80Cloud.reloadAccount()')
   page.locator('#p8FirstCreditOffer').wait_for(state='hidden')
   page.locator('#p8MenuButton').click()
   page.get_by_role('button',name='টার্নওভার',exact=True).click()
@@ -410,43 +410,42 @@ try:
   page.locator('#p8MenuButton').click()
   turnover['items']=[{'source':'deposit','required':500,'completed':250}]
   page.locator('#p8MenuQuick').get_by_role('button',name='উইথড্র',exact=True).click()
-  page.get_by_text('মোট বাকি ২৫০ কয়েন',exact=True).wait_for()
-  assert page.locator('#cloudSignedIn').get_attribute('data-section')=='turnover'
-  assert page.get_by_role('button',name='উইথড্র ফর্ম খুলুন').count()==0
-  turnover['withdrawal_guard_enabled']=False
-  page.get_by_role('button',name='হিসাব রিফ্রেশ করুন').click()
-  page.get_by_role('button',name='উইথড্র ফর্ম খুলুন').click()
+  page.locator('#p8WithdrawNumber').wait_for(state='visible')
+  assert page.locator('#cloudSignedIn').get_attribute('data-section')=='wallet'
   assert page.locator('#cloudRequestKind').input_value()=='demo_debit'
-  turnover['withdrawal_guard_enabled']=True
+  assert page.locator('#p8DepositNumber').is_hidden()
+  assert page.locator('#cloudEmail').is_hidden()
+  assert page.locator('#cloudRefresh').is_hidden()
+  assert page.locator('#cloudBalance').is_hidden()
+  assert page.get_by_text('আমার রিকোয়েস্টের ইতিহাস',exact=True).is_hidden()
+  for network in ['বিকাশ','নগদ']:
+   page.get_by_role('button',name=network,exact=True).click()
+   assert page.get_by_role('button',name=network,exact=True).get_attribute('aria-pressed')=='true'
+  page.get_by_label('উত্তোলনের নম্বর').fill('01000000000')
   page.get_by_role('button',name='অনুরোধ পাঠাও').click()
-  page.get_by_text('মোট বাকি ২৫০ কয়েন',exact=True).wait_for()
+  page.get_by_text('আপনার টার্নওভার এখনো পূর্ণ হয়নি। টার্নওভারে গিয়ে চেক করুন।',exact=True).wait_for()
+  assert page.locator('#cloudSignedIn').get_attribute('data-section')=='wallet'
+  page.locator('#p8WithdrawalNotice').get_by_role('button',name='ঠিক আছে').click()
   assert not page.locator('#play80ActionPin').is_visible()
-  # An empty wallet must not open an action PIN for a 500-coin debit.
+  page.locator('#p8MenuButton').click()
+  page.get_by_role('button',name='টার্নওভার',exact=True).click()
+  page.get_by_text('মোট বাকি ২৫০ কয়েন',exact=True).wait_for()
+  assert page.get_by_role('button',name='উইথড্র ফর্ম খুলুন').count()==0
   turnover['items']=[]
   page.locator('#p8MenuButton').click()
-  page.locator('#p8MenuQuick').get_by_role('button',name='ডিপোজিট',exact=True).click()
-  page.locator('#p8MenuButton').click()
   page.locator('#p8MenuQuick').get_by_role('button',name='উইথড্র',exact=True).click()
   page.locator('.p8-amount-grid [data-amount="500"]').click()
   page.get_by_role('button',name='অনুরোধ পাঠাও').click()
-  page.get_by_text('উইথড্রযোগ্য ডেমো কয়েন: ০',exact=True).wait_for()
+  page.get_by_text('পর্যাপ্ত উইথড্রযোগ্য ডেমো কয়েন নেই।',exact=True).wait_for()
+  page.locator('#p8WithdrawalNotice').get_by_role('button',name='ঠিক আছে').click()
   assert not page.locator('#play80ActionPin').is_visible()
-  # A completed deposit unlocks 500 demo coins even with an older source pending.
   player_wallet['balance']=6500
-  turnover['items']=[{'source':'first_deposit_bonus','required':18000,'completed':0}]
   turnover['withdrawable_coins']=500
   page.locator('#p8MenuButton').click()
-  page.locator('#p8MenuQuick').get_by_role('button',name='ডিপোজিট',exact=True).click()
-  page.locator('#p8MenuButton').click()
   page.locator('#p8MenuQuick').get_by_role('button',name='উইথড্র',exact=True).click()
-  page.get_by_label('ট্রান্সেকশন নম্বর',exact=True).wait_for(state='hidden')
-  assert page.get_by_label('ডেমো সেন্ড মানি নম্বর').is_hidden()
-  assert page.locator('#p8DepositNumber').is_hidden()
-  assert page.locator('#cloudRequestKind').input_value()=='demo_debit'
-  assert page.locator('#cloudRequestKind').input_value()=='demo_debit'
+  page.get_by_label('উত্তোলনের নম্বর').fill('01000000000')
   page.locator('.p8-amount-grid [data-amount="500"]').click()
   assert page.locator('#cloudAmount').input_value()=='500'
-  assert page.locator('.p8-amount-grid [data-amount="500"]').get_attribute('aria-pressed')=='true'
   page.get_by_role('button',name='অনুরোধ পাঠাও').click()
   page.locator('#play80ActionPin').wait_for(state='visible')
   page.locator('#play80ActionPin button[value="cancel"]').click()
