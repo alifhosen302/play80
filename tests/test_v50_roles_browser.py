@@ -92,7 +92,17 @@ try:
    route.fulfill(json={'ok':True})
   page.route('**/rest/v1/rpc/play80_owner_reply_support',send_reply)
   page.locator('#p8InboxSearch').fill('mock-player')
-  page.get_by_role('button',name='@example_player · mock-player-uuid',exact=True).click()
+  page.get_by_role('button',name='@example_player',exact=True).click()
+  assert page.locator('#p8InboxRefresh').count()==0
+  assert page.get_by_text('← সব কথোপকথন',exact=True).count()==0
+  assert page.locator('#p8InboxSearch').is_hidden()
+  assert 'mock-player-uuid' not in page.locator('#p8OwnerInboxList').inner_text()
+  for w,h in [(360,640),(390,740)]:
+   page.set_viewport_size({'width':w,'height':h})
+   field=page.get_by_label('প্লেয়ারকে উত্তর লিখুন').bounding_box()
+   footer=page.locator('.footerNav').bounding_box()
+   assert field and footer and field['y']+field['height']<=footer['y']+1,'Reply field behind footer'
+  page.set_viewport_size({'width':390,'height':844})
   page.get_by_label('প্লেয়ারকে উত্তর লিখুন').fill('সাপোর্ট পরীক্ষা')
   page.get_by_role('button',name='উত্তর পাঠান',exact=True).click()
   page.wait_for_function("() => document.querySelector('#p8OwnerInboxList textarea')?.value === ''")
@@ -100,6 +110,9 @@ try:
   assert not page.locator('#play80ActionPin').is_visible()
   assert page.locator('.footerNav [aria-current="page"]').get_attribute('data-p8-footer')=='support'
   assert page.locator('.footerNav .active').count()==1
+  page.locator('#globalBack').click()
+  page.locator('#p8InboxSearch').wait_for(state='visible')
+  assert page.locator('#p8OwnerChatLog').count()==0
   page.locator('#globalBack').click()
   assert page.locator('#screen-menu').is_visible()
   assert page.locator('#p8MenuItems .p8-menu-icon').count()>=5

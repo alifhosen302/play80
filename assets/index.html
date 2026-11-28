@@ -859,6 +859,34 @@ body.p8-auth-locked #screen-account #cloudSignedOut>p.tiny:not(#p8ModeHelp){font
 body.p8-auth-locked #screen-account .p8OwnerCreateLink{margin:4px auto 0;padding:5px 10px;min-height:34px;font-size:12px}
 @media(max-height:720px){body.p8-auth-locked #screen-account .p8AuthHero img{width:64px;height:64px}body.p8-auth-locked #screen-account .p8AuthHero{padding:3px 0 4px}}
 </style>
+<style id="p8CompactSupport">
+/* Only support uses the viewport-sized messenger; other pages scroll normally. */
+body.p8-support-view .app{height:100dvh;min-height:0;padding-bottom:0!important;display:flex;flex-direction:column;box-sizing:border-box}
+body.p8-support-view .top{flex:none}
+body.p8-support-view .footerNav{position:relative;flex:none;margin:0;width:100%;box-sizing:border-box;bottom:auto}
+body.p8-support-view main.main{flex:1;min-height:0;overflow:hidden;padding:6px 10px!important;display:flex;flex-direction:column}
+body.p8-support-view main.main>.screen:not(.hidden){flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+body.p8-support-view :is(#screen-remote-owner,#screen-account)>.cloudPanel{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;margin:0!important;padding:9px 12px!important;border-radius:14px!important}
+body.p8-support-view #cloudOwnerContent,body.p8-support-view #cloudSignedIn{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+body.p8-support-view #cloudStaffTab-inbox:not(.hidden){flex:1;min-height:0;display:flex;flex-direction:column;margin:0}
+body.p8-support-view #p8StaffHeading{font-size:17px;line-height:1.2;margin:0 0 5px}
+body.p8-support-view #screen-remote-owner:has(.p8-thread-open) #p8StaffHeading{display:none}
+body.p8-support-view #p8InboxSearch{margin:0 0 5px;padding:9px 10px;min-height:42px}
+body.p8-support-view #cloudStaffTab-inbox.p8-thread-open :is(#p8InboxSearch,.p8-user-suggestions){display:none}
+body.p8-support-view #p8OwnerInboxList{flex:1;min-height:0;display:flex;flex-direction:column;gap:5px;margin:0;overflow-y:auto}
+body.p8-support-view .p8-thread-open #p8OwnerInboxList{overflow:hidden}
+body.p8-support-view .p8-thread-name{font-size:15px;margin:0;padding:4px 0 6px;overflow-wrap:anywhere}
+body.p8-support-view #cloudSignedIn>.p8-chat:not([hidden]){flex:1;min-height:0;display:flex;flex-direction:column;gap:5px;margin:0!important;padding:5px!important}
+body.p8-support-view .p8-chat-log{height:auto;flex:1;min-height:0;overflow-y:auto;margin:0;padding:4px 1px;gap:6px}
+body.p8-support-view .p8-chat-bubble{flex:none;font-size:14px;padding:7px 9px}
+body.p8-support-view .p8-chat-bubble p{margin:2px 0 0}
+body.p8-support-view .p8-chat-composer{flex:none;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:6px;margin:0}
+body.p8-support-view .p8-chat-composer textarea{margin:0!important;min-height:44px;height:48px;max-height:88px;resize:none;padding:8px!important;font-size:16px}
+body.p8-support-view .p8-chat-composer .action{min-height:44px;width:auto;padding:8px 10px;font-size:12px;margin:0}
+body.p8-support-view .p8-thread-open #p8OwnerInboxList>.action,body.p8-support-view .p8-chat>.smallAction{flex:none;min-height:32px;padding:5px 8px;font-size:11px;margin:0}
+body.p8-support-view #cloudOwnerNotice,body.p8-support-view #p8SupportReceipt{flex:none;margin:3px 0;padding:5px;font-size:11px}
+body.p8-support-view #screen-account .back,body.p8-support-view #screen-remote-owner .back{display:none}
+</style>
 </head>
 <body class="p8-auth-locked">
 <div class="app">

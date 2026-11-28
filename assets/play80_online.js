@@ -699,7 +699,7 @@
   accountSupport.className='play80Surface';
   accountSupport.style.marginTop='12px';
   accountSupport.classList.add('p8-chat');
-  accountSupport.innerHTML=`<h3>💬 সাপোর্ট</h3><small>স্বয়ংক্রিয় সহায়তা ও ওনারের উত্তর</small>
+  accountSupport.innerHTML=`<small>স্বয়ংক্রিয় সহায়তা ও ওনারের উত্তর</small>
     <div id="p8MyMessages" class="p8-chat-log" role="log" aria-label="সাপোর্ট কথোপকথন"></div>
     <form id="p8ChatForm" class="p8-chat-composer"><textarea id="p8SupportText" rows="2" maxlength="950" aria-label="মেসেজ লিখুন" placeholder="মেসেজ লিখুন"></textarea>
     <button class="action" type="submit" id="p8SendMessage">পাঠান</button></form>
@@ -775,49 +775,59 @@
   const inbox=document.createElement('div');
   inbox.className='cloudStaffPane hidden';
   inbox.id='cloudStaffTab-inbox';
-  inbox.innerHTML=`<h3>💬 সাপোর্ট ইনবক্স</h3><input id="p8InboxSearch" maxlength="80" aria-label="ইউজার আইডি বা নাম" placeholder="ইউজার আইডি বা নাম দিয়ে খুঁজুন" class="cloudSelect">
-    <button class="action secondary" id="p8InboxRefresh" type="button">ইনবক্স দেখুন</button><div id="p8OwnerInboxList" class="cloudList"></div>`;
+  inbox.innerHTML=`<input id="p8InboxSearch" type="search" maxlength="80" aria-label="ইউজার আইডি বা নাম" placeholder="ইউজার আইডি বা নাম দিয়ে খুঁজুন" class="cloudSelect"><div id="p8OwnerInboxList" class="cloudList"></div>`;
   $('cloudStaffTab-users').parentNode.append(inbox);
   async function getOwnerThreads(search=''){
     if(!isStaff())throw Error('Owner বা Admin অ্যাকাউন্টে লগইন করুন।');
     return db('rpc/play80_owner_threads','POST',{p_search:search});
   }
+  let inboxRevision=0;
   async function loadOwnerInbox(){
+    const revision=++inboxRevision;
     activeOwnerThread=null;
+    inbox.classList.remove('p8-thread-open');
+    const list=$('p8OwnerInboxList');
+    const viewer=session?.user?.id;
     const rows=await getOwnerThreads($('p8InboxSearch').value.trim());
-    const list=$('p8OwnerInboxList');list.replaceChildren();
+    if(revision!==inboxRevision||activeOwnerThread||!verifiedAuth||session?.user?.id!==viewer)return;
+    list.replaceChildren();
     if(!rows.length)list.textContent='কোনো কথোপকথন নেই।';
     for(const r of rows){
       const card=makeButton('',()=>openOwnerThread(r),true);
       card.classList.add('p8-menu-item','p8-thread-preview');
       dot(card,r.needs_attention);
       card.append(createText('strong',r.username?'@'+r.username:'ইউজার'),
-        createText('small','আইডি '+r.user_id),createText('span',r.preview));
+        createText('span',r.preview));
       if(r.needs_attention)card.append(createText('small','ওনারের মনোযোগ প্রয়োজন'));
       list.append(card);
     }
   }
   async function openOwnerThread(thread){
     const {user_id,username}=thread;
+    const revision=++inboxRevision;
     activeOwnerThread=thread;
     const viewer=session.user.id;
     const messages=await db('rpc/play80_owner_open_thread','POST',{p_user:user_id});
     const latest=messages.at(-1)?.id;
     const fresh=(await getOwnerThreads(user_id))[0];
-    if(!verifiedAuth||!isStaff()||session?.user?.id!==viewer)return;
+    if(!verifiedAuth||!isStaff()||session?.user?.id!==viewer||revision!==inboxRevision||activeOwnerThread!==thread)return;
     const list=$('p8OwnerInboxList');list.replaceChildren();
-    list.append(makeButton('← সব কথোপকথন',loadOwnerInbox,true),
-      createText('h4',username?'@'+username:'ইউজার'),createText('small','আইডি '+user_id));
+    inbox.classList.add('p8-thread-open');
+    list.append(createText('h4',username?'@'+username:'ইউজার','p8-thread-name'));
     const chat=createText('div','','p8-chat-log');chat.id='p8OwnerChatLog';
     for(const r of messages)chat.append(supportMessage(r.sender_role==='owner'?(r.automatic_step?'ওনার · স্বয়ংক্রিয় উত্তর':'ওনার'):'প্লেয়ার',r.created_at,r.body,r.sender_role==='owner'));
-    list.append(chat);chat.scrollTop=chat.scrollHeight;
+    chat.dataset.signature=JSON.stringify(messages);
+    list.append(chat);
     const reply=document.createElement('textarea');reply.maxLength=1000;reply.rows=2;
     reply.placeholder='প্লেয়ারকে উত্তর লিখুন';reply.setAttribute('aria-label',reply.placeholder);
-    list.append(reply,makeButton('উত্তর পাঠান',async()=>{
+    const composer=createText('div','','p8-chat-composer p8-owner-composer');
+    list.append(composer);
+    composer.append(reply,makeButton('উত্তর পাঠান',async()=>{
       if(!reply.value.trim())throw Error('উত্তর লিখুন।');
       await db('rpc/play80_owner_reply_support','POST',{p_user:user_id,p_note:reply.value.trim()});
-      await openOwnerThread(thread);
+      if(activeOwnerThread===thread)await openOwnerThread(thread);
     }));
+    chat.scrollTop=chat.scrollHeight;
     if(fresh&&!fresh.needs_attention&&fresh.latest_id===latest){
       list.append(makeButton('কথোপকথন স্থায়ীভাবে মুছুন',async()=>{
         const title='আইডি '+user_id+'-এর সব '+fresh.message_count+'টি সাপোর্ট মেসেজ স্থায়ীভাবে মুছতে PIN দিন।';
@@ -832,11 +842,11 @@
     }
     await refreshMenuCounts();
   }
-  $('p8InboxRefresh').addEventListener('click',e=>busy(e.currentTarget,loadOwnerInbox,ownerStatus));
-  addUserSuggestions('p8InboxSearch','p8InboxRefresh',getOwnerThreads,openOwnerThread);
+  addUserSuggestions('p8InboxSearch',null,getOwnerThreads,openOwnerThread,loadOwnerInbox);
+  $('p8InboxSearch').addEventListener('search',()=>{void loadOwnerInbox().catch(e=>ownerStatus(e.message,true));});
 
-  function addUserSuggestions(inputId,submitId,findUsers,selectUser){
-    const input=$(inputId), submit=$(submitId);
+  function addUserSuggestions(inputId,submitId,findUsers,selectUser,onSearch){
+    const input=$(inputId), submit=submitId?$(submitId):null;
     const list=document.createElement('div');
     list.className='p8-user-suggestions';
     list.setAttribute('role','group');
@@ -860,8 +870,8 @@
           if(version!==revision||search!==input.value.trim()||!verifiedAuth||viewer!==session?.user?.id||!input.getClientRects().length)return;
           for(const user of users.slice(0,5)){
             const id=user.user_id||user.id;
-            list.append(makeButton(user.username?'@'+user.username+' · '+id:id,async()=>{
-              input.value=id;
+            list.append(makeButton(user.username?'@'+user.username+(onSearch?'':' · '+id):id,async()=>{
+              input.value=onSearch?(user.username||id):id;
               clear();
               await selectUser(user);
             },true));
@@ -871,9 +881,9 @@
     });
     input.addEventListener('keydown',event=>{
       if(event.key==='Escape')clear();
-      if(event.key==='Enter'){event.preventDefault();submit.click();}
+      if(event.key==='Enter'){event.preventDefault();if(submit)submit.click();else{clear();void onSearch().catch(e=>ownerStatus(e.message,true));}}
     });
-    submit.addEventListener('click',clear);
+    submit?.addEventListener('click',clear);
     document.addEventListener('play80:screen-changed',clear);
   }
   function newId(){return crypto.randomUUID?crypto.randomUUID():('xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx').replace(/[xy]/g,c=>{const n=crypto.getRandomValues(new Uint8Array(1))[0]&15;return(c==='x'?n:(n&3|8)).toString(16)});}
@@ -1416,6 +1426,7 @@
   function syncFooter(){
     const screen=document.body.dataset.play80Screen;
     const section=signedIn.dataset.section;
+    document.body.classList.toggle('p8-support-view',verifiedAuth&&((screen==='remote-owner'&&staffSection==='inbox')||(screen==='account'&&section==='support')));
     const active=screen==='menu'?'menu':
       screen==='owner-wallet'?'wallet':
       screen==='remote-owner'?(staffSection==='inbox'?'support':'menu'):
@@ -1449,6 +1460,12 @@
     });
   }
   document.addEventListener('play80:before-back',event=>{
+    if(document.body.dataset.play80Screen==='remote-owner'&&staffSection==='inbox'&&activeOwnerThread){
+      event.preventDefault();
+      $('p8InboxSearch').value='';
+      void loadOwnerInbox().catch(e=>ownerStatus(e.message,true));
+      return;
+    }
     if(historyFromWallet&&document.body.dataset.play80Screen==='account'&&signedIn.dataset.section==='history'){
       event.preventDefault();
       void openAccountPage('wallet');
