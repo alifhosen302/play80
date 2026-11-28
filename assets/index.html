@@ -2580,8 +2580,8 @@ const cwSpots=[
  {key:'5',name:'5',short:'5',label:'NUM 5',face:'5'},
  {key:'10',name:'10',short:'10',label:'NUM 10',face:'10'},
  {key:'coin',name:'COIN FLIP',short:'CF',label:'COIN FLIP',face:'🪙'},
- {key:'hunt',name:'CASH HUNT',short:'CH',label:'CASH HUNT',face:'🎯'},
  {key:'pachinko',name:'PACHINKO',short:'PK',label:'PACHINKO',face:'🔵'},
+ {key:'hunt',name:'CASH HUNT',short:'CH',label:'CASH HUNT',face:'🎯'},
  {key:'mega',name:'MEGA WHEEL',short:'ME',label:'MEGA WHEEL',face:'✨'}
 ];
 const cwCounts={'1':21,'2':13,'5':7,'10':4,coin:4,hunt:2,pachinko:2,mega:1};
@@ -2684,8 +2684,8 @@ function cwBuildSpots(){
  const grid=$('cwBetChoices');grid.replaceChildren();
  cwSpots.forEach(opt=>{
   const btn=document.createElement('button');btn.type='button';btn.className='cwBetChoice';btn.dataset.cwBet=opt.key;
-  const title=document.createElement('span');title.textContent=opt.face;
-  const sub=document.createElement('small');sub.textContent=opt.label;
+  const title=document.createElement('span');title.textContent=opt.name;
+  const sub=document.createElement('small');sub.textContent=opt.key.length<3?'DEMO '+opt.key+'×':'BONUS SHOW';
   const amt=document.createElement('b');amt.textContent='';btn.append(title,sub,amt);
   btn.addEventListener('click',()=>{
    if(!cwCanSelect())return;
@@ -2719,6 +2719,8 @@ function cwFinish(multiplier,description){
    // Defensive rollback for impossible future multiplier arithmetic.
    state.points+=w.total;delete state.cwOpen;addGameEntry(w.total,'Crazy Wheel • invalid reward refunded');
    cwSetRoundMessage('The result was invalid. Your demo coins were returned.');
+ }else if(w.total===0){
+   cwSetRoundMessage('দর্শক রাউন্ডের ফলাফল: '+description);
  }else{
    state.points+=payout;state.earned+=payout;state.games+=1;delete state.cwOpen;
    state.entries.unshift({points:payout,title:'Crazy Wheel Show • '+description+(chosen?' • '+(m*extra)+'×':' • spectator'),date:new Date().toISOString()});

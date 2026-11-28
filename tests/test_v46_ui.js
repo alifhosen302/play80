@@ -34,3 +34,35 @@ assert(html.includes('if(document.hidden){cwSoundStop();cwPauseShow();}'),'Backg
 assert(html.includes('cwDeadline=Date.now()+12000'),'Selection countdown');
 assert(html.includes('if(!cwCanSelect())return;const total=cwSum();'),'Spectator rounds do not require points');
 console.log('PASS: Original offline show presentation and lifecycle checks');
+
+const vm=require('node:vm');
+const start=html.indexOf('let cwAutoRunning=false,cwPhase=');
+const end=html.indexOf('function cwGuardedDelay',start);
+const delayEnd=html.indexOf('\n}',end)+2;
+assert(start>0&&end>start&&delayEnd>end,'Clock implementation available');
+const phaseSource=html.slice(start,delayEnd);
+let now=10000,spins=0,calls=0,id=0;
+const nodes={},intervals=new Map(),delayed=[];
+const context=vm.createContext({
+ Date:{now:()=>now}, document:{hidden:false},screen:'crazyshow',cwBusy:false,cwBets:{},cwPending:null,
+ $:name=>nodes[name]??=( {dataset:{},textContent:''} ),
+ setInterval:fn=>{intervals.set(++id,fn);return id;},clearInterval:n=>intervals.delete(n),
+ setTimeout:fn=>{delayed.push(fn);return ++id;},cwSpeak:()=>{},cwSetRoundMessage:()=>{},cwRefresh:()=>{},
+ cwSpinRound:()=>{spins++;},cwGetSpot:()=>null
+});
+vm.runInContext(phaseSource,context);
+const run=src=>vm.runInContext(src,context);
+run('cwAutoRunning=true;cwStartSelection()');
+assert.equal(nodes.cwRoundClock.textContent,'12');
+assert.equal(intervals.size,1);
+now+=11999;run('cwTick()');assert.equal(spins,0);
+now+=1;run('cwTick()');assert.equal(spins,1);assert.equal(intervals.size,0);
+run('cwStartSelection();cwPauseShow()');assert.equal(intervals.size,0);assert.equal(run('cwCanSelect()'),false);
+now+=15000;run('cwTick()');assert.equal(spins,1,'Paused show cannot create another round');
+context.cwPending={finished:false};
+context.mark=()=>{calls++};
+run('cwGuardedDelay(mark,100)');
+context.cwPending={finished:false};delayed.shift()();assert.equal(calls,0,'Stale result ignored');
+run('cwGuardedDelay(mark,100)');delayed.shift()();assert.equal(calls,1,'Current result runs once');
+run('cwAutoRunning=true;cwStartSelection()');context.document.hidden=true;run('cwTick()');assert.equal(intervals.size,0,'Background clock stops');
+console.log('PASS: Simulated clock, pause, hidden tab and stale callbacks');
