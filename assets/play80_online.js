@@ -289,7 +289,7 @@
       const viewer=session?.user?.id;
       const record=await readTurnover();
       if(!verifiedAuth||session?.user?.id!==viewer||signedIn.dataset.section!=='wallet')return;
-      if(!record||record.remaining>0||amount>record.withdrawable){
+      if(!record||amount>record.withdrawable){
         showWithdrawalNotice(record&&record.remaining?'আপনার টার্নওভার এখনো পূর্ণ হয়নি। টার্নওভারে গিয়ে চেক করুন।':record?'পর্যাপ্ত উইথড্রযোগ্য ডেমো কয়েন নেই।':'টার্নওভারের হিসাব এখন পাওয়া যাচ্ছে না। আবার চেষ্টা করুন।');
         return;
       }
@@ -1373,9 +1373,10 @@
     try{
       const data=await db('rpc/play80_my_turnover','POST',{});
       if(!Array.isArray(data?.items)||typeof data.withdrawal_guard_enabled!=='boolean')return null;
-      const remaining=data.items.reduce((total,item)=>total+Math.max(0,Number(item.required)-Number(item.completed)),0);
+      const items=data.items.filter(item=>Number(item.completed)<Number(item.required));
+      const remaining=items.reduce((total,item)=>total+Math.max(0,Number(item.required)-Number(item.completed)),0);
       const withdrawable=Number(data.withdrawable_coins??(remaining?0:Math.max(0,Number(balance?.balance||0)-Number(balance?.held_balance||0))));
-      return Number.isSafeInteger(remaining)&&Number.isSafeInteger(withdrawable)&&withdrawable>=0?{...data,remaining,withdrawable}:null;
+      return Number.isSafeInteger(remaining)&&Number.isSafeInteger(withdrawable)&&withdrawable>=0?{...data,items,remaining,withdrawable}:null;
     }catch(_){return null;}
   }
   async function refreshTurnover(){
@@ -1396,8 +1397,10 @@
         const progress=document.createElement('progress');
         progress.max=Number(item.required);progress.value=Number(item.completed);
         progress.style.width='100%';progress.setAttribute('aria-label','টার্নওভার অগ্রগতি');
+        const percent=Math.min(100,Math.max(0,Math.floor(100*Number(item.completed)/Math.max(1,Number(item.required)))));
+        progress.setAttribute('aria-valuetext',walletMoney(percent)+'%');
         card.append(createText('strong',turnoverLabels[item.source]||'টার্নওভার'),progress,
-          createText('span',walletMoney(item.completed)+' / '+walletMoney(item.required)+' কয়েন'),
+          createText('span',walletMoney(item.completed)+' / '+walletMoney(item.required)+' কয়েন · '+walletMoney(percent)+'%'),
           createText('small','বাকি '+walletMoney(Number(item.required)-Number(item.completed))+' কয়েন'));
         turnoverList.append(card);
       }

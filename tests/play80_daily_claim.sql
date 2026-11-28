@@ -268,3 +268,34 @@ begin
   assert (select balance from public.demo_wallets where user_id=sponsor)=500,'Submitting must not credit wallet';
   assert not has_function_privilege('anon','public.play80_submit_demo_credit(bigint,text)','execute');
 end $$;
+
+-- Isolated server-authoritative demo Spin Time and verified win turnover checks.
+\i /work/supabase/migrations/20261128113000_verified_demo_spin_turnover.sql
+do $$
+declare player uuid:='00000000-0000-4000-8000-000000000099';
+declare key uuid;
+declare result jsonb; declare again jsonb;
+declare expected bigint:=10000; declare progress bigint:=0;
+declare before_count bigint; declare stake bigint:=50;
+begin
+ insert into auth.users(id,email_confirmed_at) values(player,now());
+ update public.demo_wallets set balance=expected where user_id=player;
+ perform private.play80_record_turnover(player,'deposit','spin-test',100000);
+ perform set_config('test.uid',player::text,true);
+ for i in 1..20 loop
+   key:=gen_random_uuid();
+   result:=public.play80_demo_spin(key,stake);
+   assert (result->>'sector')::integer between 0 and 9;
+   assert (result->>'reward')::bigint=(array[0,5,1,0,5,1,0,5,1,0])[(result->>'sector')::integer+1]*stake;
+   expected:=expected-stake+(result->>'reward')::bigint;
+   if (result->>'reward')::bigint>stake then progress:=progress+(result->>'reward')::bigint;end if;
+   again:=public.play80_demo_spin(key,stake);
+   assert again=result,'Replay must return identical result without another charge';
+   assert (select balance from public.demo_wallets where user_id=player)=expected;
+   assert (select completed from private.play80_turnover_items where source='deposit' and source_key='spin-test')=progress;
+ end loop;
+ assert (select count(*) from private.play80_demo_spin_rounds where user_id=player)=20;
+ insert into public.wallet_transactions(user_id,transaction_type,delta,balance_after,operation_key) values(player,'bot_arena_win',90,expected,'demo-bot-win-test');
+ assert (select completed from private.play80_turnover_items where source='deposit' and source_key='spin-test')=progress+90;
+ assert not has_function_privilege('anon','public.play80_demo_spin(uuid,bigint)','execute');
+end $$;
