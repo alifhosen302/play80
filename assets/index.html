@@ -941,6 +941,31 @@ body:not(.p8-auth-locked) #cloudSignedIn:not(.hidden)[data-section]>.p8-menu-sec
 body.p8-local-practice .screen:not(.hidden)>.p8-practice-marker{display:block}
 .walletBadge[data-wallet-stale] #headerCoins{opacity:.5}
 </style>
+<style id="cwStudioUpdate">
+.cwHeader{margin:2px 0 6px}.cwHeader h1{font-size:19px}.cwHeader p{font-size:10px}
+.cwScene{padding:7px;background:radial-gradient(ellipse at 50% 80%,#987047 0%,transparent 48%),linear-gradient(110deg,#123e35 0%,#173e36 42%,#531c34 65%,#39192d);border-radius:12px}
+.cwRoundClock{position:absolute;right:8px;top:8px;z-index:9;display:grid;place-items:center;width:43px;height:43px;border:3px solid #e4d791;border-radius:50%;background:#1f232cdd;color:#fff;font-size:17px;font-weight:900;font-variant-numeric:tabular-nums}
+.cwShowFloor{min-height:210px;height:clamp(205px,35vw,300px);overflow:hidden}
+.cwWheelZone{width:72%;transition:transform .65s ease;transform-origin:50% 5%}
+.cwHostZone{width:27%;height:100%;transition:opacity .5s}.cwHostZone img{max-height:95%}.cwHostName{font-size:8px}
+.cwScene[data-phase="spin"] .cwWheelZone,.cwScene[data-phase="result"] .cwWheelZone{transform:translateX(15%) scale(1.32)}
+.cwScene[data-phase="spin"] .cwHostZone,.cwScene[data-phase="result"] .cwHostZone{opacity:.25}
+.cwScene[data-phase="spin"] .cwRoundClock,.cwScene[data-phase="result"] .cwRoundClock{border-color:#9b9ea7}
+.cwTopSlot{min-height:36px;margin:0 auto 5px;padding:3px 6px}.cwTopSlot small{font-size:8px}.cwTopSlot b{font-size:14px}
+.cwHostSpeech{min-height:0;margin:6px 0 0;padding:5px;font-size:11px}.cwAudience[hidden]{display:none}
+.cwHistory{display:flex;gap:5px;overflow:hidden;justify-content:center;min-height:22px;margin:6px 0}.cwHistory span{min-width:24px;padding:3px 6px;background:#2e3746;border:1px solid #c5b383;border-radius:6px;text-align:center;font-size:11px;color:#fff}
+.cwStats{margin:6px 0;gap:5px}.cwStats>div{padding:5px 2px}.cwStats strong{font-size:14px;margin-top:2px}
+.cwBetPanel{padding:7px;background:linear-gradient(135deg,#302b36,#28223c)}
+.cwBetChoices{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}.cwBetChoice{min-height:48px;padding:5px 2px;border-radius:5px;border:2px solid #e0c9a1;box-shadow:inset 0 0 0 2px #ffffff24}
+.cwBetChoice span{font-size:17px}.cwBetChoice small{font-size:9px;margin-top:2px}.cwBetChoice b:empty{display:none}
+.cwBetChoice[data-cw-bet="1"]{background:#386e73}.cwBetChoice[data-cw-bet="2"]{background:#98712c}
+.cwBetChoice[data-cw-bet="5"]{background:#99576e}.cwBetChoice[data-cw-bet="10"]{background:#6b6089}
+.cwBetChoice[data-cw-bet="coin"]{background:#285c83}.cwBetChoice[data-cw-bet="pachinko"]{background:#844b88}
+.cwBetChoice[data-cw-bet="hunt"]{background:#416b45}.cwBetChoice[data-cw-bet="mega"]{background:#923c49}
+.cwChips{gap:6px;margin:6px 0}.cwChips button{width:35px;height:35px;font-size:11px}
+.cwActions{margin-top:6px}.cwActions button{min-height:34px;font-size:11px}.cwRoundMessage{min-height:0;margin-top:5px;padding:5px}
+@media(prefers-reduced-motion:reduce){.cwWheelZone,.cwHostZone{transition:none}.cwHostZone img,.cwTopSlot.highlight{animation:none}}
+</style>
 </head>
 <body class="p8-auth-locked">
 <div class="app">
@@ -987,19 +1012,19 @@ body.p8-local-practice .screen:not(.hidden)>.p8-practice-marker{display:block}
 <section id="screen-crazyshow" class="screen hidden crazyShowScreen">
  <button class="back" data-open="home">❮ All Games</button>
  <div class="cwHeader"><div><span class="cwKicker">PLAY80 • AI GAME SHOW • OFFLINE</span><h1>✦ Crazy Wheel Show</h1><p>Original demo inspired by wheel game shows • no real money</p></div><button type="button" id="cwAudioBtn" class="cwAudioBtn" aria-pressed="true">🔊 Sound On</button></div>
- <div class="cwScene" id="cwScene">
+ <div class="cwScene" id="cwScene" data-phase="paused"><div class="cwRoundClock" id="cwRoundClock" aria-label="Round countdown">—</div>
    <div class="cwCurtains" aria-hidden="true"></div>
    <div class="cwTopSlot" id="cwTopSlot"><small>★ TOP SLOT ★</small><strong id="cwSlotTarget">BONUS ?</strong><b id="cwSlotMultiplier">×?</b></div>
    <div class="cwShowFloor"><div class="cwWheelZone"><div class="cwPointer">▼</div><div class="cwWheelShell"><canvas id="cwWheelCanvas" width="620" height="620" aria-label="54-segment spinning show wheel"></canvas><div class="cwWheelCenter"><b>PLAY80</b><small>WHEEL SHOW</small></div></div></div>
    <div class="cwHostZone"><img id="cwHostAvatar" src="crazy_host_mira.webp" alt="Fictional animated AI host"/><div class="cwHostShadow"></div><div class="cwHostName" id="cwHostName">Mira • AI Host</div></div></div>
    <div class="cwHostSpeech" id="cwHostSpeech" role="status">Welcome to our virtual game show! Choose your demo spots.</div>
-   <div class="cwAudience"><div class="cwAudienceTitle"><span>◉ VIRTUAL AUDIENCE</span><small>Scripted AI simulation • not real players</small></div><div class="cwAudienceFaces"><span>👩🏽</span><span>👨🏽</span><span>👩🏻</span><span>🧑🏾</span><span>👨🏻</span><span>👩🏾</span></div><div id="cwAudienceChat" class="cwAudienceChat">AI Guest 01: Let’s spin! ✨</div></div>
+   <div class="cwAudience" hidden><div class="cwAudienceTitle"><span>◉ VIRTUAL AUDIENCE</span><small>Scripted AI simulation • not real players</small></div><div class="cwAudienceFaces"><span>👩🏽</span><span>👨🏽</span><span>👩🏻</span><span>🧑🏾</span><span>👨🏻</span><span>👩🏾</span></div><div id="cwAudienceChat" class="cwAudienceChat">AI Guest 01: Let’s spin! ✨</div></div>
  </div>
- <div class="cwStats"><div><small>DEMO COINS</small><strong id="cwAvailable">0</strong></div><div><small>ON THIS ROUND</small><strong id="cwBetTotal">0</strong></div><div><small>LAST RESULT</small><strong id="cwLast">—</strong></div></div>
+ <div id="cwHistory" class="cwHistory" aria-label="Recent demo results"></div><div class="cwStats"><div><small>PRACTICE POINTS</small><strong id="cwAvailable">0</strong></div><div><small>ON THIS ROUND</small><strong id="cwBetTotal">0</strong></div><div><small>LAST RESULT</small><strong id="cwLast">—</strong></div></div>
  <div class="cwBetPanel"><div class="cwBetHeadline"><strong>SELECT YOUR SPOTS</strong><span>Choose chip, then tap any spot</span></div>
    <div id="cwChipChoices" class="cwChips"><button type="button" data-cw-chip="10" class="selected">10</button><button type="button" data-cw-chip="25">25</button><button type="button" data-cw-chip="50">50</button><button type="button" data-cw-chip="100">100</button></div>
    <div id="cwBetChoices" class="cwBetChoices"></div>
-   <div class="cwActions"><button id="cwClear" class="cwClear" type="button">↶ CLEAR</button><button id="cwSpin" class="cwSpin" type="button">🎡 SPIN THE SHOW</button></div>
+   <div class="cwActions"><button id="cwClear" class="cwClear" type="button">↶ CLEAR</button><button id="cwSpin" class="cwSpin" type="button">▶ START SHOW</button></div>
    <div id="cwRoundMessage" class="cwRoundMessage" role="status">Demo game. Spin outcomes are random. No real-money prizes.</div>
  </div>
  <div id="cwBonus" class="cwBonus hidden" role="region" aria-label="Bonus round"><div class="cwBonusHeading"><strong id="cwBonusTitle">BONUS ROUND</strong><span>✦ DEMO REWARDS</span></div><div id="cwBonusGame" class="cwBonusGame"></div></div>
@@ -2567,6 +2592,40 @@ Object.keys(cwCounts).forEach(k=>{for(let j=0;j<cwCounts[k];j++)cwRoundChoices.p
 let cwSeed=71037;for(let i=cwRoundChoices.length-1;i>0;i--){cwSeed=(Math.imul(cwSeed,1664525)+1013904223)>>>0;const j=cwSeed%(i+1);[cwRoundChoices[i],cwRoundChoices[j]]=[cwRoundChoices[j],cwRoundChoices[i]]}
 let cwChip=10,cwBets={},cwRotation=0,cwBusy=false,cwPending=null,cwRoundNum=0,cwAutoFinish=null,cwMusicOn=true;
 let cwHostIndex=0,cwMusic;
+let cwAutoRunning=false,cwPhase='paused',cwDeadline=0,cwTickTimer=null,cwHistory=[];
+function cwSetPhase(phase){
+ cwPhase=phase;$('cwScene').dataset.phase=phase;
+ $('cwRoundClock').textContent=phase==='spin'?'…':phase==='result'?'✓':'—';
+}
+function cwCanSelect(){return cwAutoRunning&&cwPhase==='select'&&!cwBusy;}
+function cwStopClock(){if(cwTickTimer!==null)clearInterval(cwTickTimer);cwTickTimer=null;}
+function cwRemember(outcome){cwHistory.unshift(outcome);cwHistory=cwHistory.slice(0,8);$('cwHistory').replaceChildren(...cwHistory.map(k=>{const e=document.createElement('span');e.textContent=cwGetSpot(k)?.short||k;return e;}));}
+function cwTick(){
+ if(!cwAutoRunning||screen!=='crazyshow'||document.hidden){cwStopClock();return;}
+ if(cwPhase!=='select'&&cwPhase!=='result')return;
+ const remaining=Math.max(0,Math.ceil((cwDeadline-Date.now())/1000));
+ $('cwRoundClock').textContent=String(remaining);
+ if(remaining===0){
+  cwStopClock();
+  if(cwPhase==='result'){cwStartSelection();return;}
+  cwSpinRound();
+ }
+}
+function cwStartSelection(){
+ if(!cwAutoRunning||screen!=='crazyshow'||document.hidden||cwBusy)return;
+ cwStopClock();cwSetPhase('select');cwDeadline=Date.now()+12000;
+ cwSpeak('ডেমো রাউন্ডের প্রস্তুতি চলছে।');cwSetRoundMessage('চয়েস দেওয়ার সময়।');
+ cwRefresh();cwTick();cwTickTimer=setInterval(cwTick,200);
+}
+function cwPauseShow(){
+ cwAutoRunning=false;cwStopClock();
+ if(!cwBusy){cwBets={};cwSetPhase('paused');}
+ cwRefresh();
+}
+function cwGuardedDelay(fn,ms){
+ const round=cwPending;
+ return setTimeout(()=>{if(round&&cwPending===round&&!round.finished)fn();},ms);
+}
 try{cwMusicOn=localStorage.getItem('play80.crazy.sound.v35')!=='off'}catch(_){ }
 cwMusic=new Audio('crazy_show_loop.wav');cwMusic.preload='auto';cwMusic.loop=true;cwMusic.volume=.28;
 const cwSpinSound=new Audio('crazy_wheel_spin.wav');cwSpinSound.preload='auto';cwSpinSound.volume=.56;
@@ -2591,7 +2650,7 @@ function cwPlaySpin(){if(!cwMusicOn)return;try{cwSpinSound.currentTime=0;const p
 function cwRenderAudio(){$('cwAudioBtn').textContent=cwMusicOn?'🔊 Sound On':'🔇 Sound Off';$('cwAudioBtn').setAttribute('aria-pressed',String(cwMusicOn))}
 $('cwAudioBtn').addEventListener('click',()=>{cwMusicOn=!cwMusicOn;try{localStorage.setItem('play80.crazy.sound.v35',cwMusicOn?'on':'off')}catch(_){}cwRenderAudio();if(cwMusicOn)cwSoundStart();else cwSoundStop()});
 $('screen-crazyshow').addEventListener('pointerdown',()=>{if(cwMusicOn&&cwMusic.paused)cwSoundStart()},{passive:true});
-document.addEventListener('visibilitychange',()=>{if(document.hidden)cwSoundStop();else if(screen==='crazyshow')cwSoundStart()});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){cwSoundStop();cwPauseShow();}else if(screen==='crazyshow'){cwSoundStart();cwRefresh();}});
 function cwDraw(){
  const cv=$('cwWheelCanvas'),ctx=cv.getContext('2d');if(!ctx)return;
  const c=cv.width/2,r=c-10,step=2*Math.PI/cwRoundChoices.length;
@@ -2615,11 +2674,11 @@ function cwRefresh(){
   const amount=cwBets[button.dataset.cwBet]||0;
   button.classList.toggle('hasBet',amount>0);
   button.querySelector('b').textContent=amount||'';
-  button.disabled=cwBusy;
+  button.disabled=!cwCanSelect();
  });
- $('cwClear').disabled=cwBusy||cwSum()===0;
- $('cwSpin').disabled=cwBusy||cwSum()===0;
- document.querySelectorAll('[data-cw-chip]').forEach(b=>{b.classList.toggle('selected',Number(b.dataset.cwChip)===cwChip);b.disabled=cwBusy});
+ $('cwClear').disabled=!cwCanSelect()||cwSum()===0;
+ $('cwSpin').disabled=false;$('cwSpin').textContent=cwAutoRunning?'Ⅱ PAUSE SHOW':'▶ START SHOW';
+ document.querySelectorAll('[data-cw-chip]').forEach(b=>{b.classList.toggle('selected',Number(b.dataset.cwChip)===cwChip);b.disabled=!cwCanSelect()});
 }
 function cwBuildSpots(){
  const grid=$('cwBetChoices');grid.replaceChildren();
@@ -2629,15 +2688,15 @@ function cwBuildSpots(){
   const sub=document.createElement('small');sub.textContent=opt.label;
   const amt=document.createElement('b');amt.textContent='';btn.append(title,sub,amt);
   btn.addEventListener('click',()=>{
-   if(cwBusy)return;
+   if(!cwCanSelect())return;
    if(cwSum()+cwChip>available()){toast('Not enough free demo coins');return}
    cwBets[opt.key]=(cwBets[opt.key]||0)+cwChip;
    cwRefresh();cwSpeak('Great choice! '+opt.name+' gets '+cwBets[opt.key]+' demo coins.');
   });grid.append(btn);
  });
 }
-$('cwChipChoices').addEventListener('click',e=>{const b=e.target.closest('[data-cw-chip]');if(b&&!cwBusy){cwChip=Number(b.dataset.cwChip);cwRefresh()}});
-$('cwClear').addEventListener('click',()=>{if(cwBusy)return;cwBets={};cwRefresh();cwSpeak('Board cleared. Choose any new demo spot!')});
+$('cwChipChoices').addEventListener('click',e=>{const b=e.target.closest('[data-cw-chip]');if(b&&cwCanSelect()){cwChip=Number(b.dataset.cwChip);cwRefresh()}});
+$('cwClear').addEventListener('click',()=>{if(!cwCanSelect())return;cwBets={};cwRefresh();cwSpeak('Board cleared. Choose any new demo spot!')});
 function cwSetRoundMessage(msg,win=false){$('cwRoundMessage').textContent=msg;$('cwRoundMessage').style.color=win?'#ffe398':'#e8dcff'}
 function cwRecover(){
  // Lost/restarted app in the middle of a round: refund virtual stakes, never keep half-spins.
@@ -2668,12 +2727,13 @@ function cwFinish(multiplier,description){
  }
  cwAutoFinish&&clearTimeout(cwAutoFinish);cwAutoFinish=null;
  $('cwLast').textContent=cwTitle(picked);$('cwBonus').classList.add('hidden');
- cwBusy=false;cwBets={};cwPending=null;cwRefresh();
- cwSpeak('The result is '+cwTitle(picked)+'! '+(payout?'Great demo win!':'Thanks for playing.'));
+ cwBusy=false;cwBets={};cwPending=null;cwRemember(picked);cwSetPhase('result');cwRefresh();
+ cwSpeak('ফলাফল: '+cwTitle(picked));
+ if(cwAutoRunning&&screen==='crazyshow'&&!document.hidden){cwDeadline=Date.now()+4000;cwStopClock();cwTickTimer=setInterval(cwTick,200);}else{cwSetPhase('paused');}
 }
 function cwFinishBonus(mult,what){if(!cwPending||cwPending.finished)return;cwFinish(mult,what)}
 function cwAutoBonus(){if(!cwPending||cwPending.finished)return;const out=cwPending.outcome;cwFinishBonus(out==='mega'?cwPick([5,10,15,20]):cwPick([2,3,5,8,10]),cwTitle(out)+' auto-finished')}
-function cwBonusReady(){cwAutoFinish&&clearTimeout(cwAutoFinish);cwAutoFinish=setTimeout(cwAutoBonus,18000)}
+function cwBonusReady(){cwAutoFinish&&clearTimeout(cwAutoFinish);cwAutoFinish=cwGuardedDelay(cwAutoBonus,18000)}
 function cwShowCoin(){
  $('cwBonusTitle').textContent='🪙 COIN FLIP BONUS';const stage=$('cwBonusGame');stage.replaceChildren();
  const coin=document.createElement('div');coin.className='cwCoin';coin.textContent='?';
@@ -2682,7 +2742,7 @@ function cwShowCoin(){
   if(!cwPending||cwPending.finished)return;goBtn.disabled=true;
   const a=cwPick([2,3,5,8,10]),b=cwPick([2,4,6,10,15]);const side=cwRand(2),value=side?b:a;
   coin.classList.add('flipping');cwSpeak('Let’s flip the coin! Gold '+a+' times, purple '+b+' times!');
-  setTimeout(()=>{coin.classList.remove('flipping');coin.textContent=value+'×';desc.textContent='Gold '+a+'× • Purple '+b+'× • Winning side: '+(side?'Purple':'Gold');cwFinishBonus(value,'Coin Flip '+value+'×')},1550);
+  cwGuardedDelay(()=>{coin.classList.remove('flipping');coin.textContent=value+'×';desc.textContent='Gold '+a+'× • Purple '+b+'× • Winning side: '+(side?'Purple':'Gold');cwFinishBonus(value,'Coin Flip '+value+'×')},1550);
  };stage.append(desc,coin,goBtn);cwBonusReady();
 }
 function cwShowHunt(){
@@ -2694,7 +2754,7 @@ function cwShowHunt(){
   if(!cwPending||cwPending.finished)return;
   Array.from(grid.children).forEach((b,j)=>{b.disabled=true;b.textContent=arr[j]+'×'});
   btn.style.background='#ffdd86';btn.style.color='#351854';info.textContent='Badge '+(i+1)+' revealed '+value+'×.';
-  cwSpeak('Your target reveals '+value+' times!');setTimeout(()=>cwFinishBonus(value,'Cash Hunt '+value+'×'),750);
+  cwSpeak('Your target reveals '+value+' times!');cwGuardedDelay(()=>cwFinishBonus(value,'Cash Hunt '+value+'×'),750);
  };grid.append(btn)});stage.append(info,grid);cwBonusReady();
 }
 function cwShowPachinko(){
@@ -2706,7 +2766,7 @@ function cwShowPachinko(){
  const button=document.createElement('button');button.textContent='🔵 DROP THE PUCK';button.onclick=()=>{
   if(!cwPending||cwPending.finished)return;button.disabled=true;
   const landing=cwRand(8),value=values[landing];ball.style.left=((landing+.5)/8*100)+'%';ball.style.top='175px';
-  cwSpeak('And the ball drops through our lucky pegs!');setTimeout(()=>{stops.children[landing].style.background='#edc15b';info.textContent='The puck landed on '+value+'×.';cwFinishBonus(value,'Pachinko '+value+'×')},1850);
+  cwSpeak('And the ball drops through our lucky pegs!');cwGuardedDelay(()=>{stops.children[landing].style.background='#edc15b';info.textContent='The puck landed on '+value+'×.';cwFinishBonus(value,'Pachinko '+value+'×')},1850);
  };stage.append(info,board,button);cwBonusReady();
 }
 function cwShowMega(){
@@ -2721,12 +2781,12 @@ function cwShowMega(){
    Array.from(colors.children).forEach(x=>x.disabled=true);wheel.classList.add('spinning');
    cwSpeak('You selected '+color+'! Watch the mega wheel spin!');
    const value=cwPick([3,5,8,10,12,15,20,30]);
-   setTimeout(()=>{wheel.classList.remove('spinning');wtxt.textContent=value+'×';info.textContent='The '+color+' pointer landed on '+value+'×!';cwFinishBonus(value,'Mega Wheel '+value+'×')},2200);
+   cwGuardedDelay(()=>{wheel.classList.remove('spinning');wtxt.textContent=value+'×';info.textContent='The '+color+' pointer landed on '+value+'×!';cwFinishBonus(value,'Mega Wheel '+value+'×')},2200);
   };colors.append(b)
  });stage.append(info,wheel,colors);cwBonusReady();
 }
 function cwShowBonus(outcome){
- $('cwBonus').classList.remove('hidden');
+ cwSetPhase('bonus');$('cwBonus').classList.remove('hidden');
  if(outcome==='coin')cwShowCoin();else if(outcome==='hunt')cwShowHunt();else if(outcome==='pachinko')cwShowPachinko();else cwShowMega();
  cwSetRoundMessage('🎉 Bonus round unlocked: '+cwTitle(outcome)+'! Pick an action below.');
  cwSpeak('Welcome to the '+cwTitle(outcome)+' bonus round!');
@@ -2741,17 +2801,14 @@ function cwAfterSpin(){
  else cwShowBonus(out);
 }
 function cwSpinRound(){
- if(cwBusy)return;const total=cwSum();if(total<1)return;
- if(total>available()){toast('Not enough free demo coins');return}
+ if(!cwCanSelect())return;const total=cwSum();
+ if(total>available()){cwBets={};cwStartSelection();return}
  const pickedIndex=cwRand(cwRoundChoices.length),outcome=cwRoundChoices[pickedIndex];
  const boostKey=cwPick(cwSpots).key,boostValue=cwPick([1,1,1,2,3,5]);
- cwBusy=true;cwRoundNum++;
+ cwBusy=true;cwSetPhase('spin');cwRoundNum++;
  cwPending={bets:{...cwBets},total,outcome,boostKey,boostValue,finished:false};
  // All wager state, pending state, and debit persist in one atomic localStorage value.
- state.points-=total;
- state.cwOpen={stake:total,started:new Date().toISOString()};
- state.entries.unshift({points:-total,title:'Crazy Wheel Show • '+total+' offline demo coins',date:new Date().toISOString()});
- state.entries=state.entries.slice(0,100);save();cwRefresh();cwSwitchHost();cwAudienceUpdate();
+ if(total>0){state.points-=total;state.cwOpen={stake:total,started:new Date().toISOString()};state.entries.unshift({points:-total,title:'Crazy Wheel Show • '+total+' offline demo coins',date:new Date().toISOString()});state.entries=state.entries.slice(0,100);save();}cwRefresh();cwSwitchHost();cwAudienceUpdate();
  $('cwBonus').classList.add('hidden');
  $('cwTopSlot').classList.add('highlight');$('cwSlotTarget').textContent=cwTitle(boostKey);$('cwSlotMultiplier').textContent='×'+boostValue;
  cwSpeak('Spinning our original virtual show wheel! Good luck with your demo picks!');
@@ -2762,15 +2819,15 @@ function cwSpinRound(){
  const now=((cwRotation%360)+360)%360;const extra=(target-now+360)%360;
  cwRotation+=5*360+extra;
  const w=$('cwWheelCanvas');w.style.transition='transform 3.8s cubic-bezier(.13,.78,.10,1)';w.style.transform='rotate('+cwRotation+'deg)';
- setTimeout(cwAfterSpin,3910);
+ cwGuardedDelay(cwAfterSpin,3910);
 }
-$('cwSpin').addEventListener('click',cwSpinRound);
+$('cwSpin').addEventListener('click',()=>{if(cwAutoRunning){cwPauseShow();return;}cwAutoRunning=true;if(cwBusy){cwRefresh();return;}cwStartSelection();});
 function cwOnOpen(){
  cwRecover();cwDraw();cwRenderAudio();cwRefresh();cwSoundStart();
- if(!cwPending){cwSwitchHost();cwSpeak('Hello! I am your animated fictional show host. Pick your virtual spots and spin!')}
+ if(!cwPending){cwSwitchHost();cwSpeak('ডেমো শো শুরু করতে START SHOW চাপুন।');}
 }
 const cwBaseGo=go;
-go=function(destination){if(destination!=='crazyshow')cwSoundStop();cwBaseGo(destination);document.body.classList.toggle('crazy-demo-screen',destination==='crazyshow');if(destination==='crazyshow')cwOnOpen()};
+go=function(destination){if(destination!=='crazyshow'){cwSoundStop();cwPauseShow();}cwBaseGo(destination);document.body.classList.toggle('crazy-demo-screen',destination==='crazyshow');if(destination==='crazyshow')cwOnOpen()};
 cwBuildSpots();cwDraw();cwRenderAudio();cwRefresh();
 
 document.querySelectorAll('[data-open]').forEach(el=>el.addEventListener('click',()=>go(el.dataset.open)));document.querySelectorAll('[data-choice]').forEach(el=>el.addEventListener('click',()=>setChoice(Number(el.dataset.choice))));document.querySelectorAll('[data-stake]').forEach(b=>b.addEventListener('click',()=>setWheelStake(Number(b.dataset.stake))));$('spinBtn').addEventListener('click',spin);$('rollBtn').addEventListener('click',roll);$('gift100').addEventListener('click',()=>gift(100));$('gift500').addEventListener('click',()=>gift(500));window.addEventListener('popstate',play80Back);window.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();play80Back()}});drawWheel();render();go('home');

@@ -26,3 +26,11 @@ for(const id of ['p8ChessLeave','p8ChessResign','p8ChessRestart','p8ChessWin'])a
 assert(!arena.includes("el('p8ChessBack')"),'Stale missing chess element handler');
 assert(chess.includes('function resign')&&chess.includes('function agreeDraw'),'Chess game ends supported');
 console.log('PASS V4.6: Tournament cards, source assets, login redirects, chess controls and terminal logic');
+
+// Original, nonredeemable offline show: phase clock and guarded delayed callbacks.
+for(const marker of ['cwRoundClock','cwHistory','cwStartSelection','cwGuardedDelay','cwPauseShow','cwCanSelect','data-phase="spin"','grid-template-columns:repeat(2,minmax(0,1fr))'])assert(html.includes(marker),marker);
+assert(html.includes('round&&cwPending===round&&!round.finished'),'Delayed callbacks cannot settle a later round');
+assert(html.includes('if(document.hidden){cwSoundStop();cwPauseShow();}'),'Backgrounding pauses new rounds');
+assert(html.includes('cwDeadline=Date.now()+12000'),'Selection countdown');
+assert(html.includes('if(!cwCanSelect())return;const total=cwSum();'),'Spectator rounds do not require points');
+console.log('PASS: Original offline show presentation and lifecycle checks');
