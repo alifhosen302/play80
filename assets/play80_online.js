@@ -99,9 +99,34 @@
     if(!on||!isOwner()&&staffCreateForm.dataset.role==='admin')hideStaffForm();
   }
   let accountLoadVersion=0, firstCreditEligible=false;
+  let walletReadVersion=0,walletOwner=null,walletRefreshBusy=false;
+  function applyServerWallet(user,rows,version){
+    if(!verifiedAuth||session?.user?.id!==user||version!==walletReadVersion)return false;
+    const w=rows?.[0],total=Number(w?.balance),held=Number(w?.held_balance);
+    if(!w||!Number.isSafeInteger(total)||!Number.isSafeInteger(held)||held<0||total<held){
+      balance=null;walletOwner=null;$('cloudBalance').textContent='—';$('cloudHeld').textContent='—';
+      renderIdentity();return false;
+    }
+    balance={balance:total,held_balance:held};walletOwner=user;
+    $('cloudBalance').textContent=String(total-held);$('cloudHeld').textContent=String(held);
+    $('headerCoins').closest('.walletBadge')?.removeAttribute('data-wallet-stale');
+    renderIdentity();return true;
+  }
+  async function refreshServerWallet(){
+    if(walletRefreshBusy||!verifiedAuth||!session?.user?.id||document.hidden)return;
+    walletRefreshBusy=true;
+    const user=session.user.id,version=++walletReadVersion;
+    try{
+      const rows=await db('demo_wallets?select=balance,held_balance&user_id=eq.'+encodeURIComponent(user)+'&limit=1');
+      applyServerWallet(user,rows,version);
+    }catch(_){
+      if(verifiedAuth&&session?.user?.id===user&&version===walletReadVersion)$('headerCoins').closest('.walletBadge')?.setAttribute('data-wallet-stale','');
+    }finally{walletRefreshBusy=false;}
+  }
   async function loadAccount(){
     if(!session||!verifiedAuth)return;
     const version=++accountLoadVersion;
+    const walletVersion=++walletReadVersion;
     const id=session.user?.id;
     const stillCurrent=()=>version===accountLoadVersion&&verifiedAuth&&session?.user?.id===id;
     void refreshMenuCounts();
@@ -118,8 +143,7 @@
       $('cloudUsername').readOnly=!!profile.username;
       $('cloudSaveUsername').disabled=!!profile.username;
       $('cloudSaveUsername').textContent=profile.username?'USERNAME LOCKED':'SAVE USERNAME';
-      balance=wallets?.[0]||{balance:0,held_balance:0};
-      $('cloudBalance').textContent=String(Number(balance.balance)-Number(balance.held_balance));
+      applyServerWallet(id,wallets,walletVersion);
       renderIdentity();
       try{
         const approvedCredits=await db('demo_wallet_requests?select=id&user_id=eq.'+key+'&request_kind=eq.demo_credit&status=eq.approved&limit=1');
@@ -135,7 +159,7 @@
       }catch(_){if(stillCurrent())$('cloudBonusEarned').textContent='—';}
 
       if(!stillCurrent())return;
-      $('cloudHeld').textContent=String(balance.held_balance||0);
+      $('cloudHeld').textContent=walletOwner===id&&balance?String(balance.held_balance):'—';
       const requestQuery='&user_id=eq.'+encodeURIComponent(id)+'&order=created_at.desc&limit=25';
       const requestFields='id,request_kind,amount,status,created_at,review_note';
       let requests;
@@ -1024,7 +1048,7 @@
   function renderIdentity(){
     const account=verifiedAuth?session?.user:null;
     const name=account?(profile?.full_name||profile?.display_name||profile?.username||account.email||'PLAY80'):'—';
-    const coins=account&&balance?walletMoney(Math.max(0,Number(balance.balance)-Number(balance.held_balance||0))):'—';
+    const coins=account&&walletOwner===account.id&&balance?walletMoney(balance.balance-balance.held_balance):'—';
     $('p8MenuAvatar').textContent='';
     $('p8MenuName').textContent=name;
     $('p8MenuUserId').textContent=account&&profile?.username?'@'+profile.username:'—';
@@ -1592,8 +1616,9 @@
   }
   document.querySelectorAll('[data-staff-tab="wallet"],[data-staff-tab="inbox"]').forEach(el=>el.classList.add('p8-menu-item'));
   $('p8MenuButton').addEventListener('click',()=>{renderMenu();renderIdentity();void loadAccount();});
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden)void refreshMenuCounts();});
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden){void refreshMenuCounts();void refreshServerWallet();}});
   setInterval(()=>{if(!document.hidden)void refreshMenuCounts();},20000);
+  setInterval(()=>{if(!document.hidden&&verifiedAuth){void refreshServerWallet();if(document.body.dataset.play80Screen==='account'&&signedIn.dataset.section==='turnover')void refreshTurnover();}},10000);
   // Refresh only the visible conversation. Never replace the owner's typed draft.
   let ownerPollPending=false;
   setInterval(async()=>{

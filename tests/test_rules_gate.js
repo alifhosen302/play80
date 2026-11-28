@@ -10,3 +10,8 @@ for(const g of ['wheel','dice','flight','ludo','chess','crazyshow','2048','memor
 for(const requirement of ['#p8OpenChess','#localLudoBtn','[data-arcade]','[data-open]','OK, PLAY','overflow-y:auto','stopImmediatePropagation','MutationObserver','play80_premium_game_icons_atlas.webp'])assert(src.includes(requirement),requirement);
 assert(!src.includes('localStorage.setItem'),'Do not permanently bypass rules');
 console.log('PASS: 18 game-entry rules, premium game icon atlas, scrollable rules gate, no sticky bypass');
+assert(html.includes('localPracticeScreens'),'Local practice games must be visibly distinguished');
+assert(html.includes('মূল ওয়ালেট বা টার্নওভারে যোগ হয় না'),'Practice balance disclosure required');
+const online=fs.readFileSync('assets/play80_online.js','utf8');
+for(const marker of ['applyServerWallet','walletReadVersion','walletOwner===account.id','refreshServerWallet'])assert(online.includes(marker),marker);
+assert(!online.includes('balance=wallets?.[0]||{balance:0,held_balance:0}'),'No fabricated zero wallet');

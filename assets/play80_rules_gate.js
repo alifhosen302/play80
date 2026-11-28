@@ -40,6 +40,7 @@ txt(b,'h3','How to play · খেলার নিয়ম');txt(b,'p',r[2]);
 txt(b,'h3','Before you start · খেলার আগে জানুন');
 const ul=txt(b,'ul','');
 txt(ul,'li','Only virtual Demo Coins/Points are used. There are no real-money deposits, cash withdrawals or cash prizes.');
+if(!['wheel','ludo','chess'].includes(game))txt(ul,'li','Practice points are separate from the authenticated wallet; only a server-verified result can change that wallet or turnover.');
 txt(ul,'li','The currently implemented game mechanics apply. New user-approved rules will be disclosed here before the game, not invented.');
 txt(ul,'li','Operational results appear within gameplay; emergency security, error and permission notices may still appear.');
 const note=txt(b,'p','Rules, disclosures and promotional explanations belong here. After OK, PLAY, the game screen should focus on gameplay.');note.className='p8RulesNotice';
