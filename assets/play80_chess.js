@@ -87,5 +87,60 @@ function agreeDraw(s){
  if(s.finished)return {ok:false,state:s};
  const n=copy(s);n.finished='agreed_draw';n.winner=null;return {ok:true,state:n};
 }
-return {start,legal,move,check,attacked,allMoves,resign,agreeDraw};
+const value={p:100,n:320,b:335,r:500,q:930,k:20000,'.':0};
+function positionScore(s){
+ let total=0;
+ for(let i=0;i<64;i++){
+  const piece=s.board[i];if(piece==='.')continue;
+  const type=piece.toLowerCase(),white=piece!==type,row=i>>3,col=i%8;
+  const advance=white?6-row:row-1;
+  const centre=7-Math.abs(3.5-col)-Math.abs(3.5-row);
+  let bonus=0;
+  if(type==='p')bonus=advance*7+centre*2;
+  if(type==='n'||type==='b')bonus=centre*9;
+  if(type==='k'&&((white&&row===7)||(!white&&row===0))&&(col===6||col===2))bonus=35;
+  total+=(white?1:-1)*(value[type]+bonus);
+ }
+ return s.turn==='w'?total:-total;
+}
+function hardMove(state){
+ if(state.finished)return null;
+ const deadline=Date.now()+1600,timeout={},matescore=100000;
+ let nodes=0;
+ function ordered(s,moves){
+  function rank(m){const victim=s.board[m.to].toLowerCase();return (m.promotion?9000:0)+(m.enPassant?1500:0)+(victim!=='.'?16*value[victim]-value[s.board[m.from].toLowerCase()]:0)+(m.castle?60:0);}
+  return moves.sort((a,b)=>rank(b)-rank(a));
+ }
+ function search(s,depth,alpha,beta,ply){
+  if((++nodes&31)===0&&Date.now()>=deadline)throw timeout;
+  const list=allMoves(s),checked=check(s,s.turn);
+  if(!list.length)return checked?-matescore+ply:0;
+  if(depth<=0){
+   const score=positionScore(s);
+   if(depth<=-3)return score;
+   if(!checked){if(score>=beta)return score;alpha=Math.max(alpha,score);}
+  }
+  for(const m of ordered(s,list)){
+   if(depth<=0&&!checked&&s.board[m.to]==='.'&&!m.enPassant&&!m.promotion)continue;
+   const v=-search(applyUnsafe(s,m),depth-1,-beta,-alpha,ply+1);
+   if(v>=beta)return v;alpha=Math.max(alpha,v);
+  }
+  return alpha;
+ }
+ const roots=ordered(state,allMoves(state));let best=roots[0]||null;
+ if(!best)return null;
+ for(let depth=1;depth<=8;depth++){
+  let winner=best,score=-Infinity;
+  try{
+   for(const m of roots){
+    const v=-search(applyUnsafe(state,m),depth-1,-Infinity,-score,1);
+    if(v>score){winner=m;score=v;}
+   }
+  }catch(e){if(e!==timeout)throw e;break;}
+  best=winner;if(score>=matescore-30)break;
+  roots.splice(roots.indexOf(best),1);roots.unshift(best);
+ }
+ return best;
+}
+return {start,legal,move,check,attacked,allMoves,resign,agreeDraw,hardMove};
 });

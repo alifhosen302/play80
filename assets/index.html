@@ -831,6 +831,8 @@ body.p8-auth-locked .app{max-width:560px}
 .p8-compact-turnover button{min-height:36px;padding:6px 10px}
 .p8-referral-list .smallAction{min-height:32px}
 </style>
+<link rel="stylesheet" href="ludo-reference.css">
+<style>.dieResultFace[data-special]:not([data-special=""]) span{visibility:hidden}.dieResultFace[data-special]:not([data-special=""])::after{content:attr(data-special);position:absolute;inset:0;display:grid;place-items:center;color:#341b56;font-weight:bold}</style>
 </head>
 <body class="p8-auth-locked">
 <div class="app">
@@ -1038,10 +1040,11 @@ body.p8-auth-locked .app{max-width:560px}
 
 
 <section id="screen-bet" class="screen hidden">
- <div class="play80Promo"><h2>♟️ Multiplayer Arena</h2><p>বন্ধুদের সঙ্গে Ludo ও Chess খেলুন। সব কয়েন শুধু non-redeemable demo currency। Online matchmaking এবং room settlement সক্রিয় নয়।</p></div>
- <div class="play80Surface"><h2>🎲 Color Ludo</h2><p>২–৪ জনের অফলাইন Ludo, Team Battle, Expert AI। বর্তমান পরীক্ষিত স্থানীয় গেমপ্লে বজায় রয়েছে।</p><button type="button" class="play80PrimaryBtn" data-open="ludo">PLAY LOCAL LUDO</button><small style="display:block;margin-top:10px">Online invitations, remote opponents and virtual matches are still being built.</small></div>
- <div class="play80Surface"><h2>♟️ Chess</h2><p>Online Chess multiplayer, friend invitations and reconnect server validation are not yet enabled.</p><button type="button" class="play80SecondaryBtn" disabled>ONLINE CHESS — COMING SOON</button></div>
- <div class="play80Surface"><h3>Virtual match policy</h3><p>Future virtual match selections: 50 · 100 · 200 · 500 · 1,000 demo coins. A server-verified match will show the 10% virtual commission and 90% winner payout before joining. No cash conversion or withdrawals.</p></div>
+ <div class="play80Promo"><h2>বেট অ্যারিনা</h2><p>প্রতিপক্ষ কম্পিউটার। দুই খেলাতেই একটাই কঠিন মোড। ম্যাচ শুরুর আগে ডেমো কয়েনের বেট বেছে নাও।</p></div>
+ <div class="play80Surface"><label for="arenaStake">বেটের পরিমাণ</label><select id="arenaStake"><option value="">কয়েন বেছে নাও</option><option value="50">50 কয়েন</option><option value="100">100 কয়েন</option><option value="150">150 কয়েন</option><option value="200">200 কয়েন</option><option value="300">300 কয়েন</option><option value="500">500 কয়েন</option></select><p id="arenaNotice" role="status"></p></div>
+ <div class="play80Surface"><h2>🎲 লুডু</h2><p>কম্পিউটারের প্রথম ২ বা ৩ চালে ছয় ওঠে না। এরপর কাটার সুযোগ থাকলে ১–১২ ঘরের বিশেষ চাল পায়। নিরাপদ ঘরে কাটা যায় না। কাটার সুযোগ না থাকলে ঘরে গুটি থাকা পর্যন্ত পরপর ছয় পায়, তারপর হোমের জন্য ঠিক সংখ্যা পায়। তোমার পাশা ১–৬। ছয়, কাটাকাটি বা হোমে পৌঁছালে দুজনেই আবার চাল পাবে।</p><button type="button" class="play80PrimaryBtn" id="p8OpenBotLudo">কম্পিউটারের সঙ্গে লুডু খেলো</button></div>
+ <div class="play80Surface"><h2>♟️ দাবা</h2><p>তুমি সাদা। কম্পিউটার কালো নিয়ে পাল্টা চাল হিসাব করে।</p><button type="button" class="play80SecondaryBtn" id="p8OpenChess">কম্পিউটারের সঙ্গে দাবা খেলো</button></div>
+ <div class="play80Surface"><p>ম্যাচ শুরু হলে বেট কাটা হবে। ম্যাচ ছেড়ে দিলে বেট ফেরত পাবে না।</p></div>
 </section>
 <section id="screen-tournament" class="screen hidden"><div id="p8TournamentCatalog">
  <div class="p8TournamentHeadline"><h2>🏆 PLAY80 TOURNAMENT GAMES</h2><p>গেম বেছে নাও। প্রতিটি গেমের ভিতরে টুর্নামেন্টের অবস্থা, সময়, Entry Fee, Prize ও Leaderboard দেখাবে।</p></div>
@@ -1502,8 +1505,7 @@ try{const names=JSON.parse(localStorage.getItem(LUDO_NAME_KEY));if(Array.isArray
 function ludoLabel(p){
  if(ludo.mode==='bot'&&p===2)return 'AI Model';
  const name=(ludo.nicknames[p]||'').trim();if(name)return name;
- const human=ludo.players.filter(x=>!(ludo.mode==='bot'&&x===2));
- return 'Player '+(human.indexOf(p)+1);
+ return ['Alif302','Player 3','Player 2','Player 4'][p];
 }
 let skillPopupTimeout=null,skillPopupCountdown=null;
 const specialNotified=new Set();
@@ -1574,7 +1576,7 @@ function renderLudoPlayerStrip(){
  }
 }
 function beginLudoMatch(){
- if(hasPowerRules()&&!$('ludoConsent').checked){toast('Confirm the Power Rules with all players before starting.');return}
+ if(!ludo.arenaBot&&hasPowerRules()&&!$('ludoConsent').checked){toast('Confirm the Power Rules with all players before starting.');return}
  hideSkillPopup();document.body.classList.add('ludo-playing');ludo.pawns=Array.from({length:4},()=>[-1,-1,-1,-1]);
  ludo.turn=0;ludo.die=0;ludo.complete=false;ludo.moving=false;ludo.saveSlotId=null;
  $('ludoSetup').classList.add('hidden');$('ludoGameplay').classList.remove('hidden');
@@ -1589,7 +1591,7 @@ function showMatchRuleSummary(){
  const active=ludo.players.filter(p=>ludoPower(p)).map(p=>ludoLabel(p));
  hideSkillPopup();
  $('skillPopupEyebrow').textContent='MATCH RULES';$('skillPopupTitle').textContent='Quick Rules';
- $('skillPopupBody').textContent='Roll 6 to start · Exact number to finish · ★ Safe square.\n'+(active.length?'Special Skill: '+active.join(', ')+' respawns at start when captured.':'Classic fair play.')+'\nAll dice are random.';
+ $('skillPopupBody').textContent=ludo.arenaBot?'কম্পিউটারের প্রথম ২ বা ৩ চালে ছয় ওঠে না। এরপর কাটার সুযোগ থাকলে ১–১২ ঘরের বিশেষ চাল পায়। নিরাপদ ঘরে কাটা যায় না। কাটার সুযোগ না থাকলে ঘরে গুটি থাকা পর্যন্ত পরপর ছয় পায়, তারপর হোমের জন্য ঠিক সংখ্যা পায়। তোমার পাশা ১–৬। ছয়, কাটাকাটি বা হোমে পৌঁছালে দুজনেই আবার চাল পাবে।':'Roll 6 to start · Exact number to finish · ★ Safe square.\n'+(active.length?'Special Skill: '+active.join(', ')+' respawns at start when captured.':'Classic fair play.')+(ludo.arenaBot?'\nComputer uses capture, deployment and exact-home rolls.':'\nAll dice are random.');
  $('skillPopupTimer').textContent='Closes in 3s';$('ludoSkillPopup').classList.remove('hidden');
  skillPopupTimeout=setTimeout(hideSkillPopup,3000);
 }
@@ -1632,15 +1634,22 @@ function ludoPowerAttack(p,i){
  }
  return best;
 }
-function ludoLegal(pawn,d){
+function arenaLongCapture(p,step,d){
+ if(!ludo.arenaBot||p!==2||step<0||step+d>=51||d<7||d>12)return false;
+ const target=ludoTrackPosition(p,step+d);
+ return !SAFE_CELLS.has(target)&&ludo.players.some(other=>ludoEnemies(p,other)&&
+  ludo.pawns[other].some(pos=>pos>=0&&pos<51&&ludoTrackPosition(other,pos)===target));
+}
+function ludoLegal(pawn,d,p){
+ if(Number.isInteger(d)&&d>6)return arenaLongCapture(p,pawn,d);
  if(!Number.isInteger(d)||d<1||d>6)return false;
  return pawn===-1?d===6:pawn>=0&&pawn<56&&pawn+d<=56;
 }
 function ludoMoveInfo(p,i,die){
- const start=ludo.pawns[p][i];if(!ludoLegal(start,die))return null;
+ const start=ludo.pawns[p][i];if(!ludoLegal(start,die,p))return null;
  if(start===-1)return {kind:'deploy',captures:0,after:0,score:0};
  const after=start+die;
- if(after===56&&start>=51)return {kind:'home',captures:0,after,score:56};
+ if(after===56)return {kind:'home',captures:0,after,score:56};
  if(after>=51)return {kind:'lane',captures:0,after,score:after};
  const pos=ludoTrackPosition(p,after);
  let captures=0,score=0;
@@ -1710,7 +1719,7 @@ function ludoDraw(){ludoPaint();renderLudoFinished();ludoCells.forEach(cell=>cel
  if(ludo.pawns[p][i]===56)continue;
  const [r,c]=ludoPos(p,i),el=ludoCells[r*15+c];const pawn=document.createElement('button');pawn.className='ludoPawn p'+p;pawn.type='button';pawn.textContent=i+1;pawn.dataset.player=p;pawn.dataset.pawn=i;const ring=document.createElement('span');ring.className='pawnReadyRing';ring.setAttribute('aria-hidden','true');pawn.append(ring);
  const pigment=ludoColor(p);pawn.style.setProperty('--p',pigment.hex);pawn.style.setProperty('--pLight',pigment.light);pawn.style.setProperty('--pDark',pigment.dark);
- if(!ludo.complete&&turnPlayer()===p&& !ludo.moving&&ludoLegal(ludo.pawns[p][i],ludo.die))pawn.classList.add('legal');
+ if(!ludo.complete&&turnPlayer()===p&& !ludo.moving&&ludoLegal(ludo.pawns[p][i],ludo.die,p))pawn.classList.add('legal');
  pawn.setAttribute('aria-label',ludoLabel(p)+' token '+(i+1));el.append(pawn);
  }
  // Each cell is a self-contained stack: 2, 3 or 4 pawns shrink and remain inside the same square.
@@ -1739,11 +1748,42 @@ function nextLudoTurn(){ludo.die=0;ludo.turn=(ludo.turn+1)%ludo.players.length;l
 function ludoTrackPosition(p,step){return (START_OFFSETS[p]+step)%52}
 function ludoBotScore(pawnIndex){return ludoMovePriority(2,pawnIndex,ludo.die)}
 function ludoBotChoose(legal){return ludoChooseMove(2,legal)}
+function repeatLudoTurn(){
+ const session=ludo;ludo.die=0;ludoDraw();
+ if(ludo.mode==='bot'&&turnPlayer()===2)setTimeout(()=>{
+  if(ludo===session&&turnPlayer()===2&&!ludo.die&&!ludo.complete&&document.body.classList.contains('ludo-playing'))ludoRoll();
+ },550);
+}
+function finishUnplayableRoll(){
+ if(ludo.arenaBot&&ludo.die===6)repeatLudoTurn();else nextLudoTurn();
+}
+function arenaBotDie(){
+ if(ludo.openingLeft===undefined){
+  ludo.openingLeft=ludo.pawns[2].every(step=>step===-1)?2+(ludoRandom6()%2):0;
+ }
+ if(ludo.openingLeft>0){
+  ludo.openingLeft--;
+  let value;do{value=ludoRandom6();}while(value===6);
+  return value;
+ }
+ for(const kind of ['capture','deploy','home']){
+  let best=0,rank=-Infinity;
+  for(let die=1;die<=(kind==='capture'?12:6);die++)for(let i=0;i<4;i++){
+   const move=ludoMoveInfo(2,i,die);
+   if(move?.kind!==kind)continue;
+   const score=ludoMovePriority(2,i,die);
+   if(score>rank){rank=score;best=die;}
+  }
+  if(best)return best;
+ }
+ return ludoRandom6();
+}
 function ludoRoll(){
+ if(window.Play80Arena?.active()){window.Play80Arena.roll();return;}
  if(ludo.complete||ludo.die||ludo.moving)return;
- const player=turnPlayer();ludoSfx('roll');ludo.die=ludoRandom6();rollLudoDieVisual(player,ludo.die);ludoDraw();
+ const player=turnPlayer();ludoSfx('roll');ludo.die=ludo.arenaBot&&player===2?arenaBotDie():ludoRandom6();rollLudoDieVisual(player,ludo.die);ludoDraw();
  const choices=ludoActions(player);
- if(!choices.length){$('ludoTurn').textContent=ludoLabel(player)+' rolled '+ludo.die+' — no legal moves';const pendingSession=ludo,pendingDie=ludo.die;setTimeout(()=>{if(ludo===pendingSession&&ludo.die===pendingDie&&document.body.classList.contains('ludo-playing')&&!ludo.moving)nextLudoTurn()},950);return}
+ if(!choices.length){$('ludoTurn').textContent=ludoLabel(player)+' rolled '+ludo.die+' — no legal moves';const pendingSession=ludo,pendingDie=ludo.die;setTimeout(()=>{if(ludo===pendingSession&&ludo.die===pendingDie&&document.body.classList.contains('ludo-playing')&&!ludo.moving)finishUnplayableRoll()},950);return}
  const chosen=ludoChooseMove(player,choices),info=ludoMoveInfo(player,chosen,ludo.die);
  const kind=info.kind==='capture'?'Capture first':info.kind==='deploy'?'Deploy on a six':info.kind==='home'?'Reach home':'Best legal move';
  $('ludoPowerLog').textContent='🎯 '+ludoLabel(player)+' suggests token '+(chosen+1)+' — '+kind+'. die '+ludo.die+'; priority: capture → deploy → home.';
@@ -1780,7 +1820,8 @@ async function ludoAnimateCapture(player,index,session){
  ghost.remove();if(ludo===session)pawn.style.visibility='';
 }
 async function moveLudoPawn(p,i){
- if(ludo.moving||ludo.complete||turnPlayer()!==p||!ludoLegal(ludo.pawns[p][i],ludo.die))return;
+ if(window.Play80Arena?.active()){if(p===0)window.Play80Arena.pawn(i);return;}
+ if(ludo.moving||ludo.complete||turnPlayer()!==p||!ludoLegal(ludo.pawns[p][i],ludo.die,p))return;
  const die=ludo.die,start=ludo.pawns[p][i],session=ludo;
  ludo.moving=true;
  try{
@@ -1801,7 +1842,7 @@ async function moveLudoPawn(p,i){
    }
   }
   if(ludo!==session||!document.body.classList.contains('ludo-playing'))return;
-  const step=ludo.pawns[p][i];let log='';
+  const step=ludo.pawns[p][i];let log='',captured=false;
   if(start===-1)log='🎲 '+ludoLabel(p)+' deployed token '+(i+1)+' with a six';
   if(step===56)log='🏠 '+ludoLabel(p)+' token '+(i+1)+' reached home';
   if(step<51){const trackIndex=ludoTrackPosition(p,step);
@@ -1812,7 +1853,7 @@ async function moveLudoPawn(p,i){
       ludoSfx('capture');
       await ludoAnimateCapture(other,j,session);
       if(ludo!==session)return;
-      ludo.pawns[other][j]=-1;ludoDraw();
+      captured=true;ludo.pawns[other][j]=-1;ludoDraw();
       log+=' ✦ '+ludoLabel(other)+' token captured — returned to base';
      }
     }
@@ -1822,7 +1863,7 @@ async function moveLudoPawn(p,i){
   const win=ludo.mode==='team'?([0,2].filter(k=>ludo.players.includes(k)).length&&[0,2].filter(k=>ludo.players.includes(k)).every(k=>ludo.pawns[k].every(t=>t===56))?'Team A':[1,3].filter(k=>ludo.players.includes(k)).length&&[1,3].filter(k=>ludo.players.includes(k)).every(k=>ludo.pawns[k].every(t=>t===56))?'Team B':''):(ludo.pawns[p].every(t=>t===56)?ludoLabel(p):'');
   ludo.moving=false;
   if(win){ludo.complete=true;ludo.die=0;ludoDraw();$('ludoTurn').textContent='🏆 Winner: '+win+'! Start a new match.';$('ludoRoll').disabled=true;return}
-  if(die===6){ludo.die=0;ludoDraw();if(ludo.mode==='bot'&&turnPlayer()===2)setTimeout(ludoRoll,550)}else nextLudoTurn();
+  if(die===6||(ludo.arenaBot&&(captured||step===56)))repeatLudoTurn();else nextLudoTurn();
  }finally{ludo.moving=false}
 }
 
@@ -1853,7 +1894,7 @@ function ludoSavedGames(){
 }
 function ludoSnapshot(){
  return {pathVersion:2,mode:ludo.mode,players:ludo.players.slice(),turn:ludo.turn,die:ludo.die,
-  complete:!!ludo.complete,pawns:ludo.pawns.map(a=>a.slice()),nicknames:ludo.nicknames.slice(),colorIndices:ludo.colorIndices.slice()};
+  openingLeft:ludo.openingLeft,arenaBot:ludo.mode==='bot'&&!!ludo.arenaBot,complete:!!ludo.complete,pawns:ludo.pawns.map(a=>a.slice()),nicknames:ludo.nicknames.slice(),colorIndices:ludo.colorIndices.slice()};
 }
 function renderLudoSavedGames(){
  const list=$('ludoSavedList'),saves=ludoSavedGames();list.replaceChildren();
@@ -1886,18 +1927,18 @@ function resumeLudoGame(id){
  if(snap.players.some(p=>!Number.isInteger(p)||p<0||p>3)||new Set(snap.players).size!==snap.players.length){toast('Invalid players in saved match.');return;}
  if(snap.pawns.some(a=>!Array.isArray(a)||a.length!==4||a.some(n=>!Number.isInteger(n)||n< -1||n>57))){toast('Invalid token positions in saved match.');return;}
  const correctedPawns=snap.pathVersion===2?snap.pawns.map(a=>a.slice()):snap.pawns.map(a=>a.map(step=>step>=52?step-1:step));
- ludo={mode:snap.mode,players:snap.players.slice(),turn:Math.min(Math.max(0,Number(snap.turn)||0),snap.players.length-1),die:Math.max(0,Math.min(6,Number(snap.die)||0)),complete:!!snap.complete,
+ ludo={mode:snap.mode,players:snap.players.slice(),turn:Math.min(Math.max(0,Number(snap.turn)||0),snap.players.length-1),die:Math.max(0,Math.min(snap.arenaBot&&snap.mode==='bot'&&snap.players[snap.turn]===2?12:6,Number(snap.die)||0)),complete:!!snap.complete,
   pawns:correctedPawns,nicknames:Array.isArray(snap.nicknames)?snap.nicknames.slice(0,4):['','','',''],
-  colorIndices:Array.isArray(snap.colorIndices)&&snap.colorIndices.length===4?snap.colorIndices.slice():storedLudoColors.slice(),moving:false,saveSlotId:id};
+  colorIndices:Array.isArray(snap.colorIndices)&&snap.colorIndices.length===4?snap.colorIndices.slice():storedLudoColors.slice(),openingLeft:Number.isInteger(snap.openingLeft)?Math.min(3,Math.max(0,snap.openingLeft)):undefined,arenaBot:snap.mode==='bot'&&snap.arenaBot===true,moving:false,saveSlotId:id};
  hideLudoExitDialog();document.body.classList.add('ludo-playing');
  $('ludoSetup').classList.add('hidden');$('ludoGameplay').classList.remove('hidden');
  renderLudoDice();ludoDraw();window.scrollTo(0,0);
  // AI proceeds only after a resumed, active bot turn.
  if(ludo.mode==='bot'&&!ludo.complete&&turnPlayer()===2){if(!ludo.die)setTimeout(()=>{if(ludo.saveSlotId===id&&!ludo.die&&turnPlayer()===2)ludoRoll()},650);
-  else setTimeout(()=>{if(ludo.saveSlotId===id&&ludo.die&&turnPlayer()===2&&!ludo.moving){const options=ludoActions(2);if(options.length)moveLudoPawn(2,ludoBotChoose(options));else nextLudoTurn()}},650);}
+  else setTimeout(()=>{if(ludo.saveSlotId===id&&ludo.die&&turnPlayer()===2&&!ludo.moving){const options=ludoActions(2);if(options.length)moveLudoPawn(2,ludoBotChoose(options));else finishUnplayableRoll()}},650);}
  if(!ludo.complete&&ludo.die&&ludoActions(turnPlayer()).length===0){
    const pendingSession=ludo,pendingDie=ludo.die;
-   setTimeout(()=>{if(ludo===pendingSession&&ludo.die===pendingDie&&!ludo.moving)nextLudoTurn()},700);
+   setTimeout(()=>{if(ludo===pendingSession&&ludo.die===pendingDie&&!ludo.moving)finishUnplayableRoll()},700);
  }
  toast('Saved Ludo match resumed');
 }
@@ -2099,6 +2140,9 @@ function updateLudoDice(){const dock=$('playerDiceDock');if(!dock)return;for(let
  }}
 function rollLudoDieVisual(p,n){
  const b=$('playerDiceDock').querySelector('.d'+p);if(!b)return;
+ const faceLabel=b.querySelector('.dieResultFace');
+ faceLabel.dataset.special=n>6?String(n):'';
+ if(n>6){b.classList.remove('rolling');b.classList.add('hasResult');return;}
  const cube=b.querySelector('.ludoCube');
  const orientation={1:[0,0],2:[-90,0],3:[0,-90],4:[0,90],5:[90,0],6:[0,180]};
  LUDO_DICE_TURNS[p]+=720;const [x,y]=orientation[n];
@@ -2116,6 +2160,7 @@ const play80GoBase=go;
 go=function(next){if(next!==screen){play80NavStack.push(screen);if(play80NavStack.length>30)play80NavStack.shift();}play80GoBase(next);document.body.classList.toggle('ludo-screen',next==='ludo');
  $('globalBack').classList.toggle('hidden',next==='home');};
 function play80Back(){
+ if(window.Play80Arena?.active()){window.Play80Arena.leave();return;}
  if(!$('demoWithdrawNotice').classList.contains('hidden')){$('demoWithdrawNotice').classList.add('hidden');go('wallet');return;}
  if(!$('ludoExitOverlay').classList.contains('hidden')){hideLudoExitDialog();return;}
  if(!$('ludoSkillPopup').classList.contains('hidden')){hideSkillPopup();return;}
@@ -2515,8 +2560,15 @@ go=function(destination){if(destination!=='crazyshow')cwSoundStop();cwBaseGo(des
 cwBuildSpots();cwDraw();cwRenderAudio();cwRefresh();
 
 document.querySelectorAll('[data-open]').forEach(el=>el.addEventListener('click',()=>go(el.dataset.open)));document.querySelectorAll('[data-choice]').forEach(el=>el.addEventListener('click',()=>setChoice(Number(el.dataset.choice))));document.querySelectorAll('[data-stake]').forEach(b=>b.addEventListener('click',()=>setWheelStake(Number(b.dataset.stake))));$('spinBtn').addEventListener('click',spin);$('rollBtn').addEventListener('click',roll);$('gift100').addEventListener('click',()=>gift(100));$('gift500').addEventListener('click',()=>gift(500));window.addEventListener('popstate',play80Back);window.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();play80Back()}});drawWheel();render();go('home');
+window.Play80LudoView={
+ state:()=>ludo,sound:()=>ludoSfxEnabled,$,ludoColor,ludoLabel,ludoActions,ludoPos,turnPlayer,moveLudoPawn,ludoRoll,LUDO_DICE_PIP_POS,LUDO_LANES,
+ open(){go('ludo');newLudo('bot');ludo.arenaBot=true;beginLudoMatch();},
+ update(s,completed){ludo.pawns=s.pawns.map(a=>a.slice());ludo.turn=s.turn===2?1:0;ludo.die=s.die;ludo.complete=completed;ludo.serverLast=s.last;ludoDraw();},
+ backToBet(){go('bet');}
+};
 })();
 </script>
+<script src="play80_ludo_reference.js"></script>
 <script src="play80_chess.js"></script>
 <script src="play80_online.js"></script>
 <script src="play80_tournament.js"></script>

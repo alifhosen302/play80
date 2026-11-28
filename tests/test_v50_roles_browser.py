@@ -238,7 +238,7 @@ try:
   catalog=home.locator('.homeGameGrid')
   games=catalog.locator('.gameTile')
   assert games.count()==14
-  assert page.locator('#screen-bet .gameTile[data-game-id="ludo"]').count()==1
+  assert page.locator('#screen-bet #p8OpenBotLudo').count()==1
   assert home.locator('.hero, #p8RealAccountCTA').count()==0
   for width,height in [(360,720),(390,844)]:
    page.set_viewport_size({'width':width,'height':height})
@@ -341,8 +341,14 @@ try:
   page.locator('#p8MenuQuick').get_by_role('button',name='ডিপোজিট',exact=True).click()
   page.locator('#p8FirstCreditOffer').wait_for(state='visible')
   assert 'প্রথম অনুমোদিত ডিপোজিট ঠিক ১,০০০' in page.locator('#p8FirstCreditOffer').inner_text()
-  assert page.get_by_label('ডেমো সেন্ড মানি নম্বর').input_value()=='00000000000'
-  assert not page.get_by_label('ডেমো সেন্ড মানি নম্বর').is_editable()
+  assert page.locator('#cloudEmail').is_hidden()
+  assert not page.locator('#p8DepositNumber').is_editable()
+  for mode in ['সেন্ড মানি','ক্যাশ আউট']:
+   page.get_by_role('button',name=mode,exact=True).click()
+   for network in ['বিকাশ','নগদ']:
+    page.get_by_role('button',name=network,exact=True).click()
+    assert page.get_by_label(network+' '+mode+' নম্বর').is_visible()
+    assert page.locator('#cloudRequestKind').input_value()=='demo_credit'
   page.get_by_role('button',name='রিকোয়েস্টের ইতিহাস',exact=True).click()
   assert page.locator('#cloudSignedIn').get_attribute('data-section')=='history', page.locator('#cloudSignedIn').get_attribute('data-section')
   assert page.locator('#screen-account').is_visible()
@@ -387,7 +393,8 @@ try:
   turnover['items']=[]
   page.locator('#p8MenuButton').click()
   page.locator('#p8MenuQuick').get_by_role('button',name='ডিপোজিট',exact=True).click()
-  page.locator('.p8-request-toolbar').get_by_role('button',name='উইথড্র',exact=True).click()
+  page.locator('#p8MenuButton').click()
+  page.locator('#p8MenuQuick').get_by_role('button',name='উইথড্র',exact=True).click()
   page.locator('.p8-amount-grid [data-amount="500"]').click()
   page.get_by_role('button',name='অনুরোধ পাঠাও').click()
   page.get_by_text('উইথড্রযোগ্য ডেমো কয়েন: ০',exact=True).wait_for()
@@ -398,12 +405,13 @@ try:
   turnover['withdrawable_coins']=500
   page.locator('#p8MenuButton').click()
   page.locator('#p8MenuQuick').get_by_role('button',name='ডিপোজিট',exact=True).click()
-  page.locator('.p8-request-toolbar').get_by_role('button',name='উইথড্র',exact=True).click()
+  page.locator('#p8MenuButton').click()
+  page.locator('#p8MenuQuick').get_by_role('button',name='উইথড্র',exact=True).click()
   page.get_by_label('ট্রান্সেকশন নম্বর',exact=True).wait_for(state='hidden')
   assert page.get_by_label('ডেমো সেন্ড মানি নম্বর').is_hidden()
-  assert page.get_by_role('button',name='বিকাশ ডেমো',exact=True).is_visible()
+  assert page.locator('#p8DepositNumber').is_hidden()
   assert page.locator('#cloudRequestKind').input_value()=='demo_debit'
-  assert page.locator('.p8-request-toolbar [data-kind="demo_debit"]').get_attribute('aria-pressed')=='true'
+  assert page.locator('#cloudRequestKind').input_value()=='demo_debit'
   page.locator('.p8-amount-grid [data-amount="500"]').click()
   assert page.locator('#cloudAmount').input_value()=='500'
   assert page.locator('.p8-amount-grid [data-amount="500"]').get_attribute('aria-pressed')=='true'

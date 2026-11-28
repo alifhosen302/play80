@@ -22,7 +22,7 @@ assert(preview.includes('resetLocalMemory()')&&preview.includes("navigate('2048'
 assert(!/\.rpc\(|play80_memory_start|play80_tournament_join|debitCoins/.test(preview),'Local preview must not join or debit a tournament');
 assert(tourOnline.includes('t.rules?.late_registration===true')&&tourOnline.includes('for(const p of ranks){'),'Late join and full authenticated leaderboard');
 assert(arena.includes('id="p8BlackName"')&&arena.includes('id="p8WhiteName"'),'Both chess player names');
-for(const id of ['p8ChessLeave','p8ChessResign','p8ChessDraw','p8ChessRestart','p8ChessWin','p8ChessOnline'])assert(arena.includes('id="'+id+'"'),'Chess control '+id);
+for(const id of ['p8ChessLeave','p8ChessResign','p8ChessRestart','p8ChessWin'])assert(arena.includes('id="'+id+'"'),'Chess control '+id);
 assert(!arena.includes("el('p8ChessBack')"),'Stale missing chess element handler');
 assert(chess.includes('function resign')&&chess.includes('function agreeDraw'),'Chess game ends supported');
 console.log('PASS V4.6: Tournament cards, source assets, login redirects, chess controls and terminal logic');

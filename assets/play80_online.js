@@ -617,6 +617,7 @@
   },40000);
   window.Play80Cloud=Object.freeze({
     user:()=>verifiedAuth?session?.user||null:null,
+    botArena:async(payload)=>raw('/functions/v1/bot-arena','POST',payload,await token()),
     rpc:async(name,payload={})=>db('rpc/'+encodeURIComponent(name),'POST',payload),
     reloadAccount:loadAccount
   });
@@ -970,6 +971,9 @@
       await loadAdmins();
     },ownerStatus);
   });
+  const walletStyle=document.createElement('style');
+  walletStyle.textContent='#cloudSignedIn[data-section="wallet"]>.sectionTitle,#screen-account:has(.p8-deposit-view:not([hidden]))>.back,.p8-deposit-view>.hubStat,.p8-wallet-form [hidden]{display:none!important}.p8-deposit-view{gap:6px!important;padding-top:0!important}.p8-deposit-view>h2{margin:0 0 3px!important}.p8-demo-number-row input{width:0}.p8-deposit-view button{margin-top:0}';
+  document.head.append(walletStyle);
   const signedIn=$('cloudSignedIn');
   const ownProfile=document.createElement('section');
   const ownWallet=document.createElement('section');
@@ -1019,40 +1023,79 @@
   const referenceField=$('play80DemoReferenceField');
   const referenceInput=$('cloudNote');
   const kindField=$('cloudRequestKind');
-  const requestModes=[['demo_credit','ডিপোজিট'],['demo_debit','উইথড্র']];
-  for(const [kind,label] of requestModes){
-    const button=createText('button',label);
-    button.type='button';button.dataset.kind=kind;
-    button.addEventListener('click',()=>busy(button,kind==='demo_debit'?openWithdraw:async()=>selectWalletKind(kind),showWalletResponse));
-    requestToolbar.append(button);
-  }
+  const methods={send:'সেন্ড মানি',cashout:'ক্যাশ আউট'};
+  const providers={bkash:'বিকাশ',nagad:'নগদ'};
+  let method='send',provider='bkash',numbers={},readSerial=0;
   const walletControls=makeButton('রিকোয়েস্টের ইতিহাস',()=>openAccountPage('history',null,true),true);
   const paymentMethod=createText('div','','p8-demo-method');
-  const methodLabel=createText('button','','p8-demo-method-label');
-  methodLabel.type='button';methodLabel.setAttribute('aria-pressed','true');
-  const walletIcon=document.createElement('img');walletIcon.className='p8-demo-wallet-icon';
-  walletIcon.src='bkash-demo-mark.webp';walletIcon.alt='';
-  const methodName=createText('strong','বিকাশ সেন্ড মানি');
-  methodLabel.append(walletIcon,methodName,createText('span','ডেমো','p8-demo-label'));
+  const methodName=createText('strong','');
+  const providerBar=createText('div','','p8-request-toolbar');
   const demoNumberRow=createText('div','','p8-demo-number-row');
   const demoNumber=document.createElement('input');
-  demoNumber.type='text';demoNumber.readOnly=true;demoNumber.value='00000000000';
-  demoNumber.setAttribute('aria-label','ডেমো সেন্ড মানি নম্বর');
-  demoNumber.addEventListener('click',()=>demoNumber.select());
+  demoNumber.type='text';demoNumber.readOnly=true;demoNumber.id='p8DepositNumber';
   const copyMessage=createText('small','');copyMessage.setAttribute('role','status');
   const copyNumber=createText('button','কপি','smallAction');copyNumber.type='button';
   copyNumber.addEventListener('click',async()=>{
-    try{
-      if(!navigator.clipboard?.writeText)throw Error('Clipboard unavailable');
-      await navigator.clipboard.writeText(demoNumber.value);
-      copyMessage.textContent='ডেমো নম্বর কপি হয়েছে।';
-    }catch(_){
-      demoNumber.focus();demoNumber.select();
-      copyMessage.textContent=document.execCommand?.('copy')?'ডেমো নম্বর কপি হয়েছে।':'নির্বাচিত ডেমো নম্বরটি কপি করুন।';
-    }
+    if(!demoNumber.value)return;
+    try{await navigator.clipboard.writeText(demoNumber.value);copyMessage.textContent='নম্বর কপি হয়েছে।';}
+    catch{demoNumber.select();copyMessage.textContent=document.execCommand('copy')?'নম্বর কপি হয়েছে।':'নির্বাচিত নম্বরটি কপি করুন।';}
   });
   demoNumberRow.append(demoNumber,copyNumber);
-  paymentMethod.append(methodLabel,demoNumberRow,copyMessage);
+  paymentMethod.append(providerBar,methodName,demoNumberRow,copyMessage);
+  function drawNumber(){
+    for(const b of requestToolbar.children)b.setAttribute('aria-pressed',String(b.dataset.key===method));
+    for(const b of providerBar.children)b.setAttribute('aria-pressed',String(b.dataset.key===provider));
+    methodName.textContent=providers[provider]+' '+methods[method];
+    demoNumber.setAttribute('aria-label',methodName.textContent+' নম্বর');
+    demoNumber.value=numbers[method+provider]||'';
+    demoNumber.placeholder='নম্বর সেট করা হয়নি';copyNumber.disabled=!demoNumber.value;copyMessage.textContent='';
+  }
+  for(const [bar,options,select] of [[requestToolbar,methods,k=>method=k],[providerBar,providers,k=>provider=k]]){
+    for(const [key,label] of Object.entries(options)){
+      const b=createText('button',label);b.type='button';b.dataset.key=key;b.onclick=()=>{select(key);drawNumber();};bar.append(b);
+    }
+  }
+  async function readNumbers(){
+    const rev=++readSerial;
+    const rows=await db('play80_deposit_numbers?select=method,provider,number');
+    if(rev!==readSerial)return;
+    numbers=Object.fromEntries(rows.map(r=>[r.method+r.provider,r.number]));drawNumber();
+  }
+  const numberEditor=document.createElement('section');
+  const editorStatus=createText('p','');editorStatus.setAttribute('role','status');
+  async function editNumbers(){
+    if(!isOwner())return;
+    numberEditor.replaceChildren(createText('h2','ডিপোজিটের নম্বর চেঞ্জ করুন'),editorStatus);editorStatus.textContent='';
+    await readNumbers();
+    for(const [m,title] of Object.entries(methods))for(const [p,name] of Object.entries(providers)){
+      const field=createText('label',title+' · '+name,'formGroup'),input=document.createElement('input');
+      let previous=numbers[m+p]||null;
+      input.type='tel';input.maxLength=11;input.inputMode='numeric';input.value=previous||'';field.append(input);
+      const save=makeButton('সেভ করুন',async()=>{
+        const value=input.value.trim().replace(/[০-৯]/g,d=>String('০১২৩৪৫৬৭৮৯'.indexOf(d)));
+        if(!/^01[0-9]{9}$/.test(value))throw Error('১১ সংখ্যার মোবাইল নম্বর লিখুন।');
+        await db('rpc/play80_set_deposit_number','POST',{p_method:m,p_provider:p,p_number:value,p_previous:previous});
+        previous=value;input.value=value;await readNumbers();editorStatus.textContent=title+' · '+name+' নম্বর সেভ হয়েছে।';
+      },true,s=>editorStatus.textContent=s);
+      numberEditor.append(field,save);
+    }
+  }
+  let watch=null,heartbeat=null,refreshTimer=null,watchEpoch=0;
+  function stopNumberWatch(){watchEpoch++;clearInterval(refreshTimer);clearInterval(heartbeat);watch?.close();watch=null;}
+  async function watchNumbers(){
+    stopNumberWatch();const epoch=watchEpoch;
+    const refresh=()=>readNumbers().catch(()=>{if(epoch===watchEpoch){numbers={};drawNumber();demoNumber.placeholder='নম্বর লোড করা যায়নি';}});
+    refresh();refreshTimer=setInterval(refresh,10000);
+    try{
+      const jwt=await token();if(epoch!==watchEpoch)return;
+      const ws=new WebSocket(BASE.replace('https:','wss:')+'/realtime/v1/websocket?apikey='+encodeURIComponent(KEY)+'&vsn=1.0.0');watch=ws;
+      let ref=0;
+      const send=(topic,event,payload)=>ws.send(JSON.stringify({topic,event,payload,ref:String(++ref)}));
+      ws.onopen=()=>{if(epoch!==watchEpoch)return;send('realtime:deposit-numbers','phx_join',{access_token:jwt,config:{postgres_changes:[{event:'UPDATE',schema:'public',table:'play80_deposit_numbers'}]}});
+        heartbeat=setInterval(()=>{if(ws.readyState===1)send('phoenix','heartbeat',{});},25000);};
+      ws.onmessage=e=>{if(epoch!==watchEpoch)return;const m=JSON.parse(e.data);if(m.event==='postgres_changes'||m.event==='phx_reply'&&m.ref==='1')refresh();};
+    }catch{ /* Periodic reads continue when Realtime is unavailable. */ }
+  }
   const firstCreditOffer=createText('p','প্রথম অনুমোদিত ডিপোজিট ঠিক ১,০০০ কয়েন হলে একবার ৫,০০০ বোনাস। অন্য পরিমাণে বা পরের ডিপোজিটে এই বোনাস প্রযোজ্য নয়।');
   firstCreditOffer.id='p8FirstCreditOffer';firstCreditOffer.hidden=true;
   function showFirstCreditOffer(){
@@ -1087,15 +1130,13 @@
     amountInput.min=debit?'200':'100';
     amountInput.max=debit?'1000000':'20000';
     walletHeading.textContent='কয়েন '+label;
-    methodName.textContent=debit?'বিকাশ':'বিকাশ সেন্ড মানি';
-    demoNumberRow.hidden=debit;
-    copyMessage.textContent='';
+    ownWallet.classList.toggle('p8-deposit-view',!debit);
+    requestToolbar.hidden=debit;paymentMethod.hidden=debit;drawNumber();
     showWalletResponse('');
     referenceField.hidden=debit;
     referenceInput.required=!debit;
     showFirstCreditOffer();
     amountHint.textContent=walletMoney(amountInput.min)+' থেকে '+walletMoney(amountInput.max)+' ভার্চুয়াল কয়েন';
-    for(const button of requestToolbar.children)button.setAttribute('aria-pressed',String(button.dataset.kind===kindField.value));
     amountGrid.replaceChildren();
     const presets=debit?[200,500,1000,3000,5000,10000]:[100,200,500,1000,3000,5000];
     for(const value of presets){
@@ -1110,6 +1151,7 @@
     kindField.value=kind;
     amountInput.value=kind==='demo_debit'?'200':'100';
     renderWalletKind();
+    if(kind==='demo_credit')watchNumbers();else stopNumberWatch();
   }
   amountInput.addEventListener('input',updatePresetSelection);
   renderWalletKind();
@@ -1334,13 +1376,14 @@
   }
 
   const accountSections={profile:ownProfile,wallet:ownWallet,history:historyPage,bonus:ownBonus,
-    referral,support:accountSupport,turnover:turnoverPage};
+    numbers:numberEditor,referral,support:accountSupport,turnover:turnoverPage};
   for(const section of Object.values(accountSections)){
     section.classList.add('p8-menu-section');signedIn.append(section);
   }
   let historyFromWallet=false;
   function selectAccountSection(name){
     if(name!=='history')historyFromWallet=false;
+    stopNumberWatch();
     signedIn.dataset.section=name;
     for(const [key,section] of Object.entries(accountSections))section.hidden=key!==name;
     syncFooter();
@@ -1352,7 +1395,9 @@
     selectAccountSection(section);
     document.dispatchEvent(new CustomEvent('play80:menu-navigate',{detail:'account'}));
     if(kind)selectWalletKind(kind);
-    if(section==='turnover')await refreshTurnover();
+    else if(section==='wallet'&&kindField.value==='demo_credit')watchNumbers();
+    if(section==='numbers')await editNumbers();
+    else if(section==='turnover')await refreshTurnover();
     else if(section==='support')await loadMyMessages();
     else if(section==='bonus'||section==='referral')await loadRewards();
     else await loadAccount();
@@ -1410,6 +1455,7 @@
     }
   });
   document.addEventListener('play80:screen-changed',()=>{
+    if(document.body.dataset.play80Screen!=='account')stopNumberWatch();
     syncFooter();
     if(activeGameCode&&!document.body.classList.contains('play80-game-section')){
       reportGame(activeGameCode,'finish');
@@ -1443,7 +1489,7 @@
     finally{countsPending=false;}
   }
   const menuIcons={
-    'প্রোফাইল':'👤','ড্যাশবোর্ড':'▥','ইউজার দেখুন':'👥','ডিপোজিট ও উইথড্র রিকোয়েস্ট':'⇄',
+    'ডিপোজিটের নম্বর চেঞ্জ করুন':'✎','প্রোফাইল':'👤','ড্যাশবোর্ড':'▥','ইউজার দেখুন':'👥','ডিপোজিট ও উইথড্র রিকোয়েস্ট':'⇄',
     'বোনাস':'🎁','সাপোর্ট':'💬','স্টাফ অ্যাকাউন্ট':'🛡','লাইভ গেম':'🎮','টুর্নামেন্ট':'🏆',
     'গেম পরীক্ষা':'🎮','AI':'🤖','কম্পিউটার প্লেয়ার':'🤖','ডিপোজিট':'⬇','উইথড্র':'⬆','রিকোয়েস্টের ইতিহাস':'◉',
     'রেফার বোনাস':'🔗','টার্নওভার':'▤','লগআউট':'↪'
@@ -1464,6 +1510,7 @@
     if(isStaff()){
       add('প্রোফাইল',account('profile'));
       add('ডিপোজিট ও উইথড্র রিকোয়েস্ট',staff('wallet'),'wallet',quick);
+      if(isOwner())add('ডিপোজিটের নম্বর চেঞ্জ করুন',account('numbers'));
       add('ড্যাশবোর্ড',staff('stats'),null,quick);
       add('ইউজার দেখুন',staff('users'));
       add('সাপোর্ট',staff('inbox'),'inbox');
