@@ -833,6 +833,32 @@ body.p8-auth-locked .app{max-width:560px}
 </style>
 <link rel="stylesheet" href="ludo-reference.css">
 <style>.dieResultFace[data-special]:not([data-special=""]) span{visibility:hidden}.dieResultFace[data-special]:not([data-special=""])::after{content:attr(data-special);position:absolute;inset:0;display:grid;place-items:center;color:#341b56;font-weight:bold}</style>
+<style id="p8CompactLoginLayout">
+/* Signed-out layout only. Keep normal scrolling for keyboard, signup and expanded recovery. */
+body.p8-auth-locked #screen-account{min-height:100dvh;padding:4px 10px 10px;box-sizing:border-box}
+body.p8-auth-locked #screen-account .p8AuthHero{padding:5px 0 6px;margin:0}
+body.p8-auth-locked #screen-account .p8AuthHero img{width:78px;height:78px;margin:0 auto}
+body.p8-auth-locked #screen-account .p8AuthHero h1,body.p8-auth-locked #screen-account .p8AuthHero p,body.p8-auth-locked #screen-account .p8AuthHero small,body.p8-auth-locked #screen-account .cloudPanel>.p8CoinDisclaimer{display:none}
+body.p8-auth-locked #screen-account .cloudPanel{padding:10px 12px!important;margin:0!important;border-radius:18px!important}
+body.p8-auth-locked #screen-account #cloudSignedOut .sectionTitle{margin:0 0 6px!important}
+body.p8-auth-locked #screen-account #cloudSignedOut .sectionTitle h2{font-size:17px;line-height:1.2}
+body.p8-auth-locked #screen-account .p8AuthModesSimple{gap:8px;margin:6px 0}
+body.p8-auth-locked #screen-account .p8AuthModesSimple button{min-height:44px;padding:7px 8px;font-size:15px;border-radius:11px}
+body.p8-auth-locked #screen-account #p8ModeHelp{margin:4px 0 6px;font-size:11px;line-height:1.35}
+body.p8-auth-locked #screen-account #cloudSignedOut .formGroup{margin:6px 0;gap:4px}
+body.p8-auth-locked #screen-account #cloudSignedOut .formGroup label{font-size:12px;line-height:1.25}
+body.p8-auth-locked #screen-account #cloudSignedOut .formGroup input{min-height:44px;padding:8px 10px;border-radius:10px;box-sizing:border-box;font-size:15px}
+body.p8-auth-locked #screen-account #cloudSignedOut .cloudActions{margin:7px 0;gap:5px}
+body.p8-auth-locked #screen-account #cloudSignedOut .cloudActions button{min-height:44px;font-size:15px;padding:8px 10px;border-radius:10px}
+body.p8-auth-locked #screen-account #cloudSignedOut #cloudNotice,body.p8-auth-locked #screen-account #cloudSignedOut #p8SignupResult{margin:6px 0;padding:7px 9px;font-size:12px;line-height:1.4;border-radius:10px}
+body.p8-auth-locked #screen-account #cloudRecover{min-height:38px;margin:5px 0 2px!important;padding:7px 10px;border-radius:9px;font-size:12px}
+body.p8-auth-locked #screen-account #cloudSignedOut>details{margin:1px 0}
+body.p8-auth-locked #screen-account #cloudSignedOut>details>summary{min-height:32px;padding:5px 0;box-sizing:border-box;font-size:13px;line-height:1.4;cursor:pointer}
+body.p8-auth-locked #screen-account #cloudSignedOut>details+button{min-height:34px;padding:5px 9px;border-radius:8px;font-size:12px}
+body.p8-auth-locked #screen-account #cloudSignedOut>p.tiny:not(#p8ModeHelp){font-size:10px;line-height:1.35;margin:5px 0}
+body.p8-auth-locked #screen-account .p8OwnerCreateLink{margin:4px auto 0;padding:5px 10px;min-height:34px;font-size:12px}
+@media(max-height:720px){body.p8-auth-locked #screen-account .p8AuthHero img{width:64px;height:64px}body.p8-auth-locked #screen-account .p8AuthHero{padding:3px 0 4px}}
+</style>
 </head>
 <body class="p8-auth-locked">
 <div class="app">

@@ -22,6 +22,23 @@ try:
   errors=[];page.on('pageerror',lambda err:errors.append(str(err)))
   page.route('**/auth/v1/signup',signup)
   page.goto(url,wait_until='load')
+  # Login must fit in a compact mobile viewport even with a logout notice.
+  page.locator('#p8ModeLogin').wait_for(state='visible')
+  page.locator('#cloudNotice').evaluate("""el => {el.hidden=false;el.classList.add('p8AuthSuccess');el.textContent='এই ডিভাইস থেকে লগআউট হয়েছে।';}""")
+  for width,height in [(360,680),(390,740)]:
+   page.set_viewport_size({'width':width,'height':height})
+   page.evaluate('window.scrollTo(0,0)')
+   assert page.locator('#screen-account .p8AuthHero img').is_visible()
+   assert not page.locator('#screen-account .p8AuthHero h1').is_visible()
+   assert not page.locator('#screen-account .p8AuthHero p').is_visible()
+   assert not page.locator('#screen-account .p8CoinDisclaimer').is_visible()
+   for selector in ['#p8ModeLogin','#p8ModeSignup','#cloudLoginEmail','#cloudLoginPassword','#cloudLogin','#cloudNotice','#cloudRecover','#cloudSignedOut > details > summary','#cloudSignedOut > details + button','#p8FirstOwnerSignup']:
+    element=page.locator(selector)
+    assert element.is_visible(),selector+' not visible'
+    rect=element.bounding_box()
+    assert rect and rect['y']>=0 and rect['y']+rect['height']<=height+1,selector+' outside viewport at '+str((width,height))+': '+str(rect)
+   assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'),'Login horizontal overflow'
+  page.set_viewport_size({'width':390,'height':844})
   page.locator('#p8ModeSignup').click()
   page.locator('#cloudLoginEmail').fill('example.signup@test.invalid')
   page.locator('#cloudRegistrationUsername').fill('unique_player45')
