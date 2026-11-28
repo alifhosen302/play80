@@ -2406,7 +2406,7 @@ function arSetActions(...items){arActions.replaceChildren();items.forEach(x=>arA
 function arMarkup(html){arPlay.innerHTML=html}
 function arBegin(){if(arc.live){toast('Finish the current round first');return false}if(!debitCoins(arc.game==='plinko'?(arc.stake||10):10,ARCADE_GAMES[arc.game].name+' • play cost')){arHelp('Insufficient free-play coins. Request demo coins from your wallet.');return false}arc.live=true;arc.complete=false;arc.id=++arcCounter;return true}
 function arEnd(payout,explain){if(!arc.live||arc.complete)return;arc.complete=true;arc.live=false;arc.finished=true;if(payout>0){award(payout,ARCADE_GAMES[arc.game].name+' • '+explain)}else{state.games++;addGameEntry(0,ARCADE_GAMES[arc.game].name+' • '+explain)}arHelp(explain+' · '+(payout?'+'+arNum(payout):'0')+' coins returned.');arSetActions(arButton('PLAY AGAIN • '+(arc.game==='plinko'?(arc.stake||10):10)+' COINS','reset'));}
-function arOpen(game){if(!ARCADE_GAMES[game])return;$('screen-arcade').classList.toggle('cup-focus',game==='cups');arc={game,live:false,finished:false,id:++arcCounter,stake:10};$('arcadeStakeLabel').textContent=game==='plinko'?'10 / 20 / 50 COINS':'10 COINS / ROUND';$('arcadeHero').textContent=ARCADE_GAMES[game].symbol;$('arcadeTitle').textContent=ARCADE_GAMES[game].name;$('arcadeDescription').textContent=ARCADE_GAMES[game].desc;$('arcadeHelp').textContent=ARCADE_GAMES[game].help;go('arcade');arRender()}
+function arOpen(game){if(!ARCADE_GAMES[game])return;$('screen-arcade').classList.toggle('cup-focus',game==='cups');arc={game,live:false,finished:false,id:++arcCounter,stake:10};$('arcadeStakeLabel').textContent=game==='plinko'?'10 / 20 / 50 COINS':'10 COINS / ROUND';$('arcadeHero').textContent=ARCADE_GAMES[game].symbol;$('arcadeTitle').textContent=ARCADE_GAMES[game].name;$('arcadeDescription').textContent=ARCADE_GAMES[game].desc;$('arcadeHelp').textContent=ARCADE_GAMES[game].help;go('arcade');document.body.classList.toggle('p8-local-practice',!serverArcadeGames.has(game));arRender()}
 function arRender(){const g=arc.game;arPlay.classList.remove('forestArena');arActions.replaceChildren();if(g==='carnival'){arMarkup('<div class="arcadeWheel" id="arcWheel"><span>🎁</span></div>');arHelp('Spin the carnival wheel for a random virtual-coin prize.');arSetActions(arButton('SPIN • 10 COINS','spin'))}
 else if(g==='cups'){
   arc.table=createCupTable(arPlay);
@@ -2421,7 +2421,67 @@ else if(g==='plinko'){arc.stake=arc.stake||10;arMarkup('<div class="arcadeChoice
 else if(g==='mines'){arMarkup('<div class="arcadeGrid" style="grid-template-columns:repeat(3,1fr)" id="minesGrid">'+Array.from({length:9},(_,i)=>'<button type="button" data-mine="'+i+'" disabled>❔</button>').join('')+'</div>');arHelp('Reveal gems. After one safe tile, cash out or keep searching.');arSetActions(arButton('START MINES • 10 COINS','start'))}
 else if(g==='keno'){arc.selected=[];arMarkup('<div class="arcadePick" id="kenoGrid">'+Array.from({length:20},(_,i)=>'<button type="button" data-keno="'+(i+1)+'">'+(i+1)+'</button>').join('')+'</div><div class="arcadeMoney" id="kenoResult">Choose 4 numbers to begin</div>');arHelp('Choose 4 numbers, then draw 6 random results.');arSetActions(arButton('DRAW • 10 COINS','draw',false,true))}
 else if(g==='scratch'){arMarkup('<div class="arcadeGrid" style="grid-template-columns:repeat(3,1fr)" id="scratchGrid">'+Array.from({length:9},(_,i)=>'<button type="button" data-scratch="'+i+'" disabled>❔</button>').join('')+'</div>');arHelp('Start and tap each covered card. Three or more of one fruit wins.');arSetActions(arButton('NEW CARD • 10 COINS','start'))}}
+const serverArcadeGames=new Set(['carnival','slots','roulette','plinko','keno']);
+let arcadePendingBusy=false;
+async function arServerRound(){
+ const account=window.Play80Cloud?.user?.(),view=arc;
+ if(!account){arHelp('আগে অ্যাকাউন্টে লগইন করুন।');return;}
+ if(arcadePendingBusy||view.live)return;
+ if(view.game==='keno'&&view.selected.length!==4){arHelp('চারটি নম্বর বেছে নিন।');return;}
+ const key='p8.demo.arcade.pending:'+account.id+':'+view.game;
+ let pending=null;
+ try{pending=JSON.parse(localStorage.getItem(key));}catch(_){}
+ if(!pending||pending.user!==account.id||pending.game!==view.game){
+  pending={user:account.id,game:view.game,id:newDemoRoundId(),stake:view.game==='plinko'?view.stake:10,choice:view.game==='roulette'?{color:view.bet}:view.game==='keno'?{numbers:[...view.selected]}:{}};
+  try{localStorage.setItem(key,JSON.stringify(pending));}catch(_){}
+ }
+ const action=view.game==='keno'?'draw':view.game==='plinko'?'start':'spin';
+ arcadePendingBusy=true;view.live=true;arSetActions();arHelp('সার্ভারে ডেমো ফলাফল যাচাই হচ্ছে…');
+ try{
+  const r=await window.Play80Cloud.rpc('play80_demo_arcade',{p_round_id:pending.id,p_game:pending.game,p_stake:pending.stake,p_choice:pending.choice});
+  if(!r||r.game!==pending.game||Number(r.stake)!==pending.stake||!Number.isSafeInteger(Number(r.reward))||Number(r.reward)<0||Number(r.net)!==Number(r.reward)-pending.stake)throw Error('Invalid server result');
+  try{localStorage.removeItem(key);}catch(_){}
+  if(window.Play80Cloud.user()?.id!==account.id)return;
+  void window.Play80Cloud.reloadAccount().catch(()=>{});
+  if(arc!==view||document.body.dataset.play80Screen!=='arcade')return;
+  if(view.game==='carnival'){
+   $('arcWheel').style.transform='rotate('+(1440+360*Number(r.index)/8)+'deg)';
+   await new Promise(resolve=>setTimeout(resolve,1450));
+   if(arc!==view)return;
+   $('arcWheel').querySelector('span').textContent=r.reward?arNum(r.reward)+' 🪙':'💣';
+  }else if(view.game==='slots'){
+   const fruit=['🍒','🍋','🍇','🍉','🍊','🍎','🍓'];
+   const reels=[...$('slotFaces').querySelectorAll('.slotReel')];
+   for(const reel of reels)reel.classList.add('spinning');
+   await new Promise(resolve=>setTimeout(resolve,900));
+   if(arc!==view)return;
+   reels.forEach((reel,i)=>{reel.classList.remove('spinning');reel.textContent=fruit[r.reels[i]];});
+  }else if(view.game==='roulette'){
+   $('rouletteWheel').style.transform='rotate(1440deg)';
+   await new Promise(resolve=>setTimeout(resolve,1450));
+   if(arc!==view)return;
+   $('rouletteResult').textContent=r.number+' '+({red:'🔴',black:'⚫',green:'🟢'}[r.color]);
+  }else if(view.game==='plinko'){
+   for(const [i,pos] of r.steps.entries()){
+    if(arc!==view)return;
+    $('plinkoBall').style.transform='translate('+((pos-3)*30)+'px,'+((i+1)*4)+'px)';
+    await new Promise(resolve=>setTimeout(resolve,150));
+   }
+  }else if(view.game==='keno'){
+   document.querySelectorAll('[data-keno]').forEach(b=>{b.disabled=true;b.classList.toggle('drawn',r.drawn.includes(Number(b.dataset.keno)));});
+   $('kenoResult').textContent='Draw: '+[...r.drawn].sort((a,b)=>a-b).join(', ')+' • '+r.hits+' hits';
+  }
+  if(arc!==view||window.Play80Cloud.user()?.id!==account.id)return;
+  view.complete=true;view.finished=true;
+  arHelp(Number(r.net)>0?'জয় · +'+arNum(r.net)+' ডেমো কয়েন':Number(r.net)<0?'পরাজয় · −'+arNum(-r.net)+' ডেমো কয়েন':'ড্র · ব্যালেন্স অপরিবর্তিত');
+  arSetActions(arButton('PLAY AGAIN','reset'));
+ }catch(error){
+  if(/পর্যাপ্ত ব্যবহারযোগ্য|Invalid demo|Round choice mismatch|Verified demo player/.test(error.message)){try{localStorage.removeItem(key);}catch(_){}}
+  if(arc===view){arHelp('সার্ভার ফলাফল নিশ্চিত হয়নি। '+error.message);arSetActions(arButton('আবার চেষ্টা করুন',action));}
+ }finally{view.live=false;arcadePendingBusy=false;}
+}
 function arAction(name){const g=arc.game;if(name==='reset'){arRender();return}
+if(serverArcadeGames.has(g)){void arServerRound();return;}
 if(g==='carnival'&&name==='spin'){if(!arBegin())return;const id=arc.id;arSetActions();const opts=[0,10,20,50,0,30,10,20];const ix=arPick(opts.length);const prize=opts[ix];$('arcWheel').style.transform='rotate('+(1440+360*ix/8)+'deg)';arHelp('Wheel spinning...');setTimeout(()=>{if(arc.id!==id)return;$('arcWheel').querySelector('span').textContent=prize===0?'💣':prize+' 🪙';arEnd(prize,prize?'Prize '+prize:'No prize this round')},1450)}
 else if(g==='cups'&&name==='start'){
   if(!arBegin())return;

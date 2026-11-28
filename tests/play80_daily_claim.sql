@@ -299,3 +299,34 @@ begin
  assert (select completed from private.play80_turnover_items where source='deposit' and source_key='spin-test')=progress+90;
  assert not has_function_privilege('anon','public.play80_demo_spin(uuid,bigint)','execute');
 end $$;
+
+\i /work/supabase/migrations/20261128120000_central_demo_game_progress.sql
+do $$
+declare u uuid:='00000000-0000-4000-8000-000000000098';
+declare v uuid:='00000000-0000-4000-8000-000000000097';
+declare r jsonb; declare key uuid; declare g text; declare choice jsonb;
+declare expected bigint:=10000;declare progress bigint:=0;
+begin
+ insert into auth.users(id,email_confirmed_at) values(u,now()),(v,now());
+ update public.demo_wallets set balance=expected where user_id=u;
+ perform private.play80_record_turnover(u,'deposit','central-demo-test',100000);
+ perform set_config('test.uid',u::text,true);
+ foreach g in array array['carnival','slots','roulette','plinko','keno'] loop
+  choice:=case g when 'roulette' then '{"color":"red"}'::jsonb when 'keno' then '{"numbers":[1,2,3,4]}'::jsonb else '{}'::jsonb end;
+  for i in 1..10 loop
+   key:=gen_random_uuid();
+   r:=public.play80_demo_arcade(key,g,10,choice);
+   expected:=expected+(r->>'net')::bigint; progress:=progress+greatest(0,(r->>'net')::bigint);
+   assert public.play80_demo_arcade(key,g,10,choice)=r,'Retry must be idempotent';
+   assert (select balance from public.demo_wallets where user_id=u)=expected;
+   assert (select completed from private.play80_turnover_items where source_key='central-demo-test')=progress;
+  end loop;
+ end loop;
+ update public.demo_wallets set balance=0 where user_id=u;
+ assert (select completed from private.play80_turnover_items where source_key='central-demo-test')=progress;
+ assert jsonb_array_length(public.play80_my_turnover()->'items')=1,'A zero balance must preserve progress';
+ perform set_config('test.uid',v::text,true);
+ assert jsonb_array_length(public.play80_my_turnover()->'items')=0,'Never expose another account progress';
+ assert not has_function_privilege('anon','public.play80_demo_arcade(uuid,text,bigint,jsonb)','execute');
+ assert not has_table_privilege('authenticated','private.play80_demo_arcade_rounds','INSERT');
+end $$;
