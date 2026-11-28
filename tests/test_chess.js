@@ -20,3 +20,12 @@ let p=C.move(pr,pos('a7'),pos('a8'),'N');assert.equal(p.ok,true);assert.equal(p.
 let term=C.start();let resignation=C.resign(term,'w');assert.equal(resignation.ok,true);assert.equal(resignation.state.finished,'resignation');assert.equal(resignation.state.winner,'b');assert.equal(C.move(resignation.state,pos('e2'),pos('e4')).ok,false,'terminal state blocks moves');
 let agreed=C.agreeDraw(C.start());assert.equal(agreed.ok,true);assert.equal(agreed.state.finished,'agreed_draw');assert.equal(C.legal(agreed.state,pos('e2')).length,0,'draw stops game');
 console.log('PASS chess engine legality, checkmate, resignation and agreed draw including 20 opening moves, checkmate, en passant, castling, promotion');
+
+for(const bad of ['QR','BN','XYZ','']){const x=C.move(pr,pos('a7'),pos('a8'),bad);assert.equal(x.ok,true);assert.equal(x.state.board[pos('a8')],'Q');}
+assert.equal(p.state.finished,'dead_position','King and knight against king is drawn');
+const dead=C.start();dead.board=Array(64).fill('.');dead.board[pos('e1')]='K';dead.board[pos('e8')]='k';dead.castle={K:false,Q:false,k:false,q:false};
+assert.equal(C.move(dead,pos('e1'),pos('d1')).state.finished,'dead_position');
+const long=C.start();long.board=Array(64).fill('.');long.board[pos('e1')]='K';long.board[pos('e8')]='k';long.board[pos('a1')]='R';long.castle={K:false,Q:false,k:false,q:false};long.halfmove=149;
+assert.equal(C.move(long,pos('a1'),pos('a2')).state.finished,'seventy_five_move_draw');
+assert.equal(require('node:fs').readFileSync('assets/play80_chess.js','utf8'),require('node:fs').readFileSync('supabase/functions/bot-arena/chess.js','utf8'),'Chess rules copies must stay identical');
+console.log('PASS promotion validation, common dead positions, 75-move draw, client/server rule parity');

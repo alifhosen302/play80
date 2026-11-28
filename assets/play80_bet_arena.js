@@ -150,6 +150,8 @@
   else if(chess.finished==='stalemate')message='STALEMATE — DRAW';
   else if(chess.finished==='resignation')message=chessName(chess.winner)+' WINS — RESIGNATION';
   else if(chess.finished==='agreed_draw')message='DRAW — AGREED';
+  else if(chess.finished==='dead_position')message='DRAW — DEAD POSITION';
+  else if(chess.finished==='seventy_five_move_draw')message='DRAW — 75 MOVE RULE';
   else message=chessName(chess.turn)+' TO MOVE'+(window.PLAY80Chess.check(chess,chess.turn)?' • CHECK':'');
   el('p8ChessStatus').textContent=message;
   el('p8ChessWin').textContent=chess.finished?message:'';

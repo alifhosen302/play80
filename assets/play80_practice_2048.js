@@ -3,12 +3,14 @@
  * this game can be enrolled in a competitive tournament. */
 (() => {
  'use strict';
- const SIZE=4, MAX_TILE=1048576;
+ const SIZE=4, MAX_TILE=2**48;
+ function validTile(n){return Number.isSafeInteger(n)&&n>=0&&n<=MAX_TILE&&(n===0||Number.isInteger(Math.log2(n)));}
+ function validGrid(value){return Array.isArray(value)&&value.length===SIZE&&value.every(row=>Array.isArray(row)&&row.length===SIZE&&row.every(validTile));}
  function compactLine(source){
    const nonzero=source.filter(x=>x!==0), result=[];
    let gain=0;
    for(let i=0;i<nonzero.length;i++){
-     if(i+1<nonzero.length&&nonzero[i]===nonzero[i+1]){
+     if(i+1<nonzero.length&&nonzero[i]===nonzero[i+1]&&nonzero[i]<MAX_TILE){
        const value=nonzero[i]*2;result.push(value);gain+=value;i++;
      }else result.push(nonzero[i]);
    }
@@ -17,7 +19,7 @@
  }
  function move(grid,direction){
    if(!['left','right','up','down'].includes(direction))throw Error('Invalid direction');
-   if(!Array.isArray(grid)||grid.length!==SIZE||grid.some(row=>!Array.isArray(row)||row.length!==SIZE))throw Error('Invalid grid');
+   if(!validGrid(grid))throw Error('Invalid grid');
    const next=grid.map(row=>row.slice());let gain=0,moved=false;
    for(let line=0;line<SIZE;line++){
      const positions=[];
@@ -32,10 +34,11 @@
    return {grid:next,gain,moved};
  }
  function canMove(grid){
+   if(!validGrid(grid))return false;
    if(grid.some(row=>row.includes(0)))return true;
    for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
-     if(r<3&&grid[r][c]===grid[r+1][c])return true;
-     if(c<3&&grid[r][c]===grid[r][c+1])return true;
+     if(grid[r][c]<MAX_TILE&&r<3&&grid[r][c]===grid[r+1][c])return true;
+     if(grid[r][c]<MAX_TILE&&c<3&&grid[r][c]===grid[r][c+1])return true;
    }
    return false;
  }
@@ -58,12 +61,11 @@
    if(!empty.length)return;
    const [r,c]=empty[rand(empty.length)];grid[r][c]=rand(10)===0?4:2;
  }
- function validGrid(value){return Array.isArray(value)&&value.length===4&&value.every(row=>Array.isArray(row)&&row.length===4&&row.every(n=>Number.isInteger(n)&&n>=0&&n<=MAX_TILE&&(n===0||(n&(n-1))===0)));}
  function persist(){try{localStorage.setItem(STORE,JSON.stringify({grid,score,best,won}));}catch(_){}}
  function restore(){try{
    const previous=JSON.parse(localStorage.getItem(STORE)||'null');
    if(previous&&validGrid(previous.grid)&&Number.isSafeInteger(previous.score)&&previous.score>=0&&Number.isSafeInteger(previous.best)&&previous.best>=0){
-     grid=previous.grid;score=previous.score;best=previous.best;won=!!previous.won;
+     grid=previous.grid;score=previous.score;best=Math.max(previous.best,score);won=grid.some(row=>row.some(n=>n>=2048))||previous.won===true;
    }
  }catch(_){}
  if(!grid)newGame();else render();}
@@ -83,7 +85,7 @@
  function play(direction){
    if(!$('screen-2048')||$('screen-2048').classList.contains('hidden')||!grid)return false;
    const result=move(grid,direction);if(!result.moved)return false;
-   grid=result.grid;score+=result.gain;best=Math.max(best,score);
+   grid=result.grid;score=Math.min(Number.MAX_SAFE_INTEGER,score+result.gain);best=Math.max(best,score);
    if(grid.some(row=>row.some(n=>n>=2048)))won=true;
    addTile();persist();render();return true;
  }
@@ -97,15 +99,18 @@
  $('practice2048New').addEventListener('click',newGame);
  document.querySelectorAll('[data-2048-dir]').forEach(b=>b.addEventListener('click',()=>play(b.dataset['2048Dir'])));
  const surface=$('practice2048Grid');let touch=null;
- surface.addEventListener('touchstart',e=>{if(e.touches.length===1)touch={x:e.touches[0].clientX,y:e.touches[0].clientY};},{passive:true});
+ surface.addEventListener('touchstart',e=>{touch=e.touches.length===1?{id:e.touches[0].identifier,x:e.touches[0].clientX,y:e.touches[0].clientY}:null;},{passive:true});
+ surface.addEventListener('touchcancel',()=>{touch=null;},{passive:true});
  surface.addEventListener('touchend',e=>{
-   if(!touch||!e.changedTouches.length)return;
-   const dx=e.changedTouches[0].clientX-touch.x,dy=e.changedTouches[0].clientY-touch.y;touch=null;
+   const started=touch;touch=null;
+   if(!started||e.touches.length)return;
+   const ended=Array.from(e.changedTouches).find(x=>x.identifier===started.id);if(!ended)return;
+   const dx=ended.clientX-started.x,dy=ended.clientY-started.y;
    if(Math.max(Math.abs(dx),Math.abs(dy))<24)return;
    play(Math.abs(dx)>Math.abs(dy)?dx>0?'right':'left':dy>0?'down':'up');
  },{passive:true});
  const gameScreen=$('screen-2048');
- const applyNavigation=()=>document.body.classList.toggle('play80PracticeActive',!gameScreen.classList.contains('hidden'));
+ const applyNavigation=()=>{const shown=!gameScreen.classList.contains('hidden');if(!shown)touch=null;document.body.classList.toggle('play80PracticeActive',shown);};
  new MutationObserver(applyNavigation).observe(gameScreen,{attributes:true,attributeFilter:['class']});
  applyNavigation();
  restore();

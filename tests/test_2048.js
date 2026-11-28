@@ -13,3 +13,10 @@ assert.equal(canMove([[2,4,8,16],[32,64,128,256],[512,1024,2,4],[8,16,32,64]]),f
 assert.equal(canMove([[2,2,8,16],[32,64,128,256],[512,1024,2,4],[8,16,32,64]]),true);
 assert.throws(()=>move([[2,4,0,0]],'left'));
 console.log('PASS 12 focused tests: merges, no double merge, 4 directions, game over, input validation');
+
+const max=2**48;
+assert.deepEqual(compactLine([max,max,0,0]),{line:[max,max,0,0],gain:0});
+for(const bad of [-2,3,1.5,NaN,Infinity,'2',2**49])assert.throws(()=>move([[bad,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],'left'));
+assert.equal(canMove(Array.from({length:4},()=>Array(4).fill(max))),false);
+assert.equal(canMove([[2,0,0,0]]),false);
+console.log('PASS invalid restored tile, safe tile cap and terminal board checks');

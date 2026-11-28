@@ -62,7 +62,7 @@ function applyUnsafe(s,m,promo='Q'){
  const captured=b[m.to];b[m.to]=p;b[m.from]='.';
  if(m.enPassant)b[at(fr,tc)]='.';
  if(m.castle){const row=side==='w'?7:0,rookFrom=at(row,m.castle==='king'?7:0),rookTo=at(row,m.castle==='king'?5:3);b[rookTo]=b[rookFrom];b[rookFrom]='.';}
- if(m.promotion){const char=String(promo||'Q').toUpperCase();b[m.to]=side==='w'?(('QRBN'.includes(char))?char:'Q'):(('QRBN'.includes(char))?char:'Q').toLowerCase();}
+ if(m.promotion){const candidate=String(promo||'Q').toUpperCase();const char=['Q','R','B','N'].includes(candidate)?candidate:'Q';b[m.to]=side==='w'?char:char.toLowerCase();}
  if(p==='K'){n.castle.K=false;n.castle.Q=false;}if(p==='k'){n.castle.k=false;n.castle.q=false;}
  if(m.from===63||m.to===63)n.castle.K=false;if(m.from===56||m.to===56)n.castle.Q=false;
  if(m.from===7||m.to===7)n.castle.k=false;if(m.from===0||m.to===0)n.castle.q=false;
@@ -72,11 +72,20 @@ function applyUnsafe(s,m,promo='Q'){
 }
 function legal(s,from){if(s.finished||!Number.isInteger(from)||from<0||from>63||color(s.board[from])!==s.turn)return [];return possible(s,from).filter(m=>!check(applyUnsafe(s,m),s.turn));}
 function allMoves(s){let a=[];for(let i=0;i<64;i++)if(color(s.board[i])===s.turn)a.push(...legal(s,i));return a;}
+// Common FIDE dead positions. Conservative: never declare more complex positions drawn.
+function deadPosition(s){
+ const pieces=s.board.map((p,i)=>({p:p.toLowerCase(),i})).filter(x=>x.p!=='.'&&x.p!=='k');
+ if(!pieces.length)return true;
+ if(pieces.length===1)return ['b','n'].includes(pieces[0].p);
+ return pieces.every(x=>x.p==='b')&&pieces.every(x=>(Math.floor(x.i/8)+x.i%8)%2===(Math.floor(pieces[0].i/8)+pieces[0].i%8)%2);
+}
 function move(s,from,to,promo='Q'){
  const found=legal(s,from).find(m=>m.to===to);
  if(!found)return {ok:false,error:'Illegal move',state:s};
  const n=applyUnsafe(s,found,promo);const moves=allMoves(n);
  if(!moves.length)n.finished=check(n,n.turn)?'checkmate':'stalemate';
+ else if(deadPosition(n))n.finished='dead_position';
+ else if(n.halfmove>=150)n.finished='seventy_five_move_draw';
  return {ok:true,state:n,move:found,check:check(n,n.turn),finished:n.finished};
 }
 function resign(s,side){
@@ -142,5 +151,5 @@ function hardMove(state){
  }
  return best;
 }
-return {start,legal,move,check,attacked,allMoves,resign,agreeDraw,hardMove};
+return {start,legal,move,check,attacked,allMoves,resign,agreeDraw,hardMove,deadPosition};
 });
