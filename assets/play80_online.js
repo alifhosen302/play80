@@ -136,14 +136,20 @@
 
       if(!stillCurrent())return;
       $('cloudHeld').textContent=String(balance.held_balance||0);
-      const requests=await db('demo_wallet_requests?select=id,request_kind,amount,status,created_at,review_note&user_id=eq.'+encodeURIComponent(id)+'&order=created_at.desc&limit=25');
+      const requestQuery='&user_id=eq.'+encodeURIComponent(id)+'&order=created_at.desc&limit=25';
+      const requestFields='id,request_kind,amount,status,created_at,review_note';
+      let requests;
+      try{requests=await db('demo_wallet_requests?select='+requestFields+',instant_credited'+requestQuery);}
+      catch(error){if(!/instant_credited|42703|PGRST204/.test(error.message+' '+error.code))throw error;requests=await db('demo_wallet_requests?select='+requestFields+requestQuery);}
       if(!stillCurrent())return;
       const list=$('cloudRequests');list.replaceChildren();
       if(!requests?.length)list.textContent='No online requests yet.';
       (requests||[]).forEach(r=>{
         const item=document.createElement('div');item.className='cloudRequestItem';
         const title=document.createElement('strong');title.textContent=(r.request_kind==='demo_credit'?'➕ ডিপোজিট':'➖ উইথড্র')+' • '+r.amount;
-        const sub=document.createElement('small');const states={pending:'অপেক্ষমাণ',approved:'সফল',rejected:'প্রত্যাখ্যাত'};sub.textContent=(states[r.status]||r.status)+' • '+escDate(r.created_at)+(r.review_note?' • '+r.review_note:'');
+        const sub=document.createElement('small');const states={pending:'অপেক্ষমাণ',approved:'সফল',rejected:'প্রত্যাখ্যাত'};
+        const credited=r.request_kind==='demo_credit'&&r.instant_credited===true&&r.status==='pending';
+        sub.textContent=(credited?'কয়েন যোগ হয়েছে · যাচাইয়ে বাতিল হলে ফেরত কাটা হবে':states[r.status]||r.status)+' • '+escDate(r.created_at)+(r.review_note?' • '+r.review_note:'');
         item.append(title,sub);list.append(item);
       });
     }catch(e){if(stillCurrent())status(e.message,true);}
@@ -288,21 +294,24 @@
         return;
       }
     }
+    let instantCredit=false;
     try{
       if(type==='demo_credit'){
-        requirePinSuccess(await db('rpc/play80_submit_demo_credit','POST',{p_amount:amount,p_reference:reference}));
+        const result=await db('rpc/play80_submit_demo_credit','POST',{p_amount:amount,p_reference:reference});
+        requirePinSuccess(result);instantCredit=result?.instant_credited===true;
       }else{
         const pin=await askLoginPin('উইথড্র রিকোয়েস্ট · '+amount+' ভার্চুয়াল কয়েন');
         if(pin===null)return;
         requirePinSuccess(await db('rpc/play80_confirm_wallet_request','POST',{p_pin:pin,p_kind:type,p_amount:amount,p_note:null}));
       }
     }catch(error){
+      if(type==='demo_debit'&&error.message.includes('PLAY80_UNVERIFIED_DEMO_CREDIT'))throw Error('অযাচাইকৃত ডেমো কয়েন বা ফেরত কাটার বাকি হিসাব থাকলে কয়েন অপসারণ করা যায় না।');
       if(type!=='demo_debit'||!error.message.includes('PLAY80_TURNOVER_PENDING'))throw error;
       await openAccountPage('turnover');
       return;
     }
     $('cloudNote').value='';await loadAccount();
-    showWalletResponse('রিকোয়েস্ট পাঠানো হয়েছে। সিদ্ধান্ত রিকোয়েস্টের ইতিহাসে দেখাবে।');
+    showWalletResponse(instantCredit?'ডেমো কয়েন যোগ হয়েছে। যাচাইয়ে বাতিল হলে কয়েন ফেরত কাটা হবে।':type==='demo_debit'?'কয়েন সংরক্ষিত হয়েছে। উইথড্র রিকোয়েস্ট অপেক্ষমাণ।':'রিকোয়েস্ট পাঠানো হয়েছে। সিদ্ধান্ত রিকোয়েস্টের ইতিহাসে দেখাবে।');
   },showWalletResponse));
   $('cloudRefresh').addEventListener('click',e=>busy(e.currentTarget,loadAccount));
   $('cloudSignOut').hidden=true;
@@ -1012,7 +1021,7 @@
   function renderIdentity(){
     const account=verifiedAuth?session?.user:null;
     const name=account?(profile?.full_name||profile?.display_name||profile?.username||account.email||'PLAY80'):'—';
-    const coins=account&&balance?walletMoney(balance.balance):'—';
+    const coins=account&&balance?walletMoney(Math.max(0,Number(balance.balance)-Number(balance.held_balance||0))):'—';
     $('p8MenuAvatar').textContent='';
     $('p8MenuName').textContent=name;
     $('p8MenuUserId').textContent=account&&profile?.username?'@'+profile.username:'—';

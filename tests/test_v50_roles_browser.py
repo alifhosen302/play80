@@ -391,11 +391,14 @@ try:
   deposit_requests=[]
   def capture_deposit(route):
    deposit_requests.append(route.request.post_data_json)
-   route.fulfill(json={'ok':True,'request_id':'mock-credit'})
+   player_wallet['balance']=100
+   route.fulfill(json={'ok':True,'request_id':'mock-credit','instant_credited':True,'available_balance':100})
   page.route('**/rest/v1/rpc/play80_submit_demo_credit',capture_deposit)
   page.get_by_label('ট্রান্সেকশন নম্বর',exact=True).fill('DEMO-1001')
   page.get_by_role('button',name='অনুরোধ পাঠাও').click()
-  page.get_by_text('রিকোয়েস্ট পাঠানো হয়েছে। সিদ্ধান্ত রিকোয়েস্টের ইতিহাসে দেখাবে।',exact=True).wait_for()
+  page.get_by_text('ডেমো কয়েন যোগ হয়েছে। যাচাইয়ে বাতিল হলে কয়েন ফেরত কাটা হবে।',exact=True).wait_for()
+  assert page.locator('#headerCoins').inner_text()=='১০০'
+  player_wallet['balance']=0
   assert deposit_requests==[{'p_amount':100,'p_reference':'DEMO-1001'}]
   assert not page.locator('#play80ActionPin').is_visible()
   approved_credits.append({'id':'already-approved'})
