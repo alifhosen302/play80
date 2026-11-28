@@ -887,6 +887,26 @@ body.p8-support-view .p8-thread-open #p8OwnerInboxList>.action,body.p8-support-v
 body.p8-support-view #cloudOwnerNotice,body.p8-support-view #p8SupportReceipt{flex:none;margin:3px 0;padding:5px;font-size:11px}
 body.p8-support-view #screen-account .back,body.p8-support-view #screen-remote-owner .back{display:none}
 </style>
+<style id="p8FocusedAccountPages">
+/* Authenticated subpages show only their own content; the common header remains. */
+body:not(.p8-auth-locked) #screen-account:has(#cloudSignedIn:not(.hidden)[data-section]) :is(.p8AuthHero,.p8CoinDisclaimer),body:not(.p8-auth-locked) #screen-account:has(#cloudSignedIn:not(.hidden)[data-section])>.back{display:none!important}
+body:not(.p8-auth-locked) #cloudSignedIn:not(.hidden)[data-section] > :is(.sectionTitle,#cloudOwnerEntry,#cloudSignOut){display:none!important}
+body:not(.p8-auth-locked) #screen-account:has(#cloudSignedIn:not(.hidden)[data-section])>.cloudPanel{margin:0!important;padding:10px 12px!important}
+body:not(.p8-auth-locked) #cloudSignedIn:not(.hidden)[data-section]>.p8-menu-section:not([hidden]){gap:6px}
+#cloudSignedIn>.p8-menu-section>h2{font-size:18px;line-height:1.3;margin:0 0 5px}
+#cloudSignedIn>.p8-menu-section>p:empty,#cloudSignedIn>.p8-menu-section .p8-number-status:empty,#cloudNotice:empty{display:none!important}
+.p8-number-editor{gap:8px!important}
+.p8-number-editor .p8-number-row{display:grid;gap:4px;margin:0;padding:7px 0;border-bottom:1px solid #41435c}
+.p8-number-editor .p8-number-row:last-child{border-bottom:0}
+.p8-number-label{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700}
+.p8-payment-icon{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;flex:none;width:29px;height:25px;box-sizing:border-box;object-fit:contain;padding:2px;background:#fff;border-radius:5px}
+.p8-nagad-mark{background:#fff1e5;color:#c43b12;font-size:19px;font-weight:900;border:1px solid #e47e28}
+.p8-provider-option{display:flex;align-items:center;justify-content:center;gap:6px}
+.p8-number-controls{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;align-items:center}
+.p8-number-controls input{box-sizing:border-box;width:100%;min-width:0;min-height:44px;padding:7px 9px;border:1px solid #48516b;border-radius:9px;background:#101528;color:#eef1ff;font:inherit}
+.p8-number-controls .action{width:auto;min-height:44px;padding:6px 11px;margin:0;font-size:12px;border-radius:9px;white-space:nowrap}
+.p8-number-status{margin:0;padding:5px;font-size:12px;overflow-wrap:anywhere}
+</style>
 </head>
 <body class="p8-auth-locked">
 <div class="app">

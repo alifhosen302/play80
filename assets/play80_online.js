@@ -1037,6 +1037,10 @@
   const kindField=$('cloudRequestKind');
   const methods={send:'সেন্ড মানি',cashout:'ক্যাশ আউট'};
   const providers={bkash:'বিকাশ',nagad:'নগদ'};
+  function paymentProviderIcon(key){
+    if(key==='bkash'){const img=document.createElement('img');img.src='bkash-demo-mark.webp';img.alt='';img.className='p8-payment-icon';img.setAttribute('aria-hidden','true');return img;}
+    const icon=createText('span','ন','p8-payment-icon p8-nagad-mark');icon.setAttribute('aria-hidden','true');return icon;
+  }
   let method='send',provider='bkash',numbers={},readSerial=0;
   const walletControls=makeButton('রিকোয়েস্টের ইতিহাস',()=>openAccountPage('history',null,true),true);
   const paymentMethod=createText('div','','p8-demo-method');
@@ -1064,7 +1068,7 @@
   }
   for(const [bar,options,select] of [[requestToolbar,methods,k=>method=k],[providerBar,providers,k=>provider=k]]){
     for(const [key,label] of Object.entries(options)){
-      const b=createText('button',label);b.type='button';b.dataset.key=key;b.onclick=()=>{select(key);drawNumber();};bar.append(b);
+      const b=createText('button',label);b.type='button';b.dataset.key=key;if(bar===providerBar){b.classList.add('p8-provider-option');b.prepend(paymentProviderIcon(key));}b.onclick=()=>{select(key);drawNumber();};bar.append(b);
     }
   }
   async function readNumbers(){
@@ -1073,23 +1077,25 @@
     if(rev!==readSerial)return;
     numbers=Object.fromEntries(rows.map(r=>[r.method+r.provider,r.number]));drawNumber();
   }
-  const numberEditor=document.createElement('section');
-  const editorStatus=createText('p','');editorStatus.setAttribute('role','status');
+  const numberEditor=document.createElement('section');numberEditor.className='p8-number-editor';
+  const editorStatus=createText('p','','p8-number-status');editorStatus.setAttribute('role','status');
   async function editNumbers(){
     if(!isOwner())return;
     numberEditor.replaceChildren(createText('h2','ডিপোজিটের নম্বর চেঞ্জ করুন'),editorStatus);editorStatus.textContent='';
     await readNumbers();
     for(const [m,title] of Object.entries(methods))for(const [p,name] of Object.entries(providers)){
-      const field=createText('label',title+' · '+name,'formGroup'),input=document.createElement('input');
+      const row=createText('div','','p8-number-row'),field=createText('label','','p8-number-label'),input=document.createElement('input');
+      field.append(paymentProviderIcon(p),createText('span',title+' · '+name));
+      input.id='p8-number-'+m+'-'+p;field.htmlFor=input.id;
       let previous=numbers[m+p]||null;
-      input.type='tel';input.maxLength=11;input.inputMode='numeric';input.value=previous||'';field.append(input);
+      input.type='tel';input.maxLength=11;input.inputMode='numeric';input.value=previous||'';
       const save=makeButton('সেভ করুন',async()=>{
         const value=input.value.trim().replace(/[০-৯]/g,d=>String('০১২৩৪৫৬৭৮৯'.indexOf(d)));
         if(!/^01[0-9]{9}$/.test(value))throw Error('১১ সংখ্যার মোবাইল নম্বর লিখুন।');
         await db('rpc/play80_set_deposit_number','POST',{p_method:m,p_provider:p,p_number:value,p_previous:previous});
         previous=value;input.value=value;await readNumbers();editorStatus.textContent=title+' · '+name+' নম্বর সেভ হয়েছে।';
       },true,s=>editorStatus.textContent=s);
-      numberEditor.append(field,save);
+      const controls=createText('div','','p8-number-controls');controls.append(input,save);row.append(field,controls);numberEditor.append(row);
     }
   }
   let watch=null,heartbeat=null,refreshTimer=null,watchEpoch=0;

@@ -120,6 +120,18 @@ try:
   page.locator('#globalBack').click()
   assert page.locator('#screen-menu').is_visible()
   assert page.locator('#p8MenuItems .p8-menu-icon').count()>=5
+  page.route('**/rest/v1/play80_deposit_numbers?*',lambda route:route.fulfill(json=[{'method':m,'provider':n,'number':None} for m in ['send','cashout'] for n in ['bkash','nagad']]))
+  page.get_by_role('button',name='ডিপোজিটের নম্বর চেঞ্জ করুন').click()
+  page.locator('.p8-number-editor .p8-number-row').last.wait_for(state='visible')
+  assert page.locator('.p8-number-editor .p8-number-row').count()==4
+  assert page.locator('.p8-number-editor .p8-payment-icon').count()==4
+  assert page.locator('#screen-account .p8AuthHero').is_hidden()
+  assert page.locator('#screen-account .p8CoinDisclaimer').is_hidden()
+  assert page.locator('#cloudEmail').is_hidden()
+  assert page.locator('#cloudOwnerEntry').is_hidden()
+  assert page.locator('.p8-number-status').is_hidden()
+  page.locator('#globalBack').click()
+  assert page.locator('#screen-menu').is_visible()
   assert page.locator('#p8MenuItems').evaluate("(grid) => getComputedStyle(grid).gridTemplateColumns.split(' ').length")==4
   assert page.locator('#p8MenuAvatar').is_visible()
   assert page.locator('#p8MenuUserId').inner_text()=='@play80'
