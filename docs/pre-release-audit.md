@@ -41,3 +41,5 @@ Separate practice points from account totals. Keep actual money, cash withdrawal
 - Flight countdown uses a monotonic deadline and stops while off-screen or backgrounded; resumes same local practice round.
 - Crazy Wheel: visible round counter, bonus countdown, single-action lock prevents timeout and user action from settling the same bonus.
 - Arcade: inactive-screen action guard and reset lifecycle. No new payout formula or payment integration.
+
+- Enabled RLS on private turnover items; live table ACL verification confirms anonymous/authenticated roles have no direct read or write access. Existing owner/security-definer functions retain access. No wallet data changed.

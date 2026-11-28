@@ -339,3 +339,10 @@ begin
  assert not has_function_privilege('anon','public.play80_demo_arcade(uuid,text,bigint,jsonb)','execute');
  assert not has_table_privilege('authenticated','private.play80_demo_arcade_rounds','INSERT');
 end $$;
+
+\i /work/supabase/migrations/20261129100000_private_turnover_items_rls.sql
+do $$ begin
+ assert (select relrowsecurity from pg_class where oid='private.play80_turnover_items'::regclass),'Private turnover row security enabled';
+ assert not has_table_privilege('authenticated','private.play80_turnover_items','SELECT');
+ assert not has_table_privilege('authenticated','private.play80_turnover_items','INSERT');
+end $$;
