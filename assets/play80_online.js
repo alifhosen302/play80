@@ -785,8 +785,10 @@
   async function loadOwnerInbox(){
     const revision=++inboxRevision;
     activeOwnerThread=null;
+    const wasThread=inbox.classList.contains('p8-thread-open');
     inbox.classList.remove('p8-thread-open');
     const list=$('p8OwnerInboxList');
+    if(wasThread)list.replaceChildren();
     const viewer=session?.user?.id;
     const rows=await getOwnerThreads($('p8InboxSearch').value.trim());
     if(revision!==inboxRevision||activeOwnerThread||!verifiedAuth||session?.user?.id!==viewer)return;

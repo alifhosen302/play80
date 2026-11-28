@@ -93,6 +93,9 @@ try:
   page.route('**/rest/v1/rpc/play80_owner_reply_support',send_reply)
   page.locator('#p8InboxSearch').fill('mock-player')
   page.get_by_role('button',name='@example_player',exact=True).click()
+  # Opening a thread performs two asynchronous RPC calls before mounting its UI.
+  page.locator('#p8OwnerChatLog').wait_for(state='visible')
+  page.locator('#p8InboxSearch').wait_for(state='hidden')
   assert page.locator('#p8InboxRefresh').count()==0
   assert page.get_by_text('← সব কথোপকথন',exact=True).count()==0
   assert page.locator('#p8InboxSearch').is_hidden()
@@ -112,6 +115,7 @@ try:
   assert page.locator('.footerNav .active').count()==1
   page.locator('#globalBack').click()
   page.locator('#p8InboxSearch').wait_for(state='visible')
+  page.locator('#p8OwnerChatLog').wait_for(state='detached')
   assert page.locator('#p8OwnerChatLog').count()==0
   page.locator('#globalBack').click()
   assert page.locator('#screen-menu').is_visible()
